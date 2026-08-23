@@ -1,0 +1,452 @@
+import React, { useState, useEffect, useRef } from 'react';
+import CameraView from './components/CameraView';
+import AudioRecorder from './components/AudioRecorder';
+import ChatInterface from './components/ChatInterface';
+import EnrollmentForm from './components/EnrollmentForm';
+import AvatarCanvas from './components/AvatarCanvas';
+import axios from 'axios';
+import { Maximize2, Minimize2 } from 'lucide-react';
+
+// Pages
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import CaregiverDashboard from './pages/CaregiverDashboard';
+import NavBar from './components/SideNav'; // Imported as NavBar
+
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
+
+
+
+function App() {
+  const [view, setView] = useState('landing');
+  const [mode, setMode] = useState('person');
+  const [messages, setMessages] = useState([
+    { role: 'bot', text: "Hello! Show me a face or object, or ask me a question." }
+  ]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [currentPerson, setCurrentPerson] = useState(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [avatarMessage, setAvatarMessage] = useState(null);
+  const [isCameraExpanded, setIsCameraExpanded] = useState(true); // Default Expanded
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState(""); // Granular Status
+
+  const [enrollType, setEnrollType] = useState('person'); // 'person' or 'object'
+
+  // UseRef to trigger camera capture from outside
+  const cameraTriggerRef = useRef(null);
+
+  const [captureTrigger, setCaptureTrigger] = useState(0);
+  const [enrollData, setEnrollData] = useState(null);
+
+  // Handlers
+  const triggerScanFace = () => {
+    setMode('person');
+    setCaptureTrigger(Date.now());
+  };
+
+  const triggerScanObject = () => {
+    setMode('object');
+    setCaptureTrigger(Date.now());
+  };
+
+  const handleEnrollSave = async (data) => {
+    setIsProcessing(true);
+    const formData = new FormData();
+    formData.append('file', data.file, 'enroll.jpg');
+    formData.append('name', data.name);
+    formData.append('notes', data.notes || '');
+
+    if (data.type === 'object') {
+      try {
+        const res = await axios.post(`${API_BASE}/remember/object`, formData);
+        addBotMessage(`I've remembered your ${data.name}.`);
+        speakResponse(`I have remembered your ${data.name}.`);
+        return { success: true };
+      } catch (err) {
+        console.error("Object enrollment error:", err);
+        const detail = err.response?.data?.detail || err.message || "Failed to enroll object.";
+        return { success: false, error: detail };
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      formData.append('relation', data.relation || 'Acquaintance');
+      if (data.age) formData.append('age', data.age);
+      if (data.audioBlob) {
+        formData.append('audio_file', data.audioBlob, 'voice.webm');
+      }
+
+      try {
+        const res = await axios.post(`${API_BASE}/remember/person`, formData);
+        const avatarUrl = res.data?.avatar_url;
+        if (avatarUrl) {
+          addBotMessage(`I've remembered ${data.name}. (Avatar Created)`);
+        } else {
+          addBotMessage(`I've remembered ${data.name}.`);
+        }
+        speakResponse(`I have remembered ${data.name}.`);
+        return { success: true, avatar_url: avatarUrl };
+      } catch (err) {
+        console.error("Person enrollment error:", err);
+        const detail = err.response?.data?.detail || err.message || "Failed to enroll person. Make sure face is clear.";
+        return { success: false, error: detail };
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    setSuggestions([
+      "Where is my wallet?",
+      "Enroll new person",
+      "Enroll new object"
+    ]);
+  }, []);
+
+  const handleSuggestionClick = (text) => {
+    if (text === "Enroll new person") {
+      setEnrollType('person');
+      setMode('enroll_ui');
+    } else if (text === "Enroll new object") {
+      setEnrollType('object');
+      setMode('enroll_ui');
+    } else {
+      handleSendMessage(text);
+    }
+  };
+
+  const handleCapture = async (blob) => {
+    setIsProcessing(true);
+    const formData = new FormData();
+
+    if (mode === 'enroll_capture' && enrollData) {
+      formData.append('file', blob, 'enroll.jpg');
+      formData.append('name', enrollData.name);
+      formData.append('notes', enrollData.notes);
+
+      try {
+        if (enrollData.type === 'object') {
+          await axios.post(`${API_BASE}/remember/object`, formData);
+          addBotMessage(`I've remembered your ${enrollData.name}.`);
+          speakResponse(`I have remembered your ${enrollData.name}.`);
+        } else {
+          formData.append('relation', enrollData.relation);
+          if (enrollData.age) formData.append('age', enrollData.age);
+          if (enrollData.audioBlob) {
+            formData.append('audio_file', enrollData.audioBlob, 'voice.webm');
+          }
+          const res = await axios.post(`${API_BASE}/remember/person`, formData);
+          if (res.data.avatar_url) {
+            addBotMessage(`I've remembered ${enrollData.name}. (Avatar Created)`);
+          } else {
+            addBotMessage(`I've remembered ${enrollData.name}.`);
+          }
+          speakResponse(`I have remembered ${enrollData.name}.`);
+        }
+        setMode('person');
+        setEnrollData(null);
+      } catch (e) {
+        console.error(e);
+        addBotMessage("Failed to enroll.");
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
+    formData.append('file', blob, 'capture.jpg');
+
+    try {
+      let endpoint = mode === 'person' ? `${API_BASE}/recognize/person` : `${API_BASE}/find/object`;
+      const res = await axios.post(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const data = res.data;
+
+      if (mode === 'person' && data.status === 'identified') {
+        setCurrentPerson(data.person);
+        addBotMessage(`I see ${data.person.name}.`);
+        updateSuggestions(data.person, 'person');
+        speakResponse(`Hello ${data.person.name}.`);
+      } else if (mode === 'object' && data.status === 'identified') {
+        const loc = data.object.location || "unknown location";
+        addBotMessage(`I found your ${data.object.name}. It is usually in ${loc}.`);
+        updateSuggestions(data.object, 'object');
+        speakResponse(`That is your ${data.object.name}. Location: ${loc}.`);
+      } else if (mode === 'object' && data.status === 'generic_detection') {
+        const objects = data.objects.map(o => o.object).join(", ");
+        addBotMessage(`I see: ${objects}. (Not in my personal memory)`);
+        const firstObj = data.objects && data.objects[0] ? data.objects[0].object : "item";
+        updateSuggestions({ name: firstObj, type: 'object' }, 'object');
+        speakResponse(`I see ${objects}.`);
+      } else if (mode === 'person' && data.status === 'no_face_detected') {
+        addBotMessage("I couldn't detect a face clearly. Please look straight at the camera and try again.");
+        speakResponse("I couldn't see a face clearly. Please try again.");
+      } else {
+        addBotMessage(`I don't recognize that ${mode} in my memory.`);
+        speakResponse(`I don't recognize that ${mode}.`);
+      }
+    } catch (err) {
+      console.error(err);
+      addBotMessage("Error connecting to memory service. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const updateSuggestions = (entity, explicitType = null) => {
+    if (!entity || !entity.name || entity.name === 'general' || entity.name === 'Memory') {
+      setSuggestions([
+        "Where is my black pen?",
+        "Who is Sachin?",
+        "I kept my keys in the drawer",
+        "Scan an Object"
+      ]);
+      return;
+    }
+
+    const name = entity.name;
+    const isObject = explicitType === 'object' ||
+                     entity.type === 'object' ||
+                     Boolean(entity.location && !entity.relation && !entity.age);
+
+    if (isObject) {
+      setSuggestions([
+        `Where is my ${name}?`,
+        `I moved my ${name} to drawer`,
+        `When was my ${name} last updated?`,
+        `Notes on ${name}`
+      ]);
+    } else {
+      const list = [
+        `Who is ${name}?`,
+        `How do I know ${name}?`,
+        `Any notes on ${name}?`
+      ];
+      if (entity.audio || entity.audio_base64) {
+        list.push(`How does ${name} talk?`);
+      }
+      setSuggestions(list);
+    }
+  };
+
+  const handleSendMessage = async (text) => {
+    setIsProcessing(true);
+    setProcessingStatus("Accessing Memory Bank...");
+
+    // Simulate steps for better UX
+    const statusInterval = setInterval(() => {
+      setProcessingStatus(prev => {
+        if (prev === "Accessing Memory Bank...") return "Consulting LLM Cortex...";
+        if (prev === "Consulting LLM Cortex...") return "Synthesizing Response...";
+        return prev;
+      });
+    }, 1500);
+
+    setMessages(prev => [...prev, { role: 'user', text }]);
+    let responseText = "I'm not sure about that.";
+    let audioUrl = null;
+    let imageBase64 = null;
+
+    try {
+      if (currentPerson && (text.toLowerCase().includes("talk") || text.toLowerCase().includes("voice"))) {
+        if (currentPerson.audio) {
+          responseText = `Here is the voice of ${currentPerson.name}.`;
+          try {
+            const binaryString = window.atob(currentPerson.audio);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'audio/webm' });
+            audioUrl = URL.createObjectURL(blob);
+          } catch (e) {
+            responseText = "I found a voice record but couldn't play it.";
+          }
+        } else {
+          responseText = `I don't have a voice sample for ${currentPerson.name}.`;
+        }
+
+        clearInterval(statusInterval);
+        setProcessingStatus("Retrieving Voice Sample...");
+
+        setTimeout(() => {
+          addBotMessage(responseText, audioUrl);
+          speakResponse(responseText);
+          setIsProcessing(false);
+          setProcessingStatus("");
+        }, 800);
+        return;
+      }
+
+      const res = await axios.post(`${API_BASE}/chat/query`, { text });
+
+      clearInterval(statusInterval);
+      setProcessingStatus("Finalizing...");
+
+      const data = res.data;
+      if (data.status === 'found') {
+        responseText = data.text;
+        if (data.audio_base64) {
+          try {
+            const binaryString = window.atob(data.audio_base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'audio/webm' });
+            audioUrl = URL.createObjectURL(blob);
+          } catch (e) { }
+        }
+        if (data.image_base64) imageBase64 = data.image_base64;
+        
+        if (data.person) {
+          const isObj = data.entity_type === 'object' || data.person.type === 'object' || Boolean(data.person.location && !data.person.relation);
+          if (!isObj) {
+            setCurrentPerson(data.person);
+          }
+          updateSuggestions(data.person, isObj ? 'object' : 'person');
+        }
+      } else {
+        responseText = data.text || "I don't know who that is.";
+      }
+      addBotMessage(responseText, audioUrl, imageBase64, data.gallery);
+      speakResponse(responseText);
+    } catch (e) {
+      clearInterval(statusInterval);
+      console.error(e);
+      responseText = "I had trouble searching my memory.";
+      addBotMessage(responseText);
+      speakResponse(responseText);
+    } finally {
+      if (!((currentPerson && (text.toLowerCase().includes("talk") || text.toLowerCase().includes("voice"))))) {
+        setIsProcessing(false);
+        setProcessingStatus("");
+      }
+    }
+  };
+
+  const addBotMessage = (text, audioUrl = null, imageBase64 = null, gallery = []) => {
+    setMessages(prev => [...prev, { role: 'bot', text, audioUrl, image: imageBase64, gallery }]);
+  };
+
+  const speakResponse = (text) => {
+    setIsSpeaking(true);
+    setAvatarMessage(text);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setAvatarMessage(null);
+    };
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // VIEW ROUTING
+  let content;
+  if (view === 'landing') {
+    content = <LandingPage onGetStarted={() => setView('login')} />;
+  }
+  else if (view === 'login') {
+    content = (
+      <LoginPage onSelectRole={(role) => {
+        if (role === 'caregiver') setView('caregiver');
+        else setView('patient');
+      }} />
+    );
+  }
+  else if (view === 'caregiver') {
+    content = <CaregiverDashboard />;
+  } else {
+    // Patient App Content
+    content = (
+      <div className="app-container">
+        {/* MAIN STAGE (FULL WIDTH) */}
+        <div className="main-stage">
+          <div className="avatar-zone">
+            <AvatarCanvas isSpeaking={isSpeaking} isProcessing={isProcessing} processingStatus={processingStatus} message={avatarMessage} />
+          </div>
+          <div className="chat-zone">
+            {mode === 'enroll_ui' ? (
+              <EnrollmentForm
+                type={enrollType}
+                onCancel={() => setMode('person')}
+                onSave={handleEnrollSave}
+              />
+            ) : (
+              <ChatInterface
+                messages={messages}
+                currentPerson={currentPerson}
+                onSendMessage={handleSendMessage}
+                suggestions={suggestions}
+                onSuggestionClick={handleSuggestionClick}
+                onPlayAudio={(url) => new Audio(url).play()}
+                onCapture={handleCapture}
+                onScanFace={() => { setMode('person'); }}
+                onScanObject={() => { setMode('object'); }}
+                onEnroll={() => { setEnrollType('person'); setMode('enroll_ui'); }}
+                onEnrollObject={() => { setEnrollType('object'); setMode('enroll_ui'); }}
+                isTyping={isProcessing}
+                typingStatus={processingStatus}
+                captureTrigger={captureTrigger}
+                enrollType={enrollType}
+              />
+            )}
+          </div>
+        </div>
+
+        <style>{`
+        .app-container {
+            display: flex;
+            height: 100%;
+            background: #060a12;
+            color: #f1f5f9;
+            overflow: hidden;
+            flex-direction: row; 
+            width: 100%;
+        }
+        .main-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            position: relative;
+            background: transparent;
+            overflow: hidden;
+        }
+        .avatar-zone {
+            width: 460px;
+            height: 100%;
+            position: relative;
+            background: transparent;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .chat-zone {
+            flex: 1;
+            height: 100%;
+            padding: 0;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+            background: transparent;
+        }
+        @media (max-width: 900px) {
+            .main-stage { flex-direction: column; }
+            .avatar-zone { width: 100%; height: 320px; }
+        }
+      `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#060a12', overflow: 'hidden' }}>
+      <NavBar onViewChange={setView} currentView={view} />
+      <div style={{ flex: 1, paddingTop: '70px', height: '100%', overflow: 'hidden' }}>
+        {content}
+      </div>
+    </div>
+  );
+}
+
+export default App;

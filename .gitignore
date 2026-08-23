@@ -1,0 +1,48 @@
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Python Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Node Dependencies & Build Output
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+build/
+.npm/
+
+# Temporary Uploads & Local Media
+temp_uploads/*
+!temp_uploads/.gitkeep
+audio/enrolled/*
+!audio/enrolled/.gitkeep
+audio/temp/*
+!audio/temp/.gitkeep
+photo/*
+!photo/.gitkeep
+
+# Database & Local Vector Storage
+qdrant_storage/
+
+# Logs & OS artifacts
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
