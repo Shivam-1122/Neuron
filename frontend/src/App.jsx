@@ -32,6 +32,7 @@ function App() {
   const [processingStatus, setProcessingStatus] = useState(""); // Granular Status
 
   const [enrollType, setEnrollType] = useState('person'); // 'person' or 'object'
+  const [llmProvider, setLlmProvider] = useState('groq'); // 'groq' (primary) or 'gemini'
 
   // UseRef to trigger camera capture from outside
   const cameraTriggerRef = useRef(null);
@@ -270,6 +271,18 @@ function App() {
     }
   };
 
+  const handleToggleLLM = async (provider) => {
+    const newProv = provider || (llmProvider === 'groq' ? 'gemini' : 'groq');
+    setLlmProvider(newProv);
+    try {
+      await axios.post(`${API_BASE}/llm/provider`, { provider: newProv });
+      const engineName = newProv === 'gemini' ? 'Google Gemini 3.6 Flash' : 'Groq Llama 3 (Primary)';
+      addBotMessage(`⚡ LLM Cortex switched to: ${engineName}`, null, null, [], newProv);
+    } catch (e) {
+      console.warn("Failed to update backend LLM provider:", e);
+    }
+  };
+
   const handleSendMessage = async (text) => {
     setIsProcessing(true);
     setProcessingStatus("Accessing Memory Bank...");
@@ -305,7 +318,7 @@ function App() {
         setProcessingStatus("Retrieving Voice Sample...");
 
         setTimeout(() => {
-          addBotMessage(responseText, audioUrl);
+          addBotMessage(responseText, audioUrl, null, [], llmProvider);
           speakResponse(responseText, () => {
             if (audioUrl) playAudioSample(audioUrl);
           });
@@ -315,12 +328,14 @@ function App() {
         return;
       }
 
-      const res = await axios.post(`${API_BASE}/chat/query`, { text });
+      const res = await axios.post(`${API_BASE}/chat/query`, { text, provider: llmProvider });
 
       clearInterval(statusInterval);
       setProcessingStatus("Finalizing...");
 
       const data = res.data;
+      const responseProvider = data.llm_provider || llmProvider;
+
       if (data.status === 'found') {
         responseText = data.text;
         const retrievedAudio = data.audio_base64 || (data.person ? (data.person.audio || data.person.audio_base64) : null);
@@ -339,7 +354,7 @@ function App() {
       } else {
         responseText = data.text || "I don't know who that is.";
       }
-      addBotMessage(responseText, audioUrl, imageBase64, data.gallery);
+      addBotMessage(responseText, audioUrl, imageBase64, data.gallery, responseProvider);
       speakResponse(responseText, () => {
         if (isVoiceQuery && audioUrl) {
           playAudioSample(audioUrl);
@@ -349,7 +364,7 @@ function App() {
       clearInterval(statusInterval);
       console.error(e);
       responseText = "I had trouble searching my memory.";
-      addBotMessage(responseText);
+      addBotMessage(responseText, null, null, [], llmProvider);
       speakResponse(responseText);
     } finally {
       if (!(currentPerson && isVoiceQuery)) {
@@ -359,8 +374,8 @@ function App() {
     }
   };
 
-  const addBotMessage = (text, audioUrl = null, imageBase64 = null, gallery = []) => {
-    setMessages(prev => [...prev, { role: 'bot', text, audioUrl, image: imageBase64, gallery }]);
+  const addBotMessage = (text, audioUrl = null, imageBase64 = null, gallery = [], provider = null) => {
+    setMessages(prev => [...prev, { role: 'bot', text, audioUrl, image: imageBase64, gallery, llmProvider: provider || llmProvider }]);
   };
 
   const speakResponse = (text, onComplete = null) => {
@@ -437,6 +452,8 @@ function App() {
                 typingStatus={processingStatus}
                 captureTrigger={captureTrigger}
                 enrollType={enrollType}
+                llmProvider={llmProvider}
+                onToggleLLM={handleToggleLLM}
               />
             )}
           </div>

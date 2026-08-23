@@ -1,5 +1,6 @@
-
 from fastapi import APIRouter, Body
+from pydantic import BaseModel
+from typing import Optional
 from app.services.conversation_service import conversation_service
 from app.services.semantic_memory import semantic_memory
 from app.services.memory_service import memory_service
@@ -7,20 +8,44 @@ from app.services.llm_service import llm_service
 
 router = APIRouter()
 
+class SetProviderRequest(BaseModel):
+    provider: str
+
+class ChatQueryRequest(BaseModel):
+    text: str
+    provider: Optional[str] = None
+
+@router.get("/llm/provider")
+async def get_llm_provider():
+    """Retrieve the current active LLM engine and all available providers."""
+    return llm_service.get_provider_info()
+
+@router.post("/llm/provider")
+async def set_llm_provider(req: SetProviderRequest):
+    """Switch active LLM engine between 'groq' (Primary) and 'gemini'."""
+    new_provider = llm_service.set_provider(req.provider)
+    return {
+        "status": "success",
+        "active_provider": new_provider,
+        "message": f"LLM Cortex switched to {new_provider.upper()}"
+    }
+
 @router.post("/chat/query")
-async def chat_query(text: str = Body(..., embed=True)):
+async def chat_query(req: ChatQueryRequest):
     """
     Process a text query or statement.
     Supports:
     1. Real-time Memory Intake & Position Updates ("I switched the position of pen to drawer")
     2. Semantic Vector Search + Recency-Prioritized Context retrieval
-    3. Server-Side Context Tracking
+    3. Multimodal LLM Engine Toggle (Groq / Gemini)
+    4. Server-Side Context Tracking
     """
-    text = text.strip()
+    text = (req.text or "").strip()
+    provider = req.provider or llm_service.active_provider
     lower_text = text.lower()
     
     # 0. CHECK IF USER IS PROVIDING AN UPDATE / STATEMENT (e.g. "I switched the position of pen to backpack")
-    statement_analysis = llm_service.analyze_statement_intent(text)
+    statement_analysis = llm_service.analyze_statement_intent(text, provider=provider)
     if statement_analysis.get("is_update"):
         entity = statement_analysis.get("entity")
         location = statement_analysis.get("location")
@@ -43,7 +68,6 @@ async def chat_query(text: str = Body(..., embed=True)):
                 notes=f"User updated location to {location}: {text}"
             )
         elif location and not entity:
-            # Try to extract entity from text or context
             context = conversation_service.get_context()
             ctx_name = context.get("name") if context else None
             if ctx_name:
@@ -64,6 +88,7 @@ async def chat_query(text: str = Body(..., embed=True)):
         return {
             "status": "found",
             "text": confirmation,
+            "llm_provider": provider,
             "entity_type": "object" if location else "statement",
             "person": {"name": entity or "Memory", "type": "object" if location else "statement", "location": location, "notes": fact},
             "audio_base64": None,
@@ -85,7 +110,8 @@ async def chat_query(text: str = Body(..., embed=True)):
     if is_followup and not context_name and "who is" not in lower_text:
          return {
              "status": "unknown",
-             "text": "I'm not sure who you are referring to. Who are we talking about?"
+             "text": "I'm not sure who you are referring to. Who are we talking about?",
+             "llm_provider": provider
          }
     
     # 3. Direct Entity Search (Person/Object Name)
@@ -95,15 +121,12 @@ async def chat_query(text: str = Body(..., embed=True)):
     semantic_matches = semantic_memory.search_knowledge(text, context_name=context_name, limit=4)
     
     if entity_matches:
-        # High confidence match on entity
         payload = entity_matches[0].payload
         name = payload.get("name")
         matches = [{"name": name, "score": 1.0, "payload": payload}]
     elif context_name and is_followup and "who is" not in lower_text:
-        # Contextual Search: Filter by current person/object
         matches = semantic_matches
     else:
-        # Global Semantic Search
         matches = semantic_matches
     
     if matches:
@@ -144,7 +167,12 @@ async def chat_query(text: str = Body(..., embed=True)):
             llm_context["has_image"] = bool(image_base64)
 
         # Generate Response via LLM with prioritized recent timeline
-        final_text = llm_service.generate_response(user_text=text, context=llm_context, additional_memories=semantic_matches)
+        final_text, provider_used = llm_service.generate_response(
+            user_text=text,
+            context=llm_context,
+            additional_memories=semantic_matches,
+            provider=provider
+        )
 
         # Build Gallery
         gallery = []
@@ -173,12 +201,12 @@ async def chat_query(text: str = Body(..., embed=True)):
 
         entity_type = "object" if (matched_entity and (matched_entity.get("type") == "object" or "location" in matched_entity or "object_name" in matched_entity)) else "person"
 
-        # Attach image if this query is about a specific recognized person/object in memory
         final_image = image_base64 if (image_base64 and matched_entity and matched_entity.get("name") and matched_entity.get("name") != "general") else None
 
         response_data = {
             "status": "found",
             "text": final_text,
+            "llm_provider": provider_used,
             "entity_type": entity_type,
             "person": matched_entity,
             "audio_base64": final_audio or audio_base64,
@@ -189,5 +217,6 @@ async def chat_query(text: str = Body(..., embed=True)):
 
     return {
         "status": "unknown",
-        "text": "I couldn't find anything relevant in my memory."
+        "text": "I couldn't find anything relevant in my memory.",
+        "llm_provider": provider
     }

@@ -18,7 +18,9 @@ function ChatInterface({
     isTyping,
     typingStatus,
     captureTrigger,
-    enrollType
+    enrollType,
+    llmProvider = 'groq',
+    onToggleLLM
 }) {
     const [input, setInput] = useState("");
     const [showCamera, setShowCamera] = useState(false);
@@ -417,6 +419,36 @@ function ChatInterface({
                 </div>
 
                 <div className="flex items-center gap-2">
+                    {/* Multimodal LLM Engine Toggle */}
+                    <div className="flex items-center bg-[#090f1d] border border-cyan-500/30 rounded-xl p-0.5 shadow-inner">
+                        <button
+                            type="button"
+                            onClick={() => onToggleLLM && onToggleLLM('groq')}
+                            className={`px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                                llmProvider === 'groq'
+                                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/60 shadow-[0_0_10px_rgba(0,240,255,0.3)]'
+                                    : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                            title="Groq Llama 3 / Qwen (Ultra-Fast Primary)"
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                            <span>GROQ <span className="text-[9px] opacity-70">(PRI)</span></span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onToggleLLM && onToggleLLM('gemini')}
+                            className={`px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                                llmProvider === 'gemini'
+                                    ? 'bg-purple-500/20 text-purple-300 border border-purple-400/60 shadow-[0_0_10px_rgba(168,85,247,0.3)]'
+                                    : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                            title="Google Gemini 3.6 Flash (Multimodal Cortex)"
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                            <span>GEMINI</span>
+                        </button>
+                    </div>
+
                     <button
                         onClick={() => setIsMicEnabled(!isMicEnabled)}
                         className={`px-3 py-1.5 rounded-xl font-mono text-[11px] font-semibold transition-all flex items-center gap-1.5 border ${
@@ -472,7 +504,18 @@ function ChatInterface({
                                         : 'bg-[#0c1322]/90 text-slate-200 rounded-tl-none border-cyan-500/30 shadow-[0_4px_20px_rgba(0,0,0,0.5)]'
                                 }`}>
                                     <div className="flex items-center justify-between text-[10px] font-mono opacity-60 pb-1 border-b border-white/5">
-                                        <span>{msg.role === 'user' ? '[USER.INPUT]' : '[CORTEX.RESPONSE]'}</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <span>{msg.role === 'user' ? '[USER.INPUT]' : '[CORTEX.RESPONSE]'}</span>
+                                            {msg.role !== 'user' && (
+                                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold border ${
+                                                    msg.llmProvider === 'gemini'
+                                                        ? 'text-purple-300 border-purple-500/50 bg-purple-950/60'
+                                                        : 'text-cyan-300 border-cyan-500/50 bg-cyan-950/60'
+                                                }`}>
+                                                    {msg.llmProvider === 'gemini' ? 'GEMINI' : 'GROQ'}
+                                                </span>
+                                            )}
+                                        </div>
                                         <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                     </div>
                                     <p className="text-sm leading-relaxed whitespace-pre-wrap font-sans font-normal">{msg.text}</p>
@@ -756,7 +799,12 @@ function ChatInterface({
 
                 <div className="flex items-center justify-between font-mono text-[10px] text-slate-500 px-1">
                     <span>WAKE TRIGGER: "HEY NEURON"</span>
-                    <span>QDRANT // GROQ MULTIMODAL</span>
+                    <span className="flex items-center gap-1.5">
+                        <span>ACTIVE ENGINE:</span>
+                        <span className={`font-bold tracking-wider ${llmProvider === 'gemini' ? 'text-purple-400' : 'text-cyan-400'}`}>
+                            {llmProvider === 'gemini' ? 'GEMINI 3.6 FLASH' : 'GROQ (PRIMARY)'}
+                        </span>
+                    </span>
                 </div>
             </div>
         </div>
