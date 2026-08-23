@@ -230,6 +230,46 @@ function App() {
     }
   };
 
+  const convertBase64ToAudioUrl = (rawAudio) => {
+    if (!rawAudio) return null;
+    if (typeof rawAudio === 'string' && (rawAudio.startsWith('blob:') || rawAudio.startsWith('http'))) {
+      return rawAudio;
+    }
+    try {
+      let cleanB64 = rawAudio;
+      let mime = 'audio/webm';
+      if (typeof rawAudio === 'string' && rawAudio.startsWith('data:')) {
+        const parts = rawAudio.split(';base64,');
+        mime = parts[0].replace('data:', '') || 'audio/webm';
+        cleanB64 = parts[1] || '';
+      }
+      const binaryString = window.atob(cleanB64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: mime });
+      return URL.createObjectURL(blob);
+    } catch (e) {
+      console.warn("Base64 audio convert fallback:", e);
+      return (typeof rawAudio === 'string' && rawAudio.startsWith('data:')) ? rawAudio : `data:audio/webm;base64,${rawAudio}`;
+    }
+  };
+
+  const playAudioSample = (urlOrData) => {
+    if (!urlOrData) return;
+    try {
+      let src = urlOrData;
+      if (typeof urlOrData === 'string' && !urlOrData.startsWith('blob:') && !urlOrData.startsWith('http') && !urlOrData.startsWith('data:')) {
+        src = `data:audio/webm;base64,${urlOrData}`;
+      }
+      const audio = new Audio(src);
+      audio.play().catch(err => console.warn("Audio playback note:", err));
+    } catch (e) {
+      console.warn("Failed to play audio sample:", e);
+    }
+  };
+
   const handleSendMessage = async (text) => {
     setIsProcessing(true);
     setProcessingStatus("Accessing Memory Bank...");
@@ -248,21 +288,15 @@ function App() {
     let audioUrl = null;
     let imageBase64 = null;
 
+    const lowerText = text.toLowerCase();
+    const isVoiceQuery = lowerText.includes("talk") || lowerText.includes("voice") || lowerText.includes("sound") || lowerText.includes("speak") || lowerText.includes("hear");
+
     try {
-      if (currentPerson && (text.toLowerCase().includes("talk") || text.toLowerCase().includes("voice"))) {
-        if (currentPerson.audio) {
-          responseText = `Here is the voice of ${currentPerson.name}.`;
-          try {
-            const binaryString = window.atob(currentPerson.audio);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-            const blob = new Blob([bytes], { type: 'audio/webm' });
-            audioUrl = URL.createObjectURL(blob);
-          } catch (e) {
-            responseText = "I found a voice record but couldn't play it.";
-          }
+      const audioData = currentPerson ? (currentPerson.audio || currentPerson.audio_base64) : null;
+      if (currentPerson && isVoiceQuery) {
+        if (audioData) {
+          responseText = `Here is the voice sample for ${currentPerson.name}.`;
+          audioUrl = convertBase64ToAudioUrl(audioData);
         } else {
           responseText = `I don't have a voice sample for ${currentPerson.name}.`;
         }
@@ -272,10 +306,12 @@ function App() {
 
         setTimeout(() => {
           addBotMessage(responseText, audioUrl);
-          speakResponse(responseText);
+          speakResponse(responseText, () => {
+            if (audioUrl) playAudioSample(audioUrl);
+          });
           setIsProcessing(false);
           setProcessingStatus("");
-        }, 800);
+        }, 600);
         return;
       }
 
@@ -287,16 +323,9 @@ function App() {
       const data = res.data;
       if (data.status === 'found') {
         responseText = data.text;
-        if (data.audio_base64) {
-          try {
-            const binaryString = window.atob(data.audio_base64);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-            const blob = new Blob([bytes], { type: 'audio/webm' });
-            audioUrl = URL.createObjectURL(blob);
-          } catch (e) { }
+        const retrievedAudio = data.audio_base64 || (data.person ? (data.person.audio || data.person.audio_base64) : null);
+        if (retrievedAudio) {
+          audioUrl = convertBase64ToAudioUrl(retrievedAudio);
         }
         if (data.image_base64) imageBase64 = data.image_base64;
         
@@ -311,7 +340,11 @@ function App() {
         responseText = data.text || "I don't know who that is.";
       }
       addBotMessage(responseText, audioUrl, imageBase64, data.gallery);
-      speakResponse(responseText);
+      speakResponse(responseText, () => {
+        if (isVoiceQuery && audioUrl) {
+          playAudioSample(audioUrl);
+        }
+      });
     } catch (e) {
       clearInterval(statusInterval);
       console.error(e);
@@ -319,7 +352,7 @@ function App() {
       addBotMessage(responseText);
       speakResponse(responseText);
     } finally {
-      if (!((currentPerson && (text.toLowerCase().includes("talk") || text.toLowerCase().includes("voice"))))) {
+      if (!(currentPerson && isVoiceQuery)) {
         setIsProcessing(false);
         setProcessingStatus("");
       }
@@ -330,15 +363,30 @@ function App() {
     setMessages(prev => [...prev, { role: 'bot', text, audioUrl, image: imageBase64, gallery }]);
   };
 
-  const speakResponse = (text) => {
+  const speakResponse = (text, onComplete = null) => {
     setIsSpeaking(true);
     setAvatarMessage(text);
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setAvatarMessage(null);
-    };
-    window.speechSynthesis.speak(utterance);
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        setAvatarMessage(null);
+        if (onComplete) onComplete();
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        setAvatarMessage(null);
+        if (onComplete) onComplete();
+      };
+      window.speechSynthesis.speak(utterance);
+    } else {
+      setTimeout(() => {
+        setIsSpeaking(false);
+        setAvatarMessage(null);
+        if (onComplete) onComplete();
+      }, 1500);
+    }
   };
 
   // VIEW ROUTING
@@ -379,7 +427,7 @@ function App() {
                 onSendMessage={handleSendMessage}
                 suggestions={suggestions}
                 onSuggestionClick={handleSuggestionClick}
-                onPlayAudio={(url) => new Audio(url).play()}
+                onPlayAudio={playAudioSample}
                 onCapture={handleCapture}
                 onScanFace={() => { setMode('person'); }}
                 onScanObject={() => { setMode('object'); }}

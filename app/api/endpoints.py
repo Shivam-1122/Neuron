@@ -111,7 +111,9 @@ async def recognize_person(background_tasks: BackgroundTasks, file: UploadFile =
                          "id": best_match.payload.get("person_id"),
                          "notes": notes,
                          "image": best_match.payload.get("image_base64", None),
-                         "audio": best_match.payload.get("audio_base64", None)
+                         "image_base64": best_match.payload.get("image_base64", None),
+                         "audio": best_match.payload.get("audio_base64", None),
+                         "audio_base64": best_match.payload.get("audio_base64", None)
                      }
                  }
              else:

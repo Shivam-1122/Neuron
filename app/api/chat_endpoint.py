@@ -167,6 +167,10 @@ async def chat_query(text: str = Body(..., embed=True)):
         final_gallery = gallery if gallery_intent else []
 
         matched_entity = full_person if full_person else best_match
+        if matched_entity and audio_base64 and isinstance(matched_entity, dict):
+            matched_entity["audio"] = audio_base64
+            matched_entity["audio_base64"] = audio_base64
+
         entity_type = "object" if (matched_entity and (matched_entity.get("type") == "object" or "location" in matched_entity or "object_name" in matched_entity)) else "person"
 
         # Attach image if this query is about a specific recognized person/object in memory
@@ -177,7 +181,7 @@ async def chat_query(text: str = Body(..., embed=True)):
             "text": final_text,
             "entity_type": entity_type,
             "person": matched_entity,
-            "audio_base64": final_audio,
+            "audio_base64": final_audio or audio_base64,
             "image_base64": final_image,
             "gallery": final_gallery
         }

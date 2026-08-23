@@ -60,9 +60,10 @@ class LLMService:
             )
 
             models_to_try = [
-                "groq/compound-mini",
                 "openai/gpt-oss-20b",
                 "qwen/qwen3.6-27b",
+                "openai/gpt-oss-120b",
+                "groq/compound-mini",
                 "groq/compound"
             ]
             content = None
@@ -166,9 +167,10 @@ class LLMService:
             ]
             
             models_to_try = [
-                "groq/compound-mini",
                 "openai/gpt-oss-20b",
                 "qwen/qwen3.6-27b",
+                "openai/gpt-oss-120b",
+                "groq/compound-mini",
                 "groq/compound"
             ]
             raw_response = None
