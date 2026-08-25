@@ -12,6 +12,7 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import CaregiverDashboard from './pages/CaregiverDashboard';
 import NavBar from './components/SideNav'; // Imported as NavBar
+import TaskGuideView from './components/TaskGuideView';
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
 
@@ -100,6 +101,7 @@ function App() {
 
   useEffect(() => {
     setSuggestions([
+      "Start Task Guide",
       "Where is my wallet?",
       "Enroll new person",
       "Enroll new object"
@@ -107,7 +109,9 @@ function App() {
   }, []);
 
   const handleSuggestionClick = (text) => {
-    if (text === "Enroll new person") {
+    if (text === "Start Task Guide") {
+      setView('task_guide');
+    } else if (text === "Enroll new person") {
       setEnrollType('person');
       setMode('enroll_ui');
     } else if (text === "Enroll new object") {
@@ -419,6 +423,13 @@ function App() {
   }
   else if (view === 'caregiver') {
     content = <CaregiverDashboard />;
+  } else if (view === 'task_guide') {
+    content = (
+      <TaskGuideView
+        apiBase={API_BASE}
+        onBackToPatient={() => setView('patient')}
+      />
+    );
   } else {
     // Patient App Content
     content = (

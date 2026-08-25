@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Users, Cpu, Brain, Activity, ShieldCheck } from 'lucide-react';
+import { Home, Users, Cpu, Brain, Activity, ShieldCheck, Sparkles } from 'lucide-react';
 
 const NavBar = ({ onViewChange, currentView }) => {
     return (
@@ -51,7 +51,7 @@ const NavBar = ({ onViewChange, currentView }) => {
             <nav className="flex items-center gap-2">
                 <button
                     onClick={() => onViewChange('landing')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-xs font-semibold tracking-wider transition-all duration-300 border ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-mono text-xs font-semibold tracking-wider transition-all duration-300 border cursor-pointer ${
                         currentView === 'landing'
                             ? 'bg-cyan-500/15 border-cyan-500/60 text-cyan-300 shadow-[0_0_15px_rgba(0,240,255,0.25)]'
                             : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 hover:border-slate-700'
@@ -63,7 +63,7 @@ const NavBar = ({ onViewChange, currentView }) => {
 
                 <button
                     onClick={() => onViewChange('patient')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-xs font-semibold tracking-wider transition-all duration-300 border ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-mono text-xs font-semibold tracking-wider transition-all duration-300 border cursor-pointer ${
                         currentView === 'patient'
                             ? 'bg-emerald-500/15 border-emerald-500/60 text-emerald-300 shadow-[0_0_15px_rgba(0,255,157,0.25)]'
                             : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 hover:border-slate-700'
@@ -74,8 +74,20 @@ const NavBar = ({ onViewChange, currentView }) => {
                 </button>
 
                 <button
+                    onClick={() => onViewChange('task_guide')}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-mono text-xs font-semibold tracking-wider transition-all duration-300 border cursor-pointer ${
+                        currentView === 'task_guide'
+                            ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-[0_0_20px_rgba(0,240,255,0.35)]'
+                            : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-300 hover:text-cyan-100 hover:bg-cyan-900/40 hover:border-cyan-400'
+                    }`}
+                >
+                    <Sparkles size={15} className="text-cyan-400" />
+                    <span>TASK GUIDE</span>
+                </button>
+
+                <button
                     onClick={() => onViewChange('caregiver')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-xs font-semibold tracking-wider transition-all duration-300 border ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-mono text-xs font-semibold tracking-wider transition-all duration-300 border cursor-pointer ${
                         currentView === 'caregiver'
                             ? 'bg-purple-500/15 border-purple-500/60 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.25)]'
                             : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 hover:border-slate-700'

@@ -179,15 +179,19 @@ class LLMService:
         if content:
             try:
                 clean_content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
-                if clean_content.startswith("```"):
+                match = re.search(r'\{.*\}', clean_content, re.DOTALL)
+                if match:
+                    clean_content = match.group(0)
+                elif clean_content.startswith("```"):
                     clean_content = clean_content.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-                if clean_content.startswith("json"):
-                    clean_content = clean_content[4:].strip()
+                    if clean_content.startswith("json"):
+                        clean_content = clean_content[4:].strip()
 
                 data = json.loads(clean_content)
-                return data
+                if isinstance(data, dict) and "is_update" in data:
+                    return data
             except Exception as parse_err:
-                print(f"JSON parse error in intent analyzer ({parse_err}): {content[:100]}")
+                print(f"JSON parse note in intent analyzer: {parse_err}")
 
         lower = user_text.lower()
         if any(k in lower for k in ["switched", "moved", "placed", "put", "kept", "remember that", "now in", "now on", "now at", "location of"]):

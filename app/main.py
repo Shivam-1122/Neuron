@@ -9,9 +9,8 @@ from app.core.config import settings
 
 # print("DEBUG: Importing API Router...", flush=True)
 from app.api.endpoints import router as api_router 
-# print("DEBUG: Importing Chat Endpoint...", flush=True)
 from app.api import chat_endpoint 
-# print("DEBUG: Imports Done.", flush=True) 
+from app.api import task_endpoint 
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -33,6 +32,7 @@ app.mount("/static", StaticFiles(directory="static", html=True), name="static")
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(chat_endpoint.router, prefix=settings.API_V1_STR)
+app.include_router(task_endpoint.router, prefix=settings.API_V1_STR)
 
 # --- Frontend Serving (Deployment) ---
 # Check if frontend build exists (Render/Production)
