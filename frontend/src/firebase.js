@@ -13,13 +13,13 @@ import {
     deleteUser as fbDeleteUser
 } from "firebase/auth";
 
-const FIREBASE_API_KEY = import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDY6BTbpLmR7gYp_a295rycsQ8_OrOlJ0M";
-const FIREBASE_AUTH_DOMAIN = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "neuron-a940a.firebaseapp.com";
-const FIREBASE_PROJECT_ID = import.meta.env.VITE_FIREBASE_PROJECT_ID || "neuron-a940a";
-const FIREBASE_STORAGE_BUCKET = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "neuron-a940a.firebasestorage.app";
-const FIREBASE_MESSAGING_SENDER_ID = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "623658417185";
-const FIREBASE_APP_ID = import.meta.env.VITE_FIREBASE_APP_ID || "1:623658417185:web:f63f85ad8ca42daf8f3760";
-const FIREBASE_MEASUREMENT_ID = import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-ZTN5LVQ3TL";
+const FIREBASE_API_KEY = import.meta.env.VITE_FIREBASE_API_KEY;
+const FIREBASE_AUTH_DOMAIN = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+const FIREBASE_PROJECT_ID = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+const FIREBASE_STORAGE_BUCKET = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET;
+const FIREBASE_MESSAGING_SENDER_ID = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID;
+const FIREBASE_APP_ID = import.meta.env.VITE_FIREBASE_APP_ID;
+const FIREBASE_MEASUREMENT_ID = import.meta.env.VITE_FIREBASE_MEASUREMENT_ID;
 
 export const firebaseConfig = {
     apiKey: FIREBASE_API_KEY,

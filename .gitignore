@@ -2,6 +2,7 @@
 .env
 .env.local
 .env.*.local
+frontend/.env
 
 # Python Virtual Environment
 venv/
@@ -33,9 +34,19 @@ audio/temp/*
 !audio/temp/.gitkeep
 photo/*
 !photo/.gitkeep
+storage/*
+!storage/.gitkeep
 
 # Database & Local Vector Storage
 qdrant_storage/
+
+# Large ML Model Weights (download separately)
+*.pt
+*.onnx
+*.h5
+*.pkl
+*.bin
+model.glb
 
 # Logs & OS artifacts
 *.log
@@ -46,3 +57,10 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Mobile App Build Artifacts
+neuron-mobile/.expo/
+neuron-mobile/android/
+neuron-mobile/ios/
+neuron-mobile/node_modules/
+
