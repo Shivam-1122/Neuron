@@ -1,14 +1,10 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 
-// Production: Render-hosted backend
-// Development: Android emulator (10.0.2.2) or localhost
-const RENDER_BACKEND = 'https://neuron-backend.onrender.com/api/v1';
-const LOCAL_HOST = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
-
-// Use env var if set (EAS build injects EXPO_PUBLIC_API_URL), else use Render in prod
-const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL || RENDER_BACKEND;
-let currentApiBase = DEFAULT_API_BASE;
+// Default host based on platform:
+// Android emulator uses 10.0.2.2, iOS/Web uses localhost
+const DEFAULT_HOST = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
+let currentApiBase = `${DEFAULT_HOST}/api/v1`;
 
 export const getApiBase = () => currentApiBase;
 export const setApiBase = (newUrl) => {

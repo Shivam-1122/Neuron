@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Neuron",
-    "slug": "neuron-mobile",
+    "slug": "neuron",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/idle.gif",
@@ -42,6 +42,12 @@
         }
       ],
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "16415a02-9152-4c1a-bcf9-b294e8f877df"
+      }
+    },
+    "owner": "shivam112205"
   }
 }
