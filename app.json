@@ -6,8 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#060a12"
     },
     "ios": {
@@ -32,7 +34,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/idle.gif"
+      "favicon": "./assets/icon.png"
     },
     "plugins": [
       [
@@ -41,7 +43,8 @@
           "cameraPermission": "Allow Neuron to access your camera to scan faces and items."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ],
     "extra": {
       "eas": {
