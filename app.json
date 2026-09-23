@@ -20,8 +20,8 @@
     },
     "android": {
       "package": "com.neuron.assistant",
-      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#060a12"
       },
       "permissions": [
