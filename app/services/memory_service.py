@@ -45,6 +45,18 @@ class MemoryService:
                 vectors_config=VectorParams(size=512, distance=Distance.COSINE) # Same as Faces
             )
 
+        # 4. Ensure payload index on 'name' for keyword filtering
+        for col in ["faces", "objects", "patients"]:
+            try:
+                self.client.create_payload_index(
+                    collection_name=col,
+                    field_name="name",
+                    field_schema="keyword"
+                )
+            except Exception:
+                pass
+
+
     def store_face_memory(self, person_id: str, embedding: list, metadata: dict):
         from datetime import datetime
         point_id = str(uuid.uuid4())
@@ -164,41 +176,112 @@ class MemoryService:
             print(f"Error in update_or_create_object_location: {e}")
             return False
 
-    def search_by_text(self, text_query: str):
+    def search_by_text(self, text_query: str, user_id: Optional[str] = None):
         import difflib
+        import re
         try:
             points = []
-            for col in ["faces", "objects", "patients"]:
+            for col in ["faces", "objects", "patients", "user_profiles"]:
                 try:
                     res = self.client.scroll(collection_name=col, limit=500, with_payload=True, with_vectors=False)
-                    points.extend(res[0])
+                    for pt in res[0]:
+                        if pt.payload:
+                            pt_user = pt.payload.get("user_id")
+                            if user_id and pt_user and pt_user not in [user_id, "default_user"]:
+                                continue
+                            points.append(pt)
                 except Exception: pass
             
+            # Also include registered caregivers from caregiver_service
+            try:
+                from app.services.caregiver_service import caregiver_service
+                caregiver_service._reload()
+                class DummyPoint:
+                    def __init__(self, payload):
+                        self.id = payload.get("id") or str(uuid.uuid4())
+                        self.payload = payload
+                caregivers_list = caregiver_service.get_caregivers(user_id=user_id)
+                for cg in caregivers_list:
+                    cg_payload = {
+                        "name": cg.get("name"),
+                        "relation": cg.get("relation") or "Caregiver",
+                        "notes": f"{cg.get('name')} is your registered {cg.get('relation', 'Caregiver')}. Email: {cg.get('email', '')}. Phone: {cg.get('phone', '')}",
+                        "type": "caregiver",
+                        "image_base64": cg.get("image_base64") or "",
+                        "user_id": cg.get("user_id") or "default_user",
+                        "timestamp": cg.get("created_at") or "",
+                        "email": cg.get("email", ""),
+                        "phone": cg.get("phone", "")
+                    }
+                    points.append(DummyPoint(cg_payload))
+            except Exception as cg_err:
+                print(f"Caregiver search inclusion note: {cg_err}")
+
             query = text_query.lower()
+            query_tokens = [re.sub(r'[^\w\s]', '', w) for w in query.split()]
             candidates = []
             max_score = 0.0
+
+            caregiver_keywords = ["caregiver", "caregivers", "doctor", "physician", "nurse", "taking care", "takes care", "care of me", "helping me", "helper", "my helper"]
+            is_caregiver_query = any(k in query for k in caregiver_keywords)
+
+            # Common role and filler words that shouldn't count as an individual's unique name token
+            role_and_stop_words = set(caregiver_keywords + ["who", "is", "my", "the", "a", "an", "about", "tell", "me", "show", "what", "where", "how", "name", "of"])
+            specific_query_tokens = [w for w in query_tokens if w and w not in role_and_stop_words]
             
             for p in points:
                 if not p.payload: continue
-                name = (p.payload.get("name") or "").lower()
-                relation = (p.payload.get("relation") or "").lower()
+                raw_name = p.payload.get("name") or ""
+                name = raw_name.lower().replace("(me)", "").strip()
+                relation = (p.payload.get("relation") or "").lower().strip()
                 notes = (p.payload.get("notes") or "").lower()
                 location = (p.payload.get("location") or "").lower()
+                p_type = (p.payload.get("type") or "").lower()
+                has_image = bool(p.payload.get("image_base64"))
+                p_user = p.payload.get("user_id")
                 
-                score = 0
-                if name and name in query: score += 1.0
-                if relation and relation in query: score += 0.8
+                score = 0.0
+
+                # Strong caregiver intent boost
+                if is_caregiver_query:
+                    if p_type == "caregiver" or "caregiver" in relation or "physician" in relation or "doctor" in relation or "nurse" in relation:
+                        score += 8.0
+                        if has_image:
+                            score += 6.0
+                        if user_id and p_user == user_id:
+                            score += 5.0
+
+                # Name matching: check specific query tokens first
+                if name:
+                    name_tokens = [re.sub(r'[^\w\s]', '', w) for w in name.split() if w not in role_and_stop_words]
+                    if specific_query_tokens and any(nt in specific_query_tokens for nt in name_tokens if nt):
+                        score += 8.0
+                    elif not is_caregiver_query:
+                        all_name_tokens = [re.sub(r'[^\w\s]', '', w) for w in name.split()]
+                        if any(nt in query_tokens for nt in all_name_tokens if nt):
+                            score += 3.5
+                        elif name in query:
+                            score += 2.5
+                
+                # Relation match (e.g. "doctor", "physician", "friend")
+                if relation and not is_caregiver_query:
+                    if relation in query or any(rt in query_tokens for rt in relation.split()):
+                        score += 2.0
+
                 if notes and query in notes: score += 0.5
-                if location and location in query: score += 0.5
+                if location and location in query: score += 1.0
+                if has_image: score += 0.3
                 
-                query_words = query.split()
-                for word in query_words:
-                    if len(word) > 2:
+                # Fuzzy similarity for words > 2 chars on specific query tokens
+                tokens_for_fuzzy = specific_query_tokens if is_caregiver_query else query_tokens
+                for word in tokens_for_fuzzy:
+                    if len(word) > 2 and name:
                         matcher = difflib.SequenceMatcher(None, word, name)
-                        if matcher.ratio() > 0.7: score += 0.8
+                        if matcher.ratio() > 0.75: score += 1.0
                             
-                full_sim = difflib.SequenceMatcher(None, query, name).ratio()
-                if full_sim > 0.6: score += 1.0
+                if name and specific_query_tokens:
+                    full_sim = difflib.SequenceMatcher(None, " ".join(specific_query_tokens), name).ratio()
+                    if full_sim > 0.6: score += 1.2
 
                 if score > max_score:
                     max_score = score
@@ -207,8 +290,11 @@ class MemoryService:
                     candidates.append(p)
             
             if max_score > 0.4:
-                # Sort candidates with newest timestamp first so latest updates are prioritized!
-                candidates.sort(key=lambda x: x.payload.get("timestamp", ""), reverse=True)
+                candidates.sort(key=lambda x: (
+                    1 if (user_id and x.payload.get("user_id") == user_id) else 0,
+                    bool(x.payload.get("image_base64")),
+                    x.payload.get("timestamp", "")
+                ), reverse=True)
                 return candidates[:5]
             return []
 

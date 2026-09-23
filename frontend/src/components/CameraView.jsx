@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Camera, RefreshCw, Crosshair, Zap } from 'lucide-react';
 
-export default function CameraView({ onCapture, isProcessing, trigger, isActive = false, buttonLabel }) {
+export default function CameraView({ onCapture, isProcessing, trigger, isActive = true, buttonLabel }) {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [stream, setStream] = useState(null);
@@ -25,13 +25,25 @@ export default function CameraView({ onCapture, isProcessing, trigger, isActive 
 
     const startCamera = async () => {
         try {
-            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            setError(null);
+            let mediaStream;
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } 
+                });
+            } catch (firstErr) {
+                console.warn("Primary camera constraints failed, attempting fallback to { video: true }:", firstErr);
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true 
+                });
+            }
             setStream(mediaStream);
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
+                videoRef.current.play().catch(e => console.warn("Video stream play note:", e));
             }
         } catch (err) {
-            setError("Camera feed offline. Please grant visual sensor permissions in your browser.");
+            setError("Camera feed offline. Please grant visual sensor permissions in your browser or ensure webcam is connected.");
             console.error(err);
         }
     };
@@ -80,7 +92,18 @@ export default function CameraView({ onCapture, isProcessing, trigger, isActive 
                 </div>
             ) : (
                 <div className="relative w-full aspect-video bg-black overflow-hidden flex items-center justify-center">
-                    <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                    <video 
+                        ref={videoRef} 
+                        autoPlay 
+                        playsInline 
+                        muted 
+                        onLoadedMetadata={() => {
+                            if (videoRef.current) {
+                                videoRef.current.play().catch(e => console.warn("Video metadata play note:", e));
+                            }
+                        }}
+                        className="w-full h-full object-cover" 
+                    />
                     <canvas ref={canvasRef} style={{ display: 'none' }} />
 
                     {/* Cyber Target Overlays */}

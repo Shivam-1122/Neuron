@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import AudioRecorder from './AudioRecorder';
 import CameraView from './CameraView';
 import { UserPlus, PackagePlus, Save, X, Mic, Image as ImageIcon, Camera, Upload, RefreshCw } from 'lucide-react';
+import { formatImageSrc } from '../utils/imageUtils';
 
 function EnrollmentForm({ type = 'person', onCancel, onSave }) {
     const [name, setName] = useState("");
@@ -120,7 +121,7 @@ function EnrollmentForm({ type = 'person', onCancel, onSave }) {
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                placeholder={isPerson ? "e.g., Sarah (Daughter)" : "e.g., Car Keys, Reading Glasses"}
+                                placeholder={isPerson ? "e.g., Family Member or Loved One" : "e.g., Car Keys, Reading Glasses"}
                                 required
                                 className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-2.5 font-mono text-xs md:text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/80 focus:bg-slate-900 focus:shadow-[0_0_15px_rgba(0,240,255,0.2)] transition-all"
                             />
@@ -296,8 +297,9 @@ function EnrollmentForm({ type = 'person', onCancel, onSave }) {
                     <div className="relative">
                         <div className="absolute inset-0 bg-cyan-500/20 blur-2xl rounded-full"></div>
                         <img
-                            src={avatarUrl}
+                            src={formatImageSrc(avatarUrl)}
                             alt="Generated Avatar"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             className="w-40 h-40 rounded-full object-cover border-4 border-cyan-400 shadow-[0_0_30px_rgba(0,240,255,0.5)] relative z-10"
                         />
                         <div className="absolute -bottom-1 -right-1 bg-cyan-950 border border-cyan-400 text-cyan-300 p-2.5 rounded-full z-20 shadow-xl">

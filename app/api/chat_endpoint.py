@@ -14,6 +14,7 @@ class SetProviderRequest(BaseModel):
 class ChatQueryRequest(BaseModel):
     text: str
     provider: Optional[str] = None
+    user_id: Optional[str] = None
 
 @router.get("/llm/provider")
 async def get_llm_provider():
@@ -44,8 +45,47 @@ async def chat_query(req: ChatQueryRequest):
     provider = req.provider or llm_service.active_provider
     lower_text = text.lower()
     
-    # 0. CHECK IF USER IS PROVIDING AN UPDATE / STATEMENT (e.g. "I switched the position of pen to backpack")
+    # 0. CHECK IF USER IS SCHEDULING A TASK OR GENTLE ANCHOR
     statement_analysis = llm_service.analyze_statement_intent(text, provider=provider)
+    if statement_analysis.get("is_task"):
+        from app.services.task_service import task_service
+        task_title = statement_analysis.get("task_title") or text[:40]
+        task_time = statement_analysis.get("task_time") or "Today"
+        task_notes = statement_analysis.get("task_notes") or text
+        confirmation = statement_analysis.get("confirmation") or f"I've added '{task_title}' to Today's Gentle Anchors ({task_time})."
+        
+        # Add to gentle anchors task store
+        added_task = task_service.add_task(
+            title=task_title,
+            time=task_time,
+            notes=task_notes,
+            user_id=req.user_id or "default_user"
+        )
+        
+        # Also store in semantic memory so the cortex remembers the schedule
+        try:
+            semantic_memory.learn_fact(
+                fact_text=f"Scheduled task: {task_title} at {task_time}. {task_notes}",
+                entity_name="Gentle Anchors",
+                fact_type="scheduled_task",
+                metadata={"task_id": added_task["id"], "time": task_time}
+            )
+        except Exception as e:
+            print(f"Task semantic memory note: {e}")
+            
+        return {
+            "status": "found",
+            "text": confirmation,
+            "llm_provider": provider,
+            "entity_type": "task",
+            "task_added": added_task,
+            "person": {"name": "Gentle Anchors", "type": "task", "location": task_time, "notes": task_title},
+            "audio_base64": None,
+            "image_base64": None,
+            "gallery": []
+        }
+
+    # 1. CHECK IF USER IS PROVIDING AN OBJECT / POSITION UPDATE (e.g. "I switched the position of pen to backpack")
     if statement_analysis.get("is_update"):
         entity = statement_analysis.get("entity")
         location = statement_analysis.get("location")
@@ -100,22 +140,10 @@ async def chat_query(req: ChatQueryRequest):
     context = conversation_service.get_context()
     context_name = context.get("name") if context else None
     
-    # 2. Check for Follow-up ("he", "she", "where", "look")
-    pronouns = ["he", "she", "him", "her", "it", "his", "her", "live", "do", "does", "about", "look", "features"]
-    is_followup = any(p in lower_text.split() for p in pronouns)
-    
     matches = []
     
-    # SAFETY: If user says "He" but we don't know who "He" is (Context is None)
-    if is_followup and not context_name and "who is" not in lower_text:
-         return {
-             "status": "unknown",
-             "text": "I'm not sure who you are referring to. Who are we talking about?",
-             "llm_provider": provider
-         }
-    
-    # 3. Direct Entity Search (Person/Object Name)
-    entity_matches = memory_service.search_by_text(text)
+    # 2. Direct Entity Search (Searches Loved Ones, Caregivers, Faces, Objects)
+    entity_matches = memory_service.search_by_text(text, user_id=req.user_id)
     
     # Also fetch semantic memories for richer facts
     semantic_matches = semantic_memory.search_knowledge(text, context_name=context_name, limit=4)
@@ -124,10 +152,21 @@ async def chat_query(req: ChatQueryRequest):
         payload = entity_matches[0].payload
         name = payload.get("name")
         matches = [{"name": name, "score": 1.0, "payload": payload}]
-    elif context_name and is_followup and "who is" not in lower_text:
+    elif semantic_matches:
         matches = semantic_matches
+    elif context_name:
+        # User is asking a follow-up referring to the active context
+        matches = [{"name": context_name, "score": 0.8, "payload": context}]
     else:
-        matches = semantic_matches
+        # Check if the query is an unresolved pronoun without context or match
+        pure_pronouns = {"he", "she", "him", "her", "they", "them"}
+        query_words = set(lower_text.split())
+        if query_words.intersection(pure_pronouns):
+            return {
+                "status": "unknown",
+                "text": "I'm not sure who you are referring to. Who are we talking about?",
+                "llm_provider": provider
+            }
     
     if matches:
         best_match = matches[0]
@@ -139,7 +178,7 @@ async def chat_query(req: ChatQueryRequest):
         original_matches = []
         
         if name and name != "general":
-            original_matches = memory_service.search_by_text(name)
+            original_matches = memory_service.search_by_text(name, user_id=req.user_id)
             if original_matches:
                 full_person = original_matches[0].payload
                 for m in original_matches:
@@ -202,6 +241,8 @@ async def chat_query(req: ChatQueryRequest):
         entity_type = "object" if (matched_entity and (matched_entity.get("type") == "object" or "location" in matched_entity or "object_name" in matched_entity)) else "person"
 
         final_image = image_base64 if (image_base64 and matched_entity and matched_entity.get("name") and matched_entity.get("name") != "general") else None
+        if final_image and isinstance(final_image, str) and not final_image.startswith("data:") and not final_image.startswith("http"):
+            final_image = f"data:image/jpeg;base64,{final_image}"
 
         response_data = {
             "status": "found",

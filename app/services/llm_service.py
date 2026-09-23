@@ -139,16 +139,21 @@ class LLMService:
             target_provider = "groq"
 
         prompt = (
-            "Analyze the user's message to determine if they are STATING new information/facts/updates to remember "
-            "(e.g., 'I moved my pen to the bag', 'Remember that my keys are on the fridge', 'I switched the position of pen to desk') "
-            "or if they are ASKING a question (e.g., 'Where is my pen?', 'Who is Dr. Smith?').\n\n"
+            "Analyze the user's message to classify their intent into one of three categories:\n"
+            "1. SCHEDULING A TASK / ROUTINE / GENTLE ANCHOR (e.g., 'add a task for today that i have to make coffee before bed add in gentle anchors', 'schedule tea at 5pm', 'remind me to take my pills at 8pm', 'add gentle anchor walk at 10am').\n"
+            "2. PHYSICAL OBJECT RELOCATION / FACT UPDATE (e.g., 'I moved my pen to the bag', 'My glasses are on the nightstand', 'I switched the position of wallet to drawer'). Note: tasks/routines are NEVER physical objects!\n"
+            "3. ASKING A QUESTION (e.g., 'Where is my pen?', 'Who is Sarah?').\n\n"
             "Return ONLY a valid JSON object with the following keys:\n"
             "{\n"
-            '  "is_update": true/false,\n'
-            '  "entity": "name of person/object or null",\n'
-            '  "location": "extracted location or null",\n'
-            '  "fact": "concise description of the new fact/update",\n'
-            '  "confirmation": "warm, 1-sentence confirmation acknowledging the update"\n'
+            '  "is_task": true/false,\n'
+            '  "task_title": "concise title of the task (e.g. Make Coffee) or null",\n'
+            '  "task_time": "time or routine phase (e.g. Before Bed, 09:00, Today) or null",\n'
+            '  "task_notes": "warm description of the task or null",\n'
+            '  "is_update": true/false (must be FALSE if is_task is true),\n'
+            '  "entity": "name of physical object or person or null",\n'
+            '  "location": "physical place or null",\n'
+            '  "fact": "concise description of the fact or null",\n'
+            '  "confirmation": "warm, reassuring 1-sentence confirmation acknowledging the scheduled task or update"\n'
             "}\n\n"
             f"User Message: {user_text}"
         )
@@ -188,21 +193,41 @@ class LLMService:
                         clean_content = clean_content[4:].strip()
 
                 data = json.loads(clean_content)
-                if isinstance(data, dict) and "is_update" in data:
-                    return data
+                if isinstance(data, dict):
+                    if data.get("is_task"):
+                        data["is_update"] = False
+                    if "is_update" in data or "is_task" in data:
+                        return data
             except Exception as parse_err:
                 print(f"JSON parse note in intent analyzer: {parse_err}")
 
         lower = user_text.lower()
+        # Task scheduling fallback
+        if any(k in lower for k in ["add a task", "add task", "schedule", "gentle anchor", "gentle anchors", "remind me to", "remind me"]):
+            clean_title = user_text
+            for prefix in ["add a task for today that i have to", "add a task that i have to", "add a task to", "add task to", "schedule to", "schedule", "remind me to", "add in gentle anchors", "add to gentle anchors"]:
+                clean_title = re.sub(prefix, '', clean_title, flags=re.IGNORECASE)
+            clean_title = clean_title.strip(" :,.-")
+            return {
+                "is_task": True,
+                "task_title": clean_title[:45] if clean_title else "Scheduled Routine",
+                "task_time": "Today",
+                "task_notes": user_text,
+                "is_update": False,
+                "confirmation": f"I've added '{clean_title or 'your task'}' to Today's Gentle Anchors on your main screen."
+            }
+
+        # Object relocation fallback
         if any(k in lower for k in ["switched", "moved", "placed", "put", "kept", "remember that", "now in", "now on", "now at", "location of"]):
             return {
+                "is_task": False,
                 "is_update": True,
                 "entity": None,
                 "location": None,
                 "fact": user_text,
                 "confirmation": f"Got it! I've noted that {user_text}."
             }
-        return {"is_update": False}
+        return {"is_update": False, "is_task": False}
 
     def generate_response(self, user_text: str, context: dict = None, additional_memories: list = None, provider: str = None) -> tuple[str, str]:
         """
@@ -284,8 +309,10 @@ class LLMService:
 
         clean_response = re.sub(r'<think>.*?</think>', '', raw_response, flags=re.DOTALL).strip()
         clean_response = clean_response.replace('\u2011', '-').replace('\u202f', ' ').replace('\u2019', "'").replace('\u2018', "'").replace('\u201c', '"').replace('\u201d', '"')
-        clean_response = clean_response.replace("**", "").replace("__", "")
-        return (clean_response or self._fallback_response(context)), actual_provider_used
+        if not clean_response or len(clean_response) < 18 or clean_response.rstrip().endswith(("is", "is a", "is the", "are", "are the")):
+            return self._fallback_response(context), actual_provider_used
+
+        return clean_response, actual_provider_used
 
     def _fallback_response(self, context: dict) -> str:
         """Clear, natural fallback response."""
@@ -300,7 +327,7 @@ class LLMService:
         if loc:
             return f"Your {name} is {loc}."
         if rel and rel != "Unspecified":
-            return f"{name} is your {rel}." + (f" {notes}" if notes else "")
+            return f"{name} is your registered {rel}." + (f" ({notes})" if notes and notes != f"{name} is your registered {rel}." else "")
         if notes:
             return f"{name}: {notes}"
         return f"I have {name} in my memory."

@@ -82,9 +82,9 @@ _URLS = {
         "placeholder": "https://cn01.mmai.io/download/voxceleb?file=vox1_dev_wav",
         "dev": (
             "https://cn01.mmai.io/download/voxceleb?key={key}&file=vox1_dev_wav_partaa",
-            # "https://cn01.mmai.io/download/voxceleb?key={key}&file=vox1_dev_wav_partab",
-            # "https://cn01.mmai.io/download/voxceleb?key={key}&file=vox1_dev_wav_partac",
-            # "https://cn01.mmai.io/download/voxceleb?key={key}&file=vox1_dev_wav_partad",
+            "https://cn01.mmai.io/download/voxceleb?key={key}&file=vox1_dev_wav_partab",
+            "https://cn01.mmai.io/download/voxceleb?key={key}&file=vox1_dev_wav_partac",
+            "https://cn01.mmai.io/download/voxceleb?key={key}&file=vox1_dev_wav_partad",
         ),
         "test": "https://cn01.mmai.io/download/voxceleb?key={key}&file=vox1_test_wav.zip",
     },
@@ -408,27 +408,38 @@ class VoxCeleb(datasets.GeneratorBasedBuilder):
                 index_col=0,
                 engine="python",
             )
-            dataset_path = next(Path(paths[conf]).iterdir())
+            dataset_dirs = [p for p in Path(paths[conf]).iterdir() if p.is_dir() and not p.name.startswith((".", "__"))]
+            if not dataset_dirs:
+                continue
+            dataset_path = dataset_dirs[0]
             dataset_format = dataset_path.name
             for speaker_path in dataset_path.iterdir():
+                if not speaker_path.is_dir():
+                    continue
                 speaker = speaker_path.name
+                if speaker not in meta.index:
+                    continue
                 speaker_info = meta.loc[speaker]
                 for video in speaker_path.iterdir():
+                    if not video.is_dir():
+                        continue
                     video_id = video.name
                     for clip in video.iterdir():
-                        clip_index = int(clip.stem)
+                        if not clip.is_file():
+                            continue
+                        clip_index = int(clip.stem) if clip.stem.isdigit() else 0
                         info = {
                             "file": str(clip),
                             "file_format": dataset_format,
                             "dataset_id": dataset_id,
                             "speaker_id": speaker,
-                            "speaker_gender": speaker_info["Gender"],
+                            "speaker_gender": speaker_info["Gender"] if "Gender" in speaker_info else "unknown",
                             "video_id": video_id,
                             "clip_index": clip_index,
                         }
                         if dataset_id == "vox1":
-                            info["speaker_name"] = speaker_info["VGGFace1 ID"]
-                            info["speaker_nationality"] = speaker_info["Nationality"]
+                            info["speaker_name"] = speaker_info["VGGFace1 ID"] if "VGGFace1 ID" in speaker_info else speaker
+                            info["speaker_nationality"] = speaker_info["Nationality"] if "Nationality" in speaker_info else "unknown"
                         if conf.startswith("audio"):
                             info["audio"] = info["file"]
                         yield key, info

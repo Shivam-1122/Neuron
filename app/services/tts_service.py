@@ -15,11 +15,11 @@ class TTSService:
         try:
             pygame.mixer.init()
         except Exception as e:
-            print(f"⚠️ Audio Init Failed (No device?): {e}")
+            print(f"[WARNING] Audio Init Failed (No device?): {e}")
 
     async def speak(self, text: str):
         """Generates and plays audio for the given text."""
-        print(f"🗣️ Speaking: {text}")
+        print(f"[SPEAKING]: {text}")
         if not text:
             return
 

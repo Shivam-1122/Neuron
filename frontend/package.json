@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node --max-http-header-size=65536 ./node_modules/vite/bin/vite.js --host 0.0.0.0 --port 5173",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -14,6 +14,7 @@
     "@react-three/fiber": "^9.5.0",
     "@types/three": "^0.182.0",
     "axios": "^1.13.2",
+    "firebase": "^12.19.0",
     "framer-motion": "^12.27.5",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",

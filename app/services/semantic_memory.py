@@ -35,7 +35,7 @@ class SemanticMemoryService:
                 from sentence_transformers import SentenceTransformer
                 self._encoder = SentenceTransformer('all-MiniLM-L6-v2')
             except Exception as e:
-                print(f"⚠️ SentenceTransformer unavailable ({e}), using FallbackTextEncoder", flush=True)
+                print(f"[WARNING] SentenceTransformer unavailable ({e}), using FallbackTextEncoder", flush=True)
                 self._encoder = FallbackTextEncoder()
         return self._encoder
 

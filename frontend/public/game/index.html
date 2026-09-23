@@ -1,0 +1,2665 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <meta content="web_standard" name="shell-type"/>
+  <title>Neuron — The Memory Gym | Cognitive Sanctuary</title>
+  
+  <!-- Typography from Stitch Reference Designs -->
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+
+  <!-- Tailwind CSS Runtime with Reference Colors -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-variant": "#33353a",
+            "primary": "#ffba56",
+            "inverse-primary": "#835500",
+            "outline": "#9e8e7d",
+            "on-surface-variant": "#d5c4b1",
+            "surface-container-lowest": "#0c0e13",
+            "inverse-on-surface": "#2e3036",
+            "background": "#111318",
+            "surface-dim": "#111318",
+            "on-primary-fixed": "#291800",
+            "on-surface": "#e2e2e9",
+            "on-tertiary-fixed": "#360f00",
+            "surface-container-highest": "#33353a",
+            "on-tertiary": "#562003",
+            "on-secondary-container": "#9ab7e2",
+            "on-primary-fixed-variant": "#633f00",
+            "secondary": "#abc8f4",
+            "surface-container": "#1e2025",
+            "on-background": "#e2e2e9",
+            "tertiary-fixed": "#ffdbcd",
+            "on-error": "#690005",
+            "secondary-fixed-dim": "#abc8f4",
+            "on-tertiary-fixed-variant": "#723517",
+            "on-primary": "#452b00",
+            "secondary-container": "#2a486d",
+            "on-secondary": "#103155",
+            "on-secondary-fixed-variant": "#2a486d",
+            "tertiary-fixed-dim": "#ffb596",
+            "tertiary": "#ffb797",
+            "surface-container-high": "#282a2f",
+            "secondary-fixed": "#d3e3ff",
+            "surface-bright": "#37393f",
+            "on-primary-container": "#5a3900",
+            "inverse-surface": "#e2e2e9",
+            "primary-fixed-dim": "#feb956",
+            "error-container": "#93000a",
+            "surface": "#111318",
+            "error": "#ffb4ab",
+            "on-tertiary-container": "#6a2f11",
+            "tertiary-container": "#ec9771",
+            "surface-tint": "#feb956",
+            "on-error-container": "#ffdad6",
+            "on-secondary-fixed": "#001c39",
+            "surface-container-low": "#1a1b21",
+            "primary-fixed": "#ffddb4",
+            "primary-container": "#e09f3e",
+            "outline-variant": "#514536"
+          },
+          borderRadius: {
+            DEFAULT: "0.25rem",
+            lg: "0.5rem",
+            xl: "0.75rem",
+            full: "9999px"
+          },
+          spacing: {
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem",
+            "space-md": "1rem",
+            "space-lg": "1.5rem",
+            "space-xl": "2.5rem",
+            gutter: "1.5rem",
+            "gutter-mobile": "0.75rem",
+            margin: "3rem",
+            "margin-mobile": "1.25rem"
+          },
+          fontFamily: {
+            "headline-xl": ["Newsreader", "serif"],
+            "headline-md": ["Newsreader", "serif"],
+            "display-lg": ["Newsreader", "serif"],
+            "title-lg": ["Manrope", "sans-serif"],
+            "title-md": ["Manrope", "sans-serif"],
+            "body-lg": ["Manrope", "sans-serif"],
+            "body-md": ["Manrope", "sans-serif"],
+            "label-lg": ["JetBrains Mono", "monospace"],
+            "label-md": ["JetBrains Mono", "monospace"],
+            "label-sm": ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    @layer base {
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #111318;
+        color: #e2e2e9;
+      }
+      body {
+        overscroll-behavior: none;
+      }
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .material-symbols-outlined.filled {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    /* 3D Perspective Card Flip */
+    .card-perspective {
+      perspective: 1000px;
+    }
+    .card-flipper {
+      transform-style: preserve-3d;
+      transition: transform 0.45s cubic-bezier(0.2, 0.85, 0.4, 1.15);
+    }
+    .card-flipper.flipped {
+      transform: rotateY(180deg);
+    }
+    .card-face {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .card-front {
+      transform: rotateY(180deg);
+    }
+
+    /* Tactile Realistic Wood Block Puzzle Styling */
+    .wood-puzzle-plinth {
+      background: radial-gradient(circle at center, #241307 0%, #150b04 100%);
+      border: 8px solid #5a3214;
+      border-radius: 12px;
+      box-shadow: 
+        inset 0 4px 15px rgba(0,0,0,0.95),
+        0 16px 36px rgba(0,0,0,0.8),
+        0 0 0 1px rgba(255,183,151,0.25);
+      padding: 10px;
+    }
+
+    .wood-tile-block {
+      background: linear-gradient(135deg, #e6c594 0%, #d4a373 50%, #b07d4b 100%);
+      border: 2px solid #8c531b;
+      border-radius: 8px;
+      box-shadow: 
+        inset 0 2px 3px rgba(255,255,255,0.7),
+        inset 0 -2px 4px rgba(0,0,0,0.4),
+        0 4px 10px rgba(0,0,0,0.6);
+      color: #4a2406;
+      font-family: 'Newsreader', serif;
+      font-weight: 700;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s;
+    }
+    .wood-tile-block:hover {
+      transform: translateY(-2px) scale(1.02);
+      filter: brightness(1.07);
+      box-shadow: 
+        inset 0 2px 4px rgba(255,255,255,0.8),
+        0 8px 18px rgba(0,0,0,0.7);
+    }
+    .wood-tile-block:active {
+      transform: translateY(2px) scale(0.98);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+    }
+    .wood-tile-block.hint-glow {
+      border-color: #ffba56 !important;
+      box-shadow: 0 0 25px rgba(255, 186, 86, 0.95), inset 0 2px 4px rgba(255,255,255,0.9) !important;
+      animation: pulseGlow 0.8s infinite ease-in-out !important;
+      z-index: 25;
+    }
+    .wood-tile-empty {
+      background: #120803;
+      border-radius: 8px;
+      box-shadow: inset 0 4px 12px rgba(0,0,0,0.95);
+      border: 1px dashed rgba(255,255,255,0.06);
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+
+    /* Ambient Equalizer Bars */
+    @keyframes eqBar1 { 0%, 100% { height: 4px; } 50% { height: 14px; } }
+    @keyframes eqBar2 { 0%, 100% { height: 12px; } 50% { height: 6px; } }
+    @keyframes eqBar3 { 0%, 100% { height: 8px; } 50% { height: 16px; } }
+    @keyframes eqBar4 { 0%, 100% { height: 14px; } 50% { height: 5px; } }
+    .eq-bar-1 { animation: eqBar1 0.8s infinite ease-in-out; }
+    .eq-bar-2 { animation: eqBar2 0.9s infinite ease-in-out 0.15s; }
+    .eq-bar-3 { animation: eqBar3 0.75s infinite ease-in-out 0.3s; }
+    /* Hide inner header when embedded in main website to ensure only ONE navbar */
+    body.is-embedded header {
+      display: none !important;
+    }
+    body.is-embedded main {
+      padding-top: 1rem !important;
+    }
+    .embedded-station-nav {
+      display: none;
+    }
+    body.is-embedded .embedded-station-nav {
+      display: flex !important;
+    }
+  </style>
+  <script>
+    if (window.self !== window.top || window.location.search.includes('embedded=true')) {
+      document.documentElement.classList.add('is-embedded');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('is-embedded');
+      });
+    }
+  </script>
+</head>
+
+<body class="bg-background font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen overflow-x-hidden">
+
+  <!-- ========================================================= -->
+  <!-- 1. FIXED TOP ARCHITECTURAL HEADER & TELEMETRY DECK         -->
+  <!-- ========================================================= -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-surface/85 backdrop-blur-xl border-b border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.6)]">
+    <div class="h-16 w-full px-4 md:px-gutter flex items-center justify-between gap-space-md max-w-7xl mx-auto">
+      
+      <!-- Brand & Realm Tag -->
+      <div class="flex items-center gap-space-md lg:gap-space-lg">
+        <a class="flex items-center gap-space-sm group" href="#" onclick="switchView('hub'); return false;">
+          <div class="w-9 h-9 rounded-DEFAULT bg-surface-container-high flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] group-hover:bg-surface-bright transition-colors border border-primary/20">
+            <span class="material-symbols-outlined text-primary text-[22px]">neurology</span>
+          </div>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-1.5">
+              <span class="font-headline-md text-[18px] leading-none text-on-surface tracking-tight group-hover:text-primary transition-colors font-semibold font-serif">NEURON</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+            </div>
+            <span class="font-label-sm text-[9px] text-outline tracking-widest uppercase mt-0.5">The Memory Gym</span>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Tabs -->
+        <nav class="hidden lg:flex items-center gap-1 bg-surface-container-low p-1 rounded-DEFAULT shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] border border-white/[0.04]" id="navTabs">
+          <button class="nav-tab px-space-md py-1.5 rounded-DEFAULT font-label-md text-label-md transition-all bg-primary-container text-on-primary-container font-semibold shadow-[0_2px_8px_rgba(224,159,62,0.25)]" data-view="hub" onclick="switchView('hub')">
+            Sanctum Hub
+          </button>
+          <button class="nav-tab px-space-md py-1.5 rounded-DEFAULT font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-view="cortex" onclick="switchView('cortex')">
+            Cortex Match
+          </button>
+          <button class="nav-tab px-space-md py-1.5 rounded-DEFAULT font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-view="sequence" onclick="switchView('sequence')">
+            Neuro Sequence
+          </button>
+          <button class="nav-tab px-space-md py-1.5 rounded-DEFAULT font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-view="woodpuzzle" onclick="switchView('woodpuzzle')">
+            Wood Block Puzzle
+          </button>
+          <button class="nav-tab px-space-md py-1.5 rounded-DEFAULT font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-view="crossrecall" onclick="switchView('crossrecall')">
+            Cross Recall
+          </button>
+          <button class="nav-tab px-space-md py-1.5 rounded-DEFAULT font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-view="telemetry" onclick="switchView('telemetry')">
+            Sanctuary & Audio
+          </button>
+        </nav>
+      </div>
+
+      <!-- Right Telemetry Badges & Audio Controls -->
+      <div class="flex items-center gap-space-xs sm:gap-space-sm">
+        
+        <!-- Daily Streak Relic -->
+        <div class="flex items-center gap-1.5 bg-surface-container-low px-2.5 sm:px-space-md py-1.5 rounded-DEFAULT shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] border border-white/[0.04]">
+          <span class="material-symbols-outlined text-primary text-[18px]">local_fire_department</span>
+          <span class="font-label-md text-label-md text-on-surface font-semibold" id="globalStreak">14<span class="hidden sm:inline text-outline font-normal ml-0.5">D</span></span>
+          <div class="w-px h-3.5 bg-outline-variant mx-1 hidden sm:block"></div>
+          <div class="hidden sm:flex items-center gap-1">
+            <span class="material-symbols-outlined text-secondary text-[17px]">diamond</span>
+            <span class="font-label-md text-label-md text-on-surface font-semibold" id="globalScore">2,840<span class="text-outline font-normal ml-0.5">XP</span></span>
+          </div>
+        </div>
+
+        <!-- Real Background Music Toggle -->
+        <button class="group relative flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-DEFAULT bg-surface-container-high text-on-surface-variant hover:text-primary hover:bg-surface-bright shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] border border-secondary/30 transition-all cursor-pointer" id="bgMusicBtn" onclick="toggleBackgroundMusic()" title="Play Gentle Background Music">
+          <div class="flex items-end gap-[2px] h-3.5 w-4">
+            <span class="w-[2.5px] bg-secondary rounded-full eq-bar-1" id="eq1"></span>
+            <span class="w-[2.5px] bg-secondary rounded-full eq-bar-2" id="eq2"></span>
+            <span class="w-[2.5px] bg-secondary rounded-full eq-bar-3" id="eq3"></span>
+            <span class="w-[2.5px] bg-secondary rounded-full eq-bar-4" id="eq4"></span>
+          </div>
+          <span class="hidden md:inline font-label-sm text-[10px] text-secondary font-mono uppercase tracking-wider" id="musicLabel">Music: OFF</span>
+        </button>
+
+        <!-- Master Sound Effects Toggle -->
+        <button class="relative flex items-center justify-center w-9 h-9 rounded-DEFAULT bg-surface-container-high text-on-surface-variant hover:text-primary hover:bg-surface-bright shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] border border-white/[0.05] transition-all cursor-pointer" id="soundFxBtn" onclick="toggleSoundFx()" title="Toggle Sound FX">
+          <span class="material-symbols-outlined text-[19px]" id="soundFxIcon">volume_up</span>
+        </button>
+
+        <!-- Gentle Voice Guidance Assistant -->
+        <button class="relative flex items-center justify-center w-9 h-9 rounded-DEFAULT bg-surface-container-high text-on-surface-variant hover:text-primary hover:bg-surface-bright shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] border border-white/[0.05] transition-all cursor-pointer" onclick="speakAffirmation()" title="Listen to Gentle Cognitive Guidance">
+          <span class="material-symbols-outlined text-[19px]">record_voice_over</span>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Mobile Sub-Navigation Bar -->
+    <div class="flex lg:hidden items-center justify-around bg-surface-container-low/95 px-2 py-1.5 border-t border-white/[0.04] text-[11px] font-label-md overflow-x-auto">
+      <button class="mobile-nav-tab text-primary font-semibold px-2 py-1" data-view="hub" onclick="switchView('hub')">Hub</button>
+      <button class="mobile-nav-tab text-on-surface-variant px-2 py-1" data-view="cortex" onclick="switchView('cortex')">Cortex Match</button>
+      <button class="mobile-nav-tab text-on-surface-variant px-2 py-1" data-view="sequence" onclick="switchView('sequence')">Sequence</button>
+      <button class="mobile-nav-tab text-on-surface-variant px-2 py-1" data-view="woodpuzzle" onclick="switchView('woodpuzzle')">Wood Puzzle</button>
+      <button class="mobile-nav-tab text-on-surface-variant px-2 py-1" data-view="crossrecall" onclick="switchView('crossrecall')">Cross Recall</button>
+      <button class="mobile-nav-tab text-on-surface-variant px-2 py-1" data-view="telemetry" onclick="switchView('telemetry')">Sanctuary</button>
+    </div>
+  </header>
+
+  <!-- ========================================================= -->
+  <!-- 2. ATMOSPHERIC CANVAS & VOLUMETRIC RAY SHIMMER             -->
+  <!-- ========================================================= -->
+  <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none">
+    <!-- Interactive Ambient Dust Canvas -->
+    <canvas class="w-full h-full opacity-60 mix-blend-screen" id="ambientDustCanvas"></canvas>
+    
+    <!-- Kinetic Confetti Burst Canvas -->
+    <canvas class="w-full h-full absolute inset-0 z-10 opacity-90" id="burstCanvas"></canvas>
+
+    <!-- Dynamic Volumetric Color Glow Cones -->
+    <div class="absolute -top-32 left-1/4 w-[32rem] h-[32rem] rounded-full bg-primary/10 blur-[130px] transition-colors duration-1000" id="glow1"></div>
+    <div class="absolute top-1/3 -right-24 w-[34rem] h-[34rem] rounded-full bg-secondary/10 blur-[150px] transition-colors duration-1000" id="glow2"></div>
+    <div class="absolute -bottom-24 left-1/3 w-[36rem] h-[36rem] rounded-full bg-tertiary/5 blur-[140px] transition-colors duration-1000" id="glow3"></div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- 3. MAIN GAME CHAMBERS CONTAINER                            -->
+  <!-- ========================================================= -->
+  <main class="relative z-10 w-full pt-24 lg:pt-20 pb-16 min-h-screen">
+
+    <!-- Embedded In-Gym Station Switcher (Visible only when inside main app, replacing duplicate top header) -->
+    <div class="embedded-station-nav w-full max-w-7xl mx-auto px-4 md:px-gutter mb-5 items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+        <span class="font-serif text-sm font-semibold text-white tracking-wide">Memory Gym Arena</span>
+      </div>
+      <div class="flex items-center gap-1.5 bg-surface-container-low p-1 rounded-DEFAULT border border-white/[0.06] shadow-inner text-xs font-label-md">
+        <button class="embedded-tab px-3 py-1 rounded-DEFAULT bg-primary-container text-on-primary-container font-semibold transition-all cursor-pointer" data-view="hub" onclick="switchView('hub')">
+          Archive Hub
+        </button>
+        <button class="embedded-tab px-3 py-1 rounded-DEFAULT text-on-surface-variant hover:text-white hover:bg-surface-container transition-all cursor-pointer" data-view="cortex" onclick="switchView('cortex')">
+          Card Match
+        </button>
+        <button class="embedded-tab px-3 py-1 rounded-DEFAULT text-on-surface-variant hover:text-white hover:bg-surface-container transition-all cursor-pointer" data-view="sequence" onclick="switchView('sequence')">
+          Neuro Sequence
+        </button>
+        <button class="embedded-tab px-3 py-1 rounded-DEFAULT text-on-surface-variant hover:text-white hover:bg-surface-container transition-all cursor-pointer" data-view="woodpuzzle" onclick="switchView('woodpuzzle')">
+          Wood Puzzle
+        </button>
+        <button class="embedded-tab px-3 py-1 rounded-DEFAULT text-on-surface-variant hover:text-white hover:bg-surface-container transition-all cursor-pointer" data-view="crossrecall" onclick="switchView('crossrecall')">
+          Cross Recall
+        </button>
+      </div>
+    </div>
+    
+    <!-- ******************************************************** -->
+    <!-- VIEW 1: SANCTUM ARCHIVE HUB (3D PERSPECTIVE STATIONS)     -->
+    <!-- ******************************************************** -->
+    <section class="w-full px-4 md:px-gutter max-w-7xl mx-auto flex flex-col gap-space-lg transition-opacity duration-300" id="view-hub">
+      
+      <!-- Perimeter Atmospheric Telemetry Deck -->
+      <div class="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md bg-surface-container-low/90 backdrop-blur-xl p-space-md rounded-DEFAULT shadow-[0_8px_32px_-4px_rgba(0,0,0,0.7)] border border-white/[0.06]">
+        <div class="flex items-center gap-space-md">
+          <div class="w-12 h-12 rounded-DEFAULT bg-surface-container-high flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] border border-primary/30">
+            <span class="material-symbols-outlined text-primary text-[28px] filled">view_in_ar</span>
+          </div>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-space-xs">
+              <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+              <span class="font-label-sm text-label-sm uppercase tracking-widest text-outline">Chamber of Cognition</span>
+              <span class="font-label-sm text-label-sm text-outline-variant">/</span>
+              <span class="font-label-sm text-label-sm text-primary uppercase font-mono">Sanctum Grid 03</span>
+            </div>
+            <h2 class="font-headline-md text-headline-md text-on-surface tracking-tight text-xl sm:text-2xl font-serif">
+              The Memory Gym — Spatial Training Arena
+            </h2>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-space-sm w-full lg:w-auto justify-between lg:justify-end">
+          <!-- Daily Cognitive Flux Tube -->
+          <div class="flex flex-col gap-1 bg-surface-container-lowest/80 px-space-md py-2 rounded-DEFAULT shadow-[inset_0_2px_6px_rgba(0,0,0,0.6)] min-w-[200px] border border-white/[0.04]">
+            <div class="flex items-center justify-between">
+              <span class="font-label-sm text-[10px] text-outline tracking-wider uppercase">Brain Score</span>
+              <span class="font-label-md text-label-md text-primary font-semibold">840 / 1000 FLX</span>
+            </div>
+            <div class="w-full h-1.5 bg-surface-variant rounded-full overflow-hidden flex">
+              <div class="h-full bg-gradient-to-r from-primary-container to-primary rounded-full" style="width: 84%"></div>
+            </div>
+          </div>
+
+          <!-- Streak Relic -->
+          <div class="flex items-center gap-space-xs bg-surface-container px-space-md py-2 rounded-DEFAULT shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border border-white/[0.04]">
+            <span class="material-symbols-outlined text-tertiary text-[20px] filled">hourglass_top</span>
+            <div class="flex flex-col">
+              <span class="font-label-sm text-[9px] text-outline uppercase leading-none">Vigil</span>
+              <span class="font-label-md text-label-md text-on-surface font-semibold leading-tight">5 Day Streak</span>
+            </div>
+          </div>
+
+          <!-- Harmonic Audio Sanctuary Status Badge (Clean non-clickable indicator) -->
+          <div class="flex items-center gap-space-xs bg-surface-container-high px-space-md py-2 rounded-DEFAULT border border-secondary/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <span class="material-symbols-outlined text-secondary text-[20px]">music_note</span>
+            <div class="flex flex-col">
+              <span class="font-label-sm text-[9px] text-secondary uppercase font-semibold leading-none">432 Hz Solfeggio</span>
+              <span class="font-label-sm text-[10px] text-outline leading-tight">Harmonic Flux</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3D PERSPECTIVE GAME STATIONS CONTAINER -->
+      <div class="w-full grid grid-cols-1 lg:grid-cols-3 gap-space-lg items-stretch [perspective:1200px]">
+        
+        <!-- STATION 1: CORTEX MATCH (The Memory Archive) -->
+        <div class="group relative flex flex-col justify-between rounded-DEFAULT bg-surface-container-low/95 p-space-lg shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,186,86,0.15)] hover:shadow-[0_24px_60px_rgba(255,186,86,0.22)] border border-primary/20 transition-all duration-500 ease-out hover:-translate-y-2 cursor-pointer overflow-hidden" onclick="switchView('cortex')">
+          <div class="absolute -top-20 -left-20 w-64 h-64 rounded-full bg-primary/15 blur-[80px] group-hover:bg-primary/25 transition-all duration-700 pointer-events-none"></div>
+          <div class="absolute top-0 right-0 p-space-md opacity-40 group-hover:opacity-90 transition-opacity">
+            <span class="font-label-sm text-label-sm tracking-widest text-primary font-mono">ARC-01 // VELLUM</span>
+          </div>
+          
+          <div class="flex flex-col gap-space-md relative z-10">
+            <div class="flex items-center gap-space-sm">
+              <div class="w-8 h-8 rounded-DEFAULT bg-primary/20 flex items-center justify-center text-primary border border-primary/30">
+                <span class="material-symbols-outlined text-[20px]">auto_stories</span>
+              </div>
+              <div>
+                <span class="font-label-sm text-[10px] text-outline tracking-wider uppercase block">Sanctum Wing I</span>
+                <h3 class="font-headline-md text-2xl text-on-surface group-hover:text-primary transition-colors font-serif">Cortex Match</h3>
+              </div>
+            </div>
+            <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Card Match: Flip cards and find matching pairs of ancient symbols. Helps sharpen visual memory and focus at your own relaxed pace.
+            </p>
+          </div>
+
+          <!-- 3D Specimen Pedestal Scene -->
+          <div class="relative w-full h-60 my-space-md flex items-center justify-center [perspective:800px]">
+            <div class="absolute bottom-4 w-48 h-16 rounded-[50%] bg-surface-container-high shadow-[0_12px_24px_rgba(0,0,0,0.8),inset_0_2px_4px_rgba(255,186,86,0.2)] transform -rotate-x-60 group-hover:scale-105 transition-transform duration-500"></div>
+            <div class="absolute bottom-6 w-36 h-12 rounded-[50%] bg-surface-container shadow-[inset_0_2px_6px_rgba(0,0,0,0.9)] transform -rotate-x-60"></div>
+            
+            <div class="relative z-10 flex items-center justify-center -space-x-6 transform transition-transform duration-500 ease-out group-hover:scale-105">
+              <div class="w-20 h-32 rounded-DEFAULT bg-surface-container p-2 shadow-lg transform -rotate-12 -translate-y-2 group-hover:-rotate-16 group-hover:-translate-y-4 transition-all duration-500 flex flex-col justify-between border border-white/[0.06]">
+                <div class="flex justify-between items-center text-outline">
+                  <span class="font-label-sm text-[8px] font-mono">VII</span>
+                  <span class="material-symbols-outlined text-[12px] text-primary">spa</span>
+                </div>
+                <div class="w-full h-14 rounded-DEFAULT bg-surface-container-low flex items-center justify-center shadow-inner">
+                  <span class="material-symbols-outlined text-primary text-[24px]">psychology</span>
+                </div>
+                <span class="font-label-sm text-[7px] text-outline text-center uppercase tracking-wider">Folio Monad</span>
+              </div>
+
+              <div class="w-24 h-36 rounded-DEFAULT bg-surface-container-high p-2.5 shadow-2xl transform -translate-y-4 group-hover:-translate-y-7 group-hover:scale-105 transition-all duration-500 flex flex-col justify-between z-20 border border-primary/40">
+                <div class="flex justify-between items-center">
+                  <span class="font-label-sm text-[8px] font-mono text-primary font-semibold">SIGIL-04</span>
+                  <span class="material-symbols-outlined text-[13px] text-primary">verified</span>
+                </div>
+                <div class="w-full h-16 rounded-DEFAULT bg-surface-container-lowest flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
+                  <span class="material-symbols-outlined text-primary text-[32px] drop-shadow-[0_0_8px_rgba(255,186,86,0.6)]">lens_blur</span>
+                  <span class="font-label-sm text-[7px] text-on-surface-variant font-mono mt-0.5">RESONANCE</span>
+                </div>
+                <div class="w-full flex justify-between items-center">
+                  <div class="flex gap-0.5">
+                    <span class="w-1 h-1 rounded-full bg-primary"></span>
+                    <span class="w-1 h-1 rounded-full bg-primary"></span>
+                  </div>
+                  <span class="font-label-sm text-[7px] text-primary font-mono uppercase">Match</span>
+                </div>
+              </div>
+
+              <div class="w-20 h-32 rounded-DEFAULT bg-surface-container p-2 shadow-lg transform rotate-12 translate-y-1 group-hover:rotate-16 group-hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between border border-white/[0.06]">
+                <div class="flex justify-between items-center text-outline">
+                  <span class="material-symbols-outlined text-[12px] text-tertiary">fingerprint</span>
+                  <span class="font-label-sm text-[8px] font-mono">XII</span>
+                </div>
+                <div class="w-full h-14 rounded-DEFAULT bg-surface-container-low flex items-center justify-center shadow-inner">
+                  <span class="material-symbols-outlined text-on-surface-variant text-[22px]">grid_goldenratio</span>
+                </div>
+                <span class="font-label-sm text-[7px] text-outline text-center uppercase tracking-wider">Tessera</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Telemetry & Specs Footer -->
+          <div class="relative z-10 flex flex-col gap-space-md pt-space-sm">
+            <div class="grid grid-cols-2 gap-space-sm bg-surface-container-lowest/70 p-space-sm rounded-DEFAULT border border-white/[0.04]">
+              <div class="flex flex-col">
+                <span class="font-label-sm text-[9px] text-outline uppercase">Best Score</span>
+                <span class="font-label-lg text-label-lg text-primary font-mono font-semibold">1,420 PTS</span>
+              </div>
+              <div class="flex flex-col border-l border-outline-variant/30 pl-space-sm">
+                <span class="font-label-sm text-[9px] text-outline uppercase">Mastery</span>
+                <span class="font-label-lg text-label-lg text-on-surface font-mono font-semibold">Level 3 · 94%</span>
+              </div>
+            </div>
+            <button class="w-full py-3 px-space-md rounded-DEFAULT bg-primary hover:bg-primary-fixed-dim text-on-primary font-title-md text-title-md flex items-center justify-center gap-space-xs shadow-[0_4px_16px_rgba(255,186,86,0.3)] active:translate-y-0.5 transition-all font-semibold" type="button">
+              <span>Play Card Match</span>
+              <span class="material-symbols-outlined text-[18px]">north_east</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STATION 2: NEURO SEQUENCE (The Constellation) -->
+        <div class="group relative flex flex-col justify-between rounded-DEFAULT bg-surface-container-low/95 p-space-lg shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(171,200,244,0.15)] hover:shadow-[0_24px_60px_rgba(171,200,244,0.22)] border border-secondary/20 transition-all duration-500 ease-out hover:-translate-y-2 cursor-pointer overflow-hidden" onclick="switchView('sequence')">
+          <div class="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-secondary/15 blur-[80px] group-hover:bg-secondary/25 transition-all duration-700 pointer-events-none"></div>
+          <div class="absolute top-0 right-0 p-space-md opacity-40 group-hover:opacity-90 transition-opacity">
+            <span class="font-label-sm text-label-sm tracking-widest text-secondary font-mono">CST-09 // ASTRO</span>
+          </div>
+
+          <div class="flex flex-col gap-space-md relative z-10">
+            <div class="flex items-center gap-space-sm">
+              <div class="w-8 h-8 rounded-DEFAULT bg-secondary/20 flex items-center justify-center text-secondary border border-secondary/30">
+                <span class="material-symbols-outlined text-[20px]">flare</span>
+              </div>
+              <div>
+                <span class="font-label-sm text-[10px] text-outline tracking-wider uppercase block">Sanctum Wing II</span>
+                <h3 class="font-headline-md text-2xl text-on-surface group-hover:text-secondary transition-colors font-serif">Neuro Sequence</h3>
+              </div>
+            </div>
+            <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Light & Sound Sequence: Watch glowing celestial stars chime in order and repeat the pattern to train your working memory.
+            </p>
+          </div>
+
+          <!-- 3D Astral Orbit Arena -->
+          <div class="relative w-full h-60 my-space-md flex items-center justify-center [perspective:800px]">
+            <div class="absolute w-48 h-48 rounded-full border border-secondary/20 transform -rotate-x-65 group-hover:scale-105 transition-transform duration-700 pointer-events-none"></div>
+            <div class="absolute w-32 h-32 rounded-full border border-secondary/30 transform -rotate-x-65 group-hover:scale-110 transition-transform duration-500 pointer-events-none"></div>
+            
+            <div class="relative z-10 w-16 h-16 rounded-full bg-secondary-container/60 backdrop-blur-md flex items-center justify-center shadow-[0_0_36px_rgba(171,200,244,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border border-secondary/40 group-hover:scale-110 transition-transform duration-500">
+              <div class="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-inner">
+                <span class="material-symbols-outlined text-secondary text-[22px] animate-pulse">all_inclusive</span>
+              </div>
+            </div>
+
+            <div class="absolute top-4 left-10 w-8 h-8 rounded-full bg-surface-container-high border border-secondary/40 flex items-center justify-center text-secondary shadow-[0_0_14px_rgba(171,200,244,0.4)]">
+              <span class="font-label-sm text-[9px] font-mono font-bold">01</span>
+            </div>
+            <div class="absolute top-8 right-8 w-9 h-9 rounded-full bg-secondary-container border border-secondary/50 flex items-center justify-center text-secondary-fixed shadow-[0_0_18px_rgba(171,200,244,0.6)]">
+              <span class="font-label-sm text-[10px] font-mono font-bold">02</span>
+            </div>
+            <div class="absolute bottom-6 left-12 w-7 h-7 rounded-full bg-surface-container border border-white/[0.08] flex items-center justify-center text-outline">
+              <span class="font-label-sm text-[8px] font-mono font-bold">03</span>
+            </div>
+            <div class="absolute bottom-6 right-10 w-8 h-8 rounded-full bg-surface-container-high border border-secondary/40 flex items-center justify-center text-secondary shadow-[0_0_14px_rgba(171,200,244,0.4)]">
+              <span class="font-label-sm text-[9px] font-mono font-bold">04</span>
+            </div>
+
+            <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-40 group-hover:opacity-75 transition-opacity" fill="none" viewBox="0 0 240 200">
+              <path class="text-secondary" d="M60 40 L120 100 L180 50 L170 150 L80 145 Z" stroke="currentColor" stroke-dasharray="3 3" stroke-width="1"></path>
+            </svg>
+          </div>
+
+          <!-- Telemetry & Specs Footer -->
+          <div class="relative z-10 flex flex-col gap-space-md pt-space-sm">
+            <div class="grid grid-cols-2 gap-space-sm bg-surface-container-lowest/70 p-space-sm rounded-DEFAULT border border-white/[0.04]">
+              <div class="flex flex-col">
+                <span class="font-label-sm text-[9px] text-outline uppercase">Max Round</span>
+                <span class="font-label-lg text-label-lg text-secondary font-mono font-semibold">Round 14</span>
+              </div>
+              <div class="flex flex-col border-l border-outline-variant/30 pl-space-sm">
+                <span class="font-label-sm text-[9px] text-outline uppercase">Accuracy</span>
+                <span class="font-label-lg text-label-lg text-on-surface font-mono font-semibold">98.2%</span>
+              </div>
+            </div>
+            <button class="w-full py-3 px-space-md rounded-DEFAULT bg-secondary-container hover:bg-secondary text-secondary-fixed hover:text-on-secondary font-title-md text-title-md flex items-center justify-center gap-space-xs shadow-[0_4px_16px_rgba(42,72,109,0.5)] active:translate-y-0.5 transition-all font-semibold" type="button">
+              <span>Play Sequence</span>
+              <span class="material-symbols-outlined text-[18px]">north_east</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STATION 3: WOOD BLOCK PUZZLE (The Memory Workshop) -->
+        <div class="group relative flex flex-col justify-between rounded-DEFAULT bg-surface-container-low/95 p-space-lg shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,183,151,0.15)] hover:shadow-[0_24px_60px_rgba(255,183,151,0.22)] border border-tertiary/20 transition-all duration-500 ease-out hover:-translate-y-2 cursor-pointer overflow-hidden" onclick="switchView('woodpuzzle')">
+          <div class="absolute -top-20 left-1/3 w-64 h-64 rounded-full bg-tertiary/15 blur-[80px] group-hover:bg-tertiary/25 transition-all duration-700 pointer-events-none"></div>
+          <div class="absolute top-0 right-0 p-space-md opacity-40 group-hover:opacity-90 transition-opacity">
+            <span class="font-label-sm text-label-sm tracking-widest text-tertiary font-mono">WKP-04 // WOOD</span>
+          </div>
+
+          <div class="flex flex-col gap-space-md relative z-10">
+            <div class="flex items-center gap-space-sm">
+              <div class="w-8 h-8 rounded-DEFAULT bg-tertiary/20 flex items-center justify-center text-tertiary border border-tertiary/30">
+                <span class="material-symbols-outlined text-[20px]">view_timeline</span>
+              </div>
+              <div>
+                <span class="font-label-sm text-[10px] text-outline tracking-wider uppercase block">Sanctum Wing III</span>
+                <h3 class="font-headline-md text-2xl text-on-surface group-hover:text-tertiary transition-colors font-serif">Wood Block Puzzle</h3>
+              </div>
+            </div>
+            <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Wood Block Puzzle: Slide tactile wooden number blocks into numerical order. Features easy 3x3 mode, 4x4 mode, and hints.
+            </p>
+          </div>
+
+          <!-- 3D Perspective Wood Plinth Scene -->
+          <div class="relative w-full h-60 my-space-md flex items-center justify-center [perspective:900px]">
+            <div class="absolute bottom-2 w-48 h-24 rounded-DEFAULT bg-[#2a1708] border-4 border-[#5a3214] shadow-2xl transform -rotate-x-45 rotate-z-6 group-hover:rotate-z-2 transition-transform duration-500">
+              <div class="absolute inset-1.5 grid grid-cols-3 gap-1 opacity-40">
+                <div class="bg-[#140a03] rounded-DEFAULT"></div>
+                <div class="bg-[#140a03] rounded-DEFAULT"></div>
+                <div class="bg-[#140a03] rounded-DEFAULT"></div>
+                <div class="bg-[#140a03] rounded-DEFAULT"></div>
+                <div class="bg-[#140a03] rounded-DEFAULT"></div>
+                <div class="bg-[#140a03] rounded-DEFAULT"></div>
+              </div>
+            </div>
+
+            <!-- Floating Carved Wood Blocks -->
+            <div class="relative z-10 flex items-center gap-2 transform -translate-y-3 group-hover:-translate-y-6 transition-all duration-500">
+              <div class="w-11 h-13 rounded-DEFAULT wood-tile-block p-1 shadow-lg transform -rotate-6 group-hover:-translate-y-2 transition-transform">
+                <span class="font-label-sm text-[7px] text-[#7a461e] font-mono">01</span>
+                <span class="font-headline-md text-[18px] text-[#4a2406] font-serif font-bold">1</span>
+              </div>
+              <div class="w-12 h-14 rounded-DEFAULT wood-tile-block p-1 shadow-xl transform translate-y-1 group-hover:-translate-y-4 transition-transform">
+                <span class="font-label-sm text-[7px] text-[#7a461e] font-mono">02</span>
+                <span class="font-headline-md text-[20px] text-[#4a2406] font-serif font-bold">2</span>
+              </div>
+              <div class="w-12 h-15 rounded-DEFAULT wood-tile-block p-1 shadow-2xl transform -translate-y-2 group-hover:-translate-y-5 transition-transform">
+                <span class="font-label-sm text-[7px] text-[#7a461e] font-mono">03</span>
+                <span class="font-headline-md text-[20px] text-[#4a2406] font-serif font-bold">3</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Telemetry & Specs Footer -->
+          <div class="relative z-10 flex flex-col gap-space-md pt-space-sm">
+            <div class="grid grid-cols-2 gap-space-sm bg-surface-container-lowest/70 p-space-sm rounded-DEFAULT border border-white/[0.04]">
+              <div class="flex flex-col">
+                <span class="font-label-sm text-[9px] text-outline uppercase">Grid Modes</span>
+                <span class="font-label-lg text-label-lg text-tertiary font-mono font-semibold">3×3 & 4×4</span>
+              </div>
+              <div class="flex flex-col border-l border-outline-variant/30 pl-space-sm">
+                <span class="font-label-sm text-[9px] text-outline uppercase">Tactile Slide</span>
+                <span class="font-label-lg text-label-lg text-on-surface font-mono font-semibold">Carved Oak</span>
+              </div>
+            </div>
+            <button class="w-full py-3 px-space-md rounded-DEFAULT bg-tertiary-container hover:bg-tertiary text-on-tertiary font-title-md text-title-md flex items-center justify-center gap-space-xs shadow-[0_4px_16px_rgba(236,151,113,0.3)] active:translate-y-0.5 transition-all font-semibold" type="button">
+              <span>Open Wood Puzzle</span>
+              <span class="material-symbols-outlined text-[18px]">north_east</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- STATION 4: CROSS-MEMORY RECALL — Featured Full-Width Card Below the 3-col Grid -->
+      <div class="w-full max-w-2xl mx-auto mt-2 [perspective:1200px]">
+        <div class="group relative flex flex-col md:flex-row gap-space-lg rounded-DEFAULT bg-surface-container-low/95 p-space-lg shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,186,86,0.15)] hover:shadow-[0_24px_60px_rgba(255,186,86,0.22)] border border-primary/20 transition-all duration-500 ease-out hover:-translate-y-1 cursor-pointer overflow-hidden" onclick="switchView('crossrecall')">
+          <div class="absolute -top-20 -left-20 w-64 h-64 rounded-full bg-primary/15 blur-[80px] group-hover:bg-primary/25 transition-all duration-700 pointer-events-none"></div>
+          <div class="absolute top-0 right-0 p-space-md opacity-40 group-hover:opacity-90 transition-opacity">
+            <span class="font-label-sm text-label-sm tracking-widest text-primary font-mono">ARC-04 // PERSONAL</span>
+          </div>
+
+          <!-- Left: Preview -->
+          <div class="relative w-full md:w-56 flex-shrink-0">
+            <div class="relative w-full h-44 md:h-full rounded-DEFAULT bg-surface-container-lowest/80 border border-white/[0.04] overflow-hidden flex items-center justify-center p-3 shadow-inner">
+              <div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent z-10 pointer-events-none"></div>
+              <div class="relative z-0 grid grid-cols-2 gap-2 w-full max-w-[220px]">
+                <div class="p-2 rounded-md bg-surface-container/90 border border-primary/40 flex items-center gap-1.5 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                  <span class="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-mono font-bold flex items-center justify-center">A</span>
+                  <span class="text-[10px] text-on-surface truncate font-sans">Loved One</span>
+                </div>
+                <div class="p-2 rounded-md bg-surface-container/90 border border-white/10 flex items-center gap-1.5 shadow-sm group-hover:scale-105 transition-transform duration-300 delay-75">
+                  <span class="w-5 h-5 rounded-full bg-surface-container-high text-outline text-[10px] font-mono font-bold flex items-center justify-center">B</span>
+                  <span class="text-[10px] text-on-surface-variant truncate font-sans">Dr. Julian</span>
+                </div>
+                <div class="p-2 rounded-md bg-surface-container/90 border border-white/10 flex items-center gap-1.5 shadow-sm group-hover:scale-105 transition-transform duration-300 delay-100">
+                  <span class="w-5 h-5 rounded-full bg-surface-container-high text-outline text-[10px] font-mono font-bold flex items-center justify-center">C</span>
+                  <span class="text-[10px] text-on-surface-variant truncate font-sans">Glasses</span>
+                </div>
+                <div class="p-2 rounded-md bg-surface-container/90 border border-white/10 flex items-center gap-1.5 shadow-sm group-hover:scale-105 transition-transform duration-300 delay-150">
+                  <span class="w-5 h-5 rounded-full bg-surface-container-high text-outline text-[10px] font-mono font-bold flex items-center justify-center">D</span>
+                  <span class="text-[10px] text-on-surface-variant truncate font-sans">Tea</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Info -->
+          <div class="flex flex-col justify-between gap-space-md relative z-10 flex-1">
+            <div class="flex flex-col gap-space-sm">
+              <div class="flex items-center gap-space-sm">
+                <div class="w-8 h-8 rounded-DEFAULT bg-primary/20 flex items-center justify-center text-primary border border-primary/30">
+                  <span class="material-symbols-outlined text-[20px]">psychology</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="font-label-sm text-[10px] text-primary uppercase font-mono tracking-widest leading-none">Chamber IV</span>
+                  <span class="font-label-sm text-[9px] text-outline">Personal Trivia Matrix</span>
+                </div>
+              </div>
+              <h3 class="font-headline-md text-xl md:text-2xl text-on-surface font-serif group-hover:text-primary transition-colors">Cross-Memory Recall</h3>
+              <p class="font-body-md text-xs text-on-surface-variant leading-relaxed">
+                4-choice randomized personal trivia synthesized from your enrolled loved ones, daily objects, and sanctuary routines.
+              </p>
+            </div>
+            <div class="flex items-center gap-space-sm">
+              <div class="flex items-center gap-space-sm bg-surface-container-lowest/70 p-space-sm rounded-DEFAULT border border-white/[0.04] flex-1">
+                <div class="flex flex-col">
+                  <span class="font-label-sm text-[9px] text-outline uppercase">Format</span>
+                  <span class="font-label-lg text-label-lg text-primary font-mono font-semibold">4 Choices</span>
+                </div>
+              </div>
+              <button class="py-3 px-5 rounded-DEFAULT bg-primary-container hover:bg-primary text-on-primary font-title-md text-title-md flex items-center justify-center gap-space-xs shadow-[0_4px_16px_rgba(224,159,62,0.3)] active:translate-y-0.5 transition-all font-semibold cursor-pointer" type="button">
+                <span>Play Now</span>
+                <span class="material-symbols-outlined text-[18px]">north_east</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ******************************************************** -->
+    <!-- VIEW 2: CORTEX MATCH (THE MEMORY ARCHIVE)                 -->
+    <!-- ******************************************************** -->
+    <section class="hidden w-full px-4 md:px-gutter max-w-6xl mx-auto flex flex-col items-center gap-space-md transition-opacity duration-300" id="view-cortex">
+      
+      <!-- Chamber Top HUD -->
+      <div class="w-full flex flex-col md:flex-row items-center justify-between gap-space-md bg-surface-container-low/90 backdrop-blur-xl p-space-md rounded-DEFAULT shadow-lg border border-white/[0.06]">
+        <div class="flex items-center gap-space-md">
+          <button class="w-9 h-9 rounded-DEFAULT bg-surface-container hover:bg-surface-bright flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors border border-white/[0.06] cursor-pointer" onclick="switchView('hub')" title="Return to Sanctum Hub">
+            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-space-xs">
+              <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+              <span class="font-label-sm text-[10px] text-primary uppercase tracking-widest font-mono" id="cortexRoomTag">Sanctum Archive · Room IV</span>
+            </div>
+            <h1 class="font-headline-md text-2xl md:text-3xl text-on-surface tracking-tight font-serif">Cortex Match</h1>
+          </div>
+        </div>
+
+        <!-- Live Floating Metrics -->
+        <div class="flex items-center gap-space-sm flex-wrap justify-center">
+          
+          <!-- Glimpse Button (FIXED: Now fully flips cards with visible glowing outlines, NO dark blocker!) -->
+          <button class="bg-surface-container-high hover:bg-surface-bright active:scale-95 transition-all text-on-surface px-space-md py-1.5 rounded-DEFAULT shadow-md flex items-center gap-space-xs border border-primary/40 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" id="glimpseBtn" onclick="triggerGlimpse()">
+            <span class="material-symbols-outlined text-primary text-[18px]">visibility</span>
+            <span class="font-label-md text-label-md">Glimpse (<span id="glimpseCount">2</span> left)</span>
+          </button>
+
+          <!-- Score Counter -->
+          <div class="bg-surface-container/80 px-space-md py-1.5 rounded-DEFAULT flex items-baseline gap-1 border border-white/[0.04]">
+            <span class="font-label-sm text-[9px] text-outline uppercase tracking-wider">Score</span>
+            <span class="font-label-lg text-label-lg text-primary font-semibold font-mono" id="cortexScore">0</span>
+            <span class="font-label-sm text-[9px] text-outline">pts</span>
+          </div>
+
+          <!-- Moves Counter -->
+          <div class="bg-surface-container/80 px-space-md py-1.5 rounded-DEFAULT flex items-center gap-space-md border border-white/[0.04]">
+            <div class="flex items-baseline gap-1">
+              <span class="font-label-sm text-[9px] text-outline uppercase tracking-wider">Moves</span>
+              <span class="font-label-lg text-label-lg text-on-surface font-mono" id="cortexMoves">0</span>
+            </div>
+            <div class="w-px h-3 bg-surface-variant"></div>
+            <div class="flex items-center gap-0.5">
+              <span class="material-symbols-outlined text-tertiary text-[15px]">bolt</span>
+              <span class="font-label-md text-label-md text-tertiary font-semibold font-mono" id="cortexStreak">1.0x</span>
+            </div>
+          </div>
+
+          <!-- New Game / Reshuffle Button -->
+          <button class="bg-surface-container-high hover:bg-surface-bright text-on-surface px-3 py-1.5 rounded-DEFAULT font-label-sm text-[11px] transition-all flex items-center gap-1 border border-white/[0.06] cursor-pointer" onclick="resetCortexGame()">
+            <span class="material-symbols-outlined text-[14px]">refresh</span>
+            <span>New Deck</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Difficulty Selector Bar -->
+      <div class="w-full flex items-center justify-between bg-surface-container-low/70 px-space-md py-2 rounded-DEFAULT border border-white/[0.04]">
+        <div class="flex items-center gap-2">
+          <span class="font-label-sm text-[10px] text-outline uppercase tracking-wider font-mono">Archetype Matrix:</span>
+          <div class="flex items-center gap-1.5" id="cortexDiffSelector">
+            <button class="diff-btn px-3 py-1 rounded-DEFAULT font-label-sm text-[10px] bg-primary-container text-on-primary-container font-semibold transition-all" data-pairs="4" onclick="setCortexDifficulty(4, this)">Level 1 (8 Cards)</button>
+            <button class="diff-btn px-3 py-1 rounded-DEFAULT font-label-sm text-[10px] bg-surface-container text-on-surface-variant hover:text-on-surface transition-all" data-pairs="6" onclick="setCortexDifficulty(6, this)">Level 2 (12 Cards)</button>
+            <button class="diff-btn px-3 py-1 rounded-DEFAULT font-label-sm text-[10px] bg-surface-container text-on-surface-variant hover:text-on-surface transition-all" data-pairs="8" onclick="setCortexDifficulty(8, this)">Level 3 (16 Cards)</button>
+          </div>
+        </div>
+        <div class="text-[11px] font-mono text-primary font-semibold" id="cortexStageIndicator">
+          STAGE 1 / 3
+        </div>
+      </div>
+
+      <!-- NON-BLOCKING FLOATING GLIMPSE BANNER (cards stay 100% visible underneath!) -->
+      <div class="hidden w-full max-w-md p-2.5 rounded-DEFAULT bg-primary/20 border-2 border-primary text-primary font-mono text-center text-xs shadow-2xl animate-pulse flex items-center justify-center gap-2" id="cortexPeekBanner">
+        <span class="material-symbols-outlined text-[18px]">visibility</span>
+        <span>GLIMPSE ACTIVE: <strong class="text-white text-sm" id="peekCountdown">3</strong>s remaining! Memorize the relics.</span>
+      </div>
+
+      <!-- Playing Arena Grid Container -->
+      <div class="w-full relative flex items-center justify-center min-h-[480px] p-space-md bg-surface-container-lowest/60 rounded-DEFAULT border border-white/[0.05] shadow-inner">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-space-md sm:gap-space-lg w-full max-w-4xl" id="cortexGrid">
+          <!-- Cards injected dynamically via JS -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ******************************************************** -->
+    <!-- VIEW 3: NEURO SEQUENCE (THE CONSTELLATION)                -->
+    <!-- ******************************************************** -->
+    <section class="hidden w-full px-4 md:px-gutter max-w-6xl mx-auto flex flex-col items-center gap-space-md transition-opacity duration-300" id="view-sequence">
+      
+      <!-- Chamber Top HUD -->
+      <div class="w-full flex flex-col md:flex-row items-center justify-between gap-space-md bg-surface-container-low/90 backdrop-blur-xl p-space-md rounded-DEFAULT shadow-lg border border-white/[0.06]">
+        <div class="flex items-center gap-space-md">
+          <button class="w-9 h-9 rounded-DEFAULT bg-surface-container hover:bg-surface-bright flex items-center justify-center text-on-surface-variant hover:text-secondary transition-colors border border-white/[0.06] cursor-pointer" onclick="switchView('hub')" title="Return to Sanctum Hub">
+            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-space-xs">
+              <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+              <span class="font-label-sm text-[10px] text-secondary uppercase tracking-widest font-mono">CST-09 :: Sector Cygnus</span>
+            </div>
+            <h1 class="font-headline-md text-2xl md:text-3xl text-on-surface tracking-tight font-serif">The Memory Constellation</h1>
+          </div>
+        </div>
+
+        <!-- Telemetry Badges -->
+        <div class="flex items-center gap-space-sm bg-surface-container px-space-md py-1.5 rounded-DEFAULT border border-white/[0.04]">
+          <div class="flex flex-col items-center px-space-sm">
+            <span class="font-label-sm text-[9px] text-outline tracking-wider uppercase">Phase</span>
+            <span class="font-label-lg text-label-lg text-secondary font-semibold font-mono" id="sequenceRound">01</span>
+          </div>
+          <div class="w-px h-6 bg-surface-variant"></div>
+          <div class="flex flex-col items-center px-space-sm">
+            <span class="font-label-sm text-[9px] text-outline tracking-wider uppercase">Harmony</span>
+            <span class="font-label-lg text-label-lg text-on-surface font-semibold font-mono" id="sequenceScore">0000</span>
+          </div>
+          <div class="w-px h-6 bg-surface-variant"></div>
+          <div class="flex flex-col items-center px-space-sm">
+            <span class="font-label-sm text-[9px] text-outline tracking-wider uppercase">Essence</span>
+            <div class="flex items-center gap-1 mt-0.5" id="sequenceEssence">
+              <span class="material-symbols-outlined text-secondary text-[18px] filled">diamond</span>
+              <span class="material-symbols-outlined text-secondary text-[18px] filled">diamond</span>
+              <span class="material-symbols-outlined text-secondary text-[18px] filled">diamond</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Constellation Arena Container -->
+      <div class="w-full relative px-4 py-space-lg flex flex-col items-center justify-center min-h-[540px] bg-surface-container-lowest/60 rounded-DEFAULT border border-white/[0.05] shadow-inner">
+        
+        <!-- Status Indicator Pill -->
+        <div class="relative z-20 mb-space-md flex flex-col items-center text-center">
+          <div class="px-space-md py-1.5 rounded-DEFAULT bg-surface-container-high/90 backdrop-blur-md shadow-sm flex items-center gap-2 border border-secondary/30" id="sequenceStatusPill">
+            <span class="w-2 h-2 rounded-full bg-secondary animate-ping" id="sequenceStatusPip"></span>
+            <span class="font-label-md text-label-md text-on-surface tracking-wider uppercase font-mono" id="sequenceStatusText">Awaiting Genesis Pulse</span>
+          </div>
+          <p class="font-body-md text-body-md text-on-surface-variant mt-1 max-w-sm text-sm" id="sequenceSubText">
+            Attune your senses to the celestial resonance path.
+          </p>
+        </div>
+
+        <!-- Arena (SVG Links + Circular Nodes) -->
+        <div class="relative w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] flex items-center justify-center">
+          
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 420 420" id="constellationSvg">
+            <circle cx="210" cy="210" r="190" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 8" class="text-secondary/20"></circle>
+            <circle cx="210" cy="210" r="130" fill="none" stroke="currentColor" stroke-width="1" class="text-secondary/15"></circle>
+            <circle cx="210" cy="210" r="60" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 4" class="text-secondary/10"></circle>
+            
+            <line x1="210" y1="20" x2="210" y2="400" stroke="currentColor" stroke-width="1" stroke-dasharray="2 6" class="text-white/10"></line>
+            <line x1="20" y1="210" x2="400" y2="210" stroke="currentColor" stroke-width="1" stroke-dasharray="2 6" class="text-white/10"></line>
+
+            <line id="vec-0-1" x1="210" y1="50" x2="370" y2="210" stroke="currentColor" stroke-width="1.5" class="text-secondary/30 transition-all duration-300"></line>
+            <line id="vec-1-2" x1="370" y1="210" x2="210" y2="370" stroke="currentColor" stroke-width="1.5" class="text-secondary/30 transition-all duration-300"></line>
+            <line id="vec-2-3" x1="210" y1="370" x2="50" y2="210" stroke="currentColor" stroke-width="1.5" class="text-secondary/30 transition-all duration-300"></line>
+            <line id="vec-3-0" x1="50" y1="210" x2="210" y2="50" stroke="currentColor" stroke-width="1.5" class="text-secondary/30 transition-all duration-300"></line>
+
+            <circle id="starPulse" cx="210" cy="210" r="5" fill="#abc8f4" class="opacity-0 transition-opacity duration-200 filter drop-shadow-[0_0_8px_#abc8f4]"></circle>
+          </svg>
+
+          <!-- Central Singularity Core -->
+          <div class="absolute w-16 h-16 rounded-full bg-surface-container-low shadow-xl flex flex-col items-center justify-center z-10 pointer-events-none border border-secondary/30">
+            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center">
+              <span class="material-symbols-outlined text-secondary text-[20px]" id="centerGlyph">all_inclusive</span>
+            </div>
+            <span class="font-label-sm text-[7px] text-outline uppercase tracking-widest mt-0.5 font-mono">NEXUS</span>
+          </div>
+
+          <!-- NODE 0: Solar Amber (NORTH - 432 Hz) -->
+          <button class="const-node group absolute top-2 left-1/2 -translate-x-1/2 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-surface-container-high/90 p-1 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer shadow-lg z-20 border border-primary/30 outline-none" data-node="0" onclick="handleNodeClick(0)">
+            <div class="w-full h-full rounded-full bg-surface-container flex flex-col items-center justify-center relative overflow-hidden group-hover:bg-surface-bright transition-colors" id="nodeInner0">
+              <span class="material-symbols-outlined text-primary text-[22px]">wb_sunny</span>
+              <span class="font-label-sm text-[9px] text-outline group-hover:text-primary transition-colors tracking-widest uppercase mt-0.5">Solar</span>
+              <span class="font-label-sm text-[7px] text-outline/70 font-mono">432Hz</span>
+            </div>
+          </button>
+
+          <!-- NODE 1: Celestial Cyan (EAST - 528 Hz) -->
+          <button class="const-node group absolute top-1/2 -translate-y-1/2 right-2 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-surface-container-high/90 p-1 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer shadow-lg z-20 border border-secondary/30 outline-none" data-node="1" onclick="handleNodeClick(1)">
+            <div class="w-full h-full rounded-full bg-surface-container flex flex-col items-center justify-center relative overflow-hidden group-hover:bg-surface-bright transition-colors" id="nodeInner1">
+              <span class="material-symbols-outlined text-secondary text-[22px]">nights_stay</span>
+              <span class="font-label-sm text-[9px] text-outline group-hover:text-secondary transition-colors tracking-widest uppercase mt-0.5">Cyan</span>
+              <span class="font-label-sm text-[7px] text-outline/70 font-mono">528Hz</span>
+            </div>
+          </button>
+
+          <!-- NODE 2: Nebula Violet (SOUTH - 639 Hz) -->
+          <button class="const-node group absolute bottom-2 left-1/2 -translate-x-1/2 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-surface-container-high/90 p-1 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer shadow-lg z-20 border border-tertiary/30 outline-none" data-node="2" onclick="handleNodeClick(2)">
+            <div class="w-full h-full rounded-full bg-surface-container flex flex-col items-center justify-center relative overflow-hidden group-hover:bg-surface-bright transition-colors" id="nodeInner2">
+              <span class="material-symbols-outlined text-tertiary text-[22px]">blur_on</span>
+              <span class="font-label-sm text-[9px] text-outline group-hover:text-tertiary transition-colors tracking-widest uppercase mt-0.5">Nebula</span>
+              <span class="font-label-sm text-[7px] text-outline/70 font-mono">639Hz</span>
+            </div>
+          </button>
+
+          <!-- NODE 3: Emerald Nova (WEST - 741 Hz) -->
+          <button class="const-node group absolute top-1/2 -translate-y-1/2 left-2 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-surface-container-high/90 p-1 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer shadow-lg z-20 border border-emerald-400/30 outline-none" data-node="3" onclick="handleNodeClick(3)">
+            <div class="w-full h-full rounded-full bg-surface-container flex flex-col items-center justify-center relative overflow-hidden group-hover:bg-surface-bright transition-colors" id="nodeInner3">
+              <span class="material-symbols-outlined text-emerald-400 text-[22px]">flare</span>
+              <span class="font-label-sm text-[9px] text-outline group-hover:text-emerald-400 transition-colors tracking-widest uppercase mt-0.5">Nova</span>
+              <span class="font-label-sm text-[7px] text-outline/70 font-mono">741Hz</span>
+            </div>
+          </button>
+
+        </div>
+
+        <!-- Controls Dock -->
+        <div class="mt-space-lg flex items-center gap-space-md z-20">
+          <button class="flex items-center gap-2 px-space-md py-2 rounded-DEFAULT bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all border border-white/[0.06] cursor-pointer" onclick="replaySequence()">
+            <span class="material-symbols-outlined text-[18px]">replay</span>
+            <span class="font-label-md text-label-md uppercase tracking-wider">Replay Vector</span>
+          </button>
+          <button class="flex items-center gap-2 px-space-lg py-2 rounded-DEFAULT bg-secondary text-on-secondary font-semibold hover:bg-secondary-fixed transition-all shadow-[0_4px_16px_rgba(171,200,244,0.35)] active:translate-y-0.5 cursor-pointer" id="btnStartSeq" onclick="startNextSequenceRound()">
+            <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+            <span class="font-label-md text-label-md uppercase tracking-wider">Commence Sequence</span>
+          </button>
+        </div>
+
+        <!-- Span Capacity Bar -->
+        <div class="w-full max-w-md mt-space-lg bg-surface-container-low p-space-sm rounded-DEFAULT border border-white/[0.04]">
+          <div class="flex items-center justify-between text-[11px] font-label-sm mb-1">
+            <span class="text-outline uppercase tracking-wider">Vector Memory Span</span>
+            <span class="text-secondary font-semibold font-mono" id="spanCapacityText">3 Nodes</span>
+          </div>
+          <div class="w-full h-1.5 bg-surface-variant rounded-full overflow-hidden">
+            <div class="h-full bg-secondary rounded-full transition-all duration-500" id="spanCapacityBar" style="width: 30%"></div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ******************************************************** -->
+    <!-- VIEW 4: WOOD BLOCK PUZZLE (THE WORKSHOP REALM)            -->
+    <!-- ******************************************************** -->
+    <section class="hidden w-full px-4 md:px-gutter max-w-6xl mx-auto flex flex-col items-center gap-space-md transition-opacity duration-300" id="view-woodpuzzle">
+      
+      <!-- Chamber Top HUD -->
+      <div class="w-full flex flex-col md:flex-row items-center justify-between gap-space-md bg-surface-container-low/90 backdrop-blur-xl p-space-md rounded-DEFAULT shadow-lg border border-white/[0.06]">
+        <div class="flex items-center gap-space-md">
+          <button class="w-9 h-9 rounded-DEFAULT bg-surface-container hover:bg-surface-bright flex items-center justify-center text-on-surface-variant hover:text-tertiary transition-colors border border-white/[0.06] cursor-pointer" onclick="switchView('hub')" title="Return to Sanctum Hub">
+            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-space-xs">
+              <span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+              <span class="font-label-sm text-[10px] text-tertiary uppercase tracking-widest font-mono">REALM SECTOR: WKP-04</span>
+            </div>
+            <h1 class="font-headline-md text-2xl md:text-3xl text-on-surface tracking-tight font-serif">Wood Block Puzzle</h1>
+          </div>
+        </div>
+
+        <!-- Metrics & Controls -->
+        <div class="flex items-center gap-space-sm flex-wrap justify-center">
+          
+          <!-- Mode Toggle: 3x3 vs 4x4 -->
+          <div class="flex items-center gap-1 bg-surface-container p-1 rounded-DEFAULT border border-white/[0.06]">
+            <button class="px-3 py-1 rounded-DEFAULT font-label-sm text-[10px] font-mono font-semibold transition-all bg-tertiary text-on-tertiary shadow-sm" id="btnWood3x3" onclick="setWoodPuzzleSize(3)">
+              3×3 Matrix
+            </button>
+            <button class="px-3 py-1 rounded-DEFAULT font-label-sm text-[10px] font-mono text-outline hover:text-on-surface transition-all" id="btnWood4x4" onclick="setWoodPuzzleSize(4)">
+              4×4 Matrix (15)
+            </button>
+          </div>
+
+          <!-- Moves Counter -->
+          <div class="bg-surface-container px-space-md py-1.5 rounded-DEFAULT border border-white/[0.04] text-xs font-mono">
+            <span class="text-outline uppercase text-[10px] mr-1">MOVES:</span>
+            <strong class="text-tertiary text-sm" id="woodMoves">0</strong>
+          </div>
+
+          <!-- Hint Helper Button -->
+          <button class="bg-surface-container-high hover:bg-surface-bright text-tertiary px-3 py-1.5 rounded-DEFAULT font-label-sm text-[11px] transition-all flex items-center gap-1 border border-tertiary/30 cursor-pointer shadow-sm" onclick="showWoodPuzzleHint()">
+            <span class="material-symbols-outlined text-[15px]">lightbulb</span>
+            <span>Hint</span>
+          </button>
+
+          <!-- Reshuffle Button -->
+          <button class="bg-surface-container-high hover:bg-surface-bright text-on-surface px-3 py-1.5 rounded-DEFAULT font-label-sm text-[11px] transition-all flex items-center gap-1 border border-white/[0.06] cursor-pointer" onclick="initWoodPuzzle(true)">
+            <span class="material-symbols-outlined text-[14px]">shuffle</span>
+            <span>Reshuffle</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Workshop Sliding Arena with Authentic Wooden Plinth -->
+      <div class="w-full bg-surface-container-lowest/80 p-6 md:p-8 rounded-DEFAULT border border-white/[0.05] shadow-inner flex flex-col items-center justify-center min-h-[480px] gap-4">
+        
+        <p class="font-body-md text-on-surface-variant text-xs text-center max-w-md">
+          Slide the tactile carved oak blocks to arrange them in sequential ascension (1 onwards) with the hollow pocket resting in the lower right.
+        </p>
+
+        <!-- Wood Board Plinth -->
+        <div class="wood-puzzle-plinth" id="woodBoardWrapper">
+          <div class="grid gap-2 sm:gap-2.5 w-72 h-72 sm:w-96 sm:h-96" id="woodBoardGrid">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ******************************************************** -->
+    <!-- VIEW 4: CROSS-MEMORY RECALL (PERSONAL TRIVIA MATRIX)      -->
+    <!-- ******************************************************** -->
+    <section class="hidden w-full px-4 md:px-gutter max-w-4xl mx-auto flex flex-col items-center gap-space-md transition-opacity duration-300" id="view-crossrecall">
+      
+      <!-- Chamber Top HUD -->
+      <div class="w-full flex flex-col md:flex-row items-center justify-between gap-space-md bg-surface-container-low/90 backdrop-blur-xl p-space-md rounded-DEFAULT shadow-lg border border-white/[0.06]">
+        <div class="flex items-center gap-space-md">
+          <button class="w-9 h-9 rounded-DEFAULT bg-surface-container hover:bg-surface-bright flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors border border-white/[0.06] cursor-pointer" onclick="switchView('hub')" title="Return to Sanctum Hub">
+            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-space-xs">
+              <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+              <span class="font-label-sm text-[10px] text-primary uppercase tracking-widest font-mono">Sanctum Archive · Chamber IV</span>
+            </div>
+            <h1 class="font-headline-md text-2xl md:text-3xl text-on-surface tracking-tight font-serif">Cross-Memory Recall</h1>
+          </div>
+        </div>
+
+        <!-- Telemetry Stats -->
+        <div class="flex items-center gap-space-sm flex-wrap justify-end">
+          <div class="flex items-center gap-1.5 px-3 py-1 rounded-DEFAULT bg-surface-container border border-white/[0.06]">
+            <span class="font-label-sm text-[10px] text-outline uppercase font-mono">Question</span>
+            <span class="font-label-md text-primary font-mono font-bold" id="crossQuestionNum">1</span>
+            <span class="text-outline text-xs">/</span>
+            <span class="font-label-md text-on-surface font-mono" id="crossTotalQuestions">10</span>
+          </div>
+
+          <div class="flex items-center gap-1.5 px-3 py-1 rounded-DEFAULT bg-surface-container border border-white/[0.06]">
+            <span class="font-label-sm text-[10px] text-outline uppercase font-mono">Score</span>
+            <span class="font-label-md text-primary font-mono font-bold" id="crossScore">0</span>
+          </div>
+
+          <div class="flex items-center gap-1.5 px-3 py-1 rounded-DEFAULT bg-surface-container border border-white/[0.06]">
+            <span class="font-label-sm text-[10px] text-outline uppercase font-mono">Streak</span>
+            <span class="font-label-md text-amber-300 font-mono font-bold" id="crossStreak">0</span>
+            <span class="material-symbols-outlined text-amber-300 text-[14px]">local_fire_department</span>
+          </div>
+
+          <button class="px-3 py-1 rounded-DEFAULT bg-surface-container hover:bg-surface-bright text-on-surface-variant hover:text-primary transition-colors border border-white/[0.06] text-xs font-label-md flex items-center gap-1 cursor-pointer" onclick="generateNewCrossQuestion()" title="Reshuffle for a new question">
+            <span class="material-symbols-outlined text-[15px]">restart_alt</span>
+            <span>Reshuffle</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Question Card Stage -->
+      <div class="w-full bg-surface-container-low/95 p-6 md:p-8 rounded-DEFAULT border border-primary/20 shadow-xl flex flex-col items-center gap-6 relative overflow-hidden">
+        
+        <!-- Category & Anchor Header -->
+        <div class="w-full flex items-center justify-between border-b border-white/[0.06] pb-3">
+          <span class="font-label-sm text-xs text-primary font-mono uppercase bg-primary/10 border border-primary/20 px-3 py-1 rounded-full flex items-center gap-1.5" id="crossCategoryPill">
+            <span class="material-symbols-outlined text-[15px]" id="crossCategoryIcon">group</span>
+            <span id="crossCategoryText">Loved Ones & Family</span>
+          </span>
+          <span class="text-xs text-outline font-label-sm flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px] text-primary">psychology</span>
+            <span>Grounding Personal Memory</span>
+          </span>
+        </div>
+
+        <!-- Optional Image or Avatar Container -->
+        <div id="crossImageContainer" class="hidden flex flex-col items-center justify-center">
+          <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-primary/40 shadow-[0_0_20px_rgba(255,186,86,0.25)] relative bg-surface-container">
+            <img id="crossQuestionImg" src="" alt="Familiar Person or Object" class="w-full h-full object-cover"/>
+          </div>
+        </div>
+
+        <!-- Question Prompt Text -->
+        <div class="w-full text-center max-w-2xl px-2">
+          <h2 id="crossQuestionText" class="font-headline-md text-2xl sm:text-3xl text-on-surface font-serif leading-snug tracking-tight">
+            Loading your personal memory question...
+          </h2>
+        </div>
+
+        <!-- 4 Multiple-Choice Options Grid (2x2) -->
+        <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl" id="crossOptionsGrid">
+          <!-- Rendered dynamically as 4 buttons with labels [A], [B], [C], [D] -->
+        </div>
+
+        <!-- Gentle Feedback Panel -->
+        <div id="crossFeedbackPanel" class="hidden w-full max-w-2xl p-4 rounded-xl border transition-all duration-300 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div id="crossFeedbackIconWrapper" class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+              <span id="crossFeedbackIcon" class="material-symbols-outlined text-[24px]"></span>
+            </div>
+            <div class="flex flex-col">
+              <span id="crossFeedbackTitle" class="font-title-md font-bold text-sm sm:text-base"></span>
+              <span id="crossFeedbackDesc" class="font-body-md text-xs sm:text-sm text-on-surface-variant"></span>
+            </div>
+          </div>
+          <button id="crossNextBtn" onclick="advanceCrossQuestion()" class="px-5 py-2.5 rounded-DEFAULT bg-primary-container hover:bg-primary text-on-primary font-title-md font-semibold text-sm flex items-center gap-1.5 shadow-md flex-shrink-0 cursor-pointer active:scale-95 transition-all">
+            <span>Next Question</span>
+            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+          </button>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ******************************************************** -->
+    <!-- VIEW 5: COGNITIVE TELEMETRY & MEDITATION SANCTUARY        -->
+    <!-- ******************************************************** -->
+    <section class="hidden w-full px-4 md:px-gutter max-w-5xl mx-auto flex flex-col items-center gap-space-lg transition-opacity duration-300" id="view-telemetry">
+      
+      <div class="w-full bg-surface-container-low/90 backdrop-blur-xl p-space-lg rounded-DEFAULT border border-white/[0.06] shadow-xl flex flex-col gap-space-md">
+        <div class="flex items-center gap-space-md pb-space-sm border-b border-white/[0.06]">
+          <div class="w-12 h-12 rounded-DEFAULT bg-primary/20 flex items-center justify-center text-primary border border-primary/30">
+            <span class="material-symbols-outlined text-[28px]">self_improvement</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-label-sm text-primary uppercase tracking-widest font-mono">Therapeutic Restoration</span>
+            <h2 class="font-headline-md text-3xl text-on-surface font-serif">Meditation & Sound Sanctuary</h2>
+          </div>
+        </div>
+
+        <!-- Mindful Breathing Coherence Ring -->
+        <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-space-lg p-space-md bg-surface-container-lowest/80 rounded-DEFAULT border border-white/[0.04]">
+          <div class="flex flex-col gap-1 max-w-md">
+            <span class="font-label-sm text-secondary uppercase tracking-widest font-mono">Rhythmic Vagus Pacemaker</span>
+            <h3 class="font-title-lg text-title-lg text-on-surface font-semibold">Mindful Breath Attunement</h3>
+            <p class="font-body-md text-on-surface-variant text-sm leading-relaxed">
+              Synchronize your breath with the expanding luminous aura below. Inhale clarity, hold stillness, exhale tension. Lowers cortisol and optimizes synaptic neuroplasticity.
+            </p>
+          </div>
+
+          <div class="relative w-40 h-40 flex items-center justify-center">
+            <div class="absolute inset-0 rounded-full border-2 border-secondary/30 animate-ping"></div>
+            <div class="w-28 h-28 rounded-full bg-secondary-container/40 border border-secondary flex flex-col items-center justify-center text-center shadow-[0_0_30px_rgba(171,200,244,0.3)] animate-pulse">
+              <span class="material-symbols-outlined text-secondary text-[24px]">air</span>
+              <span class="font-label-sm text-[9px] text-secondary-fixed uppercase font-mono mt-1">Harmonize</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Therapeutic Audio Tuner -->
+        <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-space-md">
+          <div class="p-space-md bg-surface-container rounded-DEFAULT border border-white/[0.04] flex flex-col justify-between gap-space-sm">
+            <div class="flex items-center justify-between">
+              <span class="font-title-md font-semibold text-on-surface">Ambient Calming Melodies</span>
+              <span class="material-symbols-outlined text-secondary">graphic_eq</span>
+            </div>
+            <p class="font-body-md text-on-surface-variant text-xs">
+              Continuous soothing harp and piano harmonics across all cognitive wings.
+            </p>
+            <div class="flex items-center gap-space-sm pt-2">
+              <button class="flex-1 py-2 rounded-DEFAULT bg-secondary-container hover:bg-secondary text-secondary-fixed hover:text-on-secondary font-label-md text-xs font-semibold transition-all cursor-pointer" onclick="toggleBackgroundMusic(true)">
+                Activate Music
+              </button>
+              <button class="py-2 px-4 rounded-DEFAULT bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-md text-xs transition-all cursor-pointer" onclick="toggleBackgroundMusic(false)">
+                Silence
+              </button>
+            </div>
+          </div>
+
+          <div class="p-space-md bg-surface-container rounded-DEFAULT border border-white/[0.04] flex flex-col justify-between gap-space-sm">
+            <div class="flex items-center justify-between">
+              <span class="font-title-md font-semibold text-on-surface">Gentle Voice Affirmations</span>
+              <span class="material-symbols-outlined text-primary">record_voice_over</span>
+            </div>
+            <p class="font-body-md text-on-surface-variant text-xs">
+              Receive supportive spoken guidance during memory exercises.
+            </p>
+            <div class="flex items-center gap-space-sm pt-2">
+              <button class="flex-1 py-2 rounded-DEFAULT bg-primary-container hover:bg-primary text-on-primary font-label-md text-xs font-semibold transition-all cursor-pointer" onclick="speakAffirmation()">
+                Play Spoken Guide
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- 4. VICTORY & LEVEL PROGRESSION MODAL                       -->
+  <!-- ========================================================= -->
+  <div class="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl hidden items-center justify-center p-4 transition-opacity duration-300" id="victoryModal">
+    <div class="w-full max-w-md bg-surface-container-high p-space-xl rounded-DEFAULT shadow-[0_24px_64px_rgba(0,0,0,0.9)] border border-primary/40 flex flex-col items-center text-center relative overflow-hidden transform scale-95 transition-transform duration-300">
+      
+      <div class="absolute -top-16 -right-16 w-40 h-40 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
+      
+      <span class="material-symbols-outlined text-primary text-[52px] mb-2 animate-bounce">auto_awesome</span>
+      <span class="font-label-sm text-label-sm text-primary uppercase tracking-widest font-mono mb-1">Archival Synthesis Complete</span>
+      <h2 class="font-headline-xl text-3xl text-on-surface font-serif mb-2" id="modalVictoryTitle">Cognitive Imprint Sealed</h2>
+      <p class="font-body-md text-on-surface-variant text-sm mb-space-lg" id="modalVictoryDesc">
+        Your working memory resonance matched every celestial relic with high fidelity.
+      </p>
+
+      <div class="w-full grid grid-cols-3 gap-space-xs bg-surface-container-lowest p-space-md rounded-DEFAULT mb-space-lg border border-white/[0.04] shadow-inner">
+        <div class="flex flex-col">
+          <span class="font-label-sm text-[9px] text-outline font-mono">SCORE</span>
+          <span class="font-headline-md text-xl text-primary font-mono mt-1" id="modalScore">+350</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-label-sm text-[9px] text-outline font-mono">ACCURACY</span>
+          <span class="font-headline-md text-xl text-secondary font-mono mt-1" id="modalAccuracy">98%</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-label-sm text-[9px] text-outline font-mono">XP GAINED</span>
+          <span class="font-headline-md text-xl text-tertiary font-mono mt-1" id="modalXp">+150</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons: Next Level & Return -->
+      <div class="flex items-center gap-space-md w-full">
+        <button class="flex-1 bg-primary text-on-primary py-3 px-space-md font-label-md text-xs font-semibold rounded-DEFAULT hover:bg-primary-fixed shadow-md active:translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-1.5" id="modalNextLevelBtn" onclick="handleModalNextLevel()">
+          <span>Next Level</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </button>
+        <button class="flex-1 bg-surface-container text-on-surface py-3 px-space-md font-label-md text-xs font-semibold rounded-DEFAULT hover:bg-surface-bright transition-all border border-white/[0.06] cursor-pointer" onclick="closeVictoryModal(false)">
+          Return to Hub
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- 5. JAVASCRIPT: SYNTHESIZERS, CANVASES & GAME LOGIC         -->
+  <!-- ========================================================= -->
+  <script>
+    // =========================================================
+    // A. POLYPHONIC WEB AUDIO SYNTHESIZER & BACKGROUND MUSIC
+    // =========================================================
+    const SoundEngine = {
+      ctx: null,
+      enabled: true,
+      musicPlaying: false,
+      musicTimer: null,
+      musicStep: 0,
+
+      init() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) this.ctx = new AudioContextClass();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+
+      playTone(freq, type = 'sine', duration = 0.25, gainLevel = 0.12) {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainLevel, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      },
+
+      flip() {
+        this.playTone(440, 'triangle', 0.1, 0.08);
+        setTimeout(() => this.playTone(660, 'sine', 0.12, 0.05), 30);
+      },
+
+      match() {
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C Major arpeggio
+        notes.forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'sine', 0.45, 0.1), idx * 80);
+        });
+      },
+
+      mismatch() {
+        this.playTone(280, 'sine', 0.2, 0.06);
+        setTimeout(() => this.playTone(240, 'sine', 0.22, 0.05), 100);
+      },
+
+      woodClick() {
+        // Authentic tactile wood block knock
+        this.playTone(220, 'triangle', 0.08, 0.18);
+        setTimeout(() => this.playTone(170, 'sine', 0.1, 0.14), 20);
+      },
+
+      nodeSound(nodeIndex) {
+        const freqs = [432.0, 528.0, 639.0, 741.0];
+        const f = freqs[nodeIndex] || 432;
+        this.playTone(f, 'sine', 0.6, 0.15);
+        this.playTone(f * 2, 'triangle', 0.35, 0.04);
+      },
+
+      victory() {
+        const chord = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+        chord.forEach((freq, i) => {
+          setTimeout(() => this.playTone(freq, 'triangle', 0.9, 0.12), i * 110);
+        });
+      },
+
+      // Continuous Soothing Background Music Engine
+      startBackgroundMusic() {
+        this.init();
+        if (this.musicPlaying) return;
+        this.musicPlaying = true;
+        this.musicStep = 0;
+
+        const harmonyArpeggios = [
+          523.25, 659.25, 783.99, 987.77, // Cmaj7
+          440.00, 523.25, 659.25, 783.99, // Am7
+          349.23, 440.00, 523.25, 659.25, // Fmaj7
+          392.00, 493.88, 587.33, 783.99  // G
+        ];
+
+        this.musicTimer = setInterval(() => {
+          if (!this.musicPlaying) return;
+          try {
+            const note = harmonyArpeggios[this.musicStep % harmonyArpeggios.length];
+            this.playTone(note, 'sine', 1.4, 0.035);
+            if (this.musicStep % 4 === 0) {
+              this.playTone(note / 2, 'sine', 1.8, 0.04);
+            }
+            this.musicStep++;
+          } catch(e) {}
+        }, 850);
+      },
+
+      stopBackgroundMusic() {
+        this.musicPlaying = false;
+        clearInterval(this.musicTimer);
+      }
+    };
+
+    function toggleBackgroundMusic(forceState) {
+      SoundEngine.init();
+      const target = (typeof forceState === 'boolean') ? forceState : !SoundEngine.musicPlaying;
+      if (target) {
+        SoundEngine.startBackgroundMusic();
+      } else {
+        SoundEngine.stopBackgroundMusic();
+      }
+      const label = document.getElementById('musicLabel');
+      if (label) label.textContent = `Music: ${target ? 'ON' : 'OFF'}`;
+      const hubStatus = document.getElementById('hubMusicStatus');
+      if (hubStatus) hubStatus.textContent = target ? 'Harmonics ON' : 'Music Idle';
+      showToast(target ? '🎵 Harmonic Background Music Playing' : 'Music Paused');
+    }
+
+    function toggleSoundFx() {
+      SoundEngine.enabled = !SoundEngine.enabled;
+      document.getElementById('soundFxIcon').textContent = SoundEngine.enabled ? 'volume_up' : 'volume_off';
+      showToast(SoundEngine.enabled ? 'Synthesizer Audio Enabled' : 'Synthesizer Muted');
+    }
+
+    function speakAffirmation() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const phrases = [
+          "Your mind is steady, calm, and sharp.",
+          "Take your time, relax, and let your intuition guide you.",
+          "Every memory pattern strengthened builds resilient pathways.",
+          "Deep breath. You are doing wonderfully well in the sanctuary."
+        ];
+        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+        const msg = new SpeechSynthesisUtterance(phrase);
+        msg.rate = 0.9;
+        window.speechSynthesis.speak(msg);
+        showToast("Sanctuary Voice Guide Activated");
+      }
+    }
+
+    // =========================================================
+    // B. BACKGROUND AMBIENT DUST & PARTICLE BURST FX
+    // =========================================================
+    const dustCanvas = document.getElementById('ambientDustCanvas');
+    const dCtx = dustCanvas.getContext('2d');
+    let dustParticles = [];
+
+    function initDustCanvas() {
+      dustCanvas.width = window.innerWidth;
+      dustCanvas.height = window.innerHeight;
+      dustParticles = [];
+      const count = Math.floor(window.innerWidth / 16);
+      for (let i = 0; i < count; i++) {
+        dustParticles.push({
+          x: Math.random() * dustCanvas.width,
+          y: Math.random() * dustCanvas.height,
+          radius: Math.random() * 1.8 + 0.4,
+          dx: (Math.random() - 0.5) * 0.4,
+          dy: (Math.random() - 0.5) * 0.4,
+          alpha: Math.random() * 0.5 + 0.2,
+          pulseSpeed: Math.random() * 0.02 + 0.005
+        });
+      }
+    }
+
+    function renderDust() {
+      dCtx.clearRect(0, 0, dustCanvas.width, dustCanvas.height);
+      dustParticles.forEach(p => {
+        p.x += p.dx;
+        p.y += p.dy;
+        p.alpha += Math.sin(Date.now() * p.pulseSpeed) * 0.004;
+
+        if (p.x < 0) p.x = dustCanvas.width;
+        if (p.x > dustCanvas.width) p.x = 0;
+        if (p.y < 0) p.y = dustCanvas.height;
+        if (p.y > dustCanvas.height) p.y = 0;
+
+        dCtx.beginPath();
+        dCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        dCtx.fillStyle = `rgba(255, 215, 140, ${Math.max(0.1, Math.min(0.7, p.alpha))})`;
+        dCtx.shadowBlur = 4;
+        dCtx.shadowColor = 'rgba(255, 186, 86, 0.4)';
+        dCtx.fill();
+      });
+      requestAnimationFrame(renderDust);
+    }
+
+    const burstCanvas = document.getElementById('burstCanvas');
+    const bCtx = burstCanvas.getContext('2d');
+    let burstParticles = [];
+
+    function initBurstCanvas() {
+      burstCanvas.width = window.innerWidth;
+      burstCanvas.height = window.innerHeight;
+    }
+
+    function triggerParticleBurst(x, y, color = '#ffba56') {
+      for (let i = 0; i < 28; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 5 + 1.5;
+        burstParticles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: Math.random() * 2.5 + 1,
+          color,
+          alpha: 1,
+          decay: Math.random() * 0.025 + 0.015
+        });
+      }
+    }
+
+    function renderBurst() {
+      bCtx.clearRect(0, 0, burstCanvas.width, burstCanvas.height);
+      burstParticles = burstParticles.filter(p => p.alpha > 0);
+      burstParticles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.decay;
+        bCtx.beginPath();
+        bCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        bCtx.fillStyle = p.color;
+        bCtx.globalAlpha = Math.max(0, p.alpha);
+        bCtx.shadowBlur = 8;
+        bCtx.shadowColor = p.color;
+        bCtx.fill();
+      });
+      bCtx.globalAlpha = 1;
+      requestAnimationFrame(renderBurst);
+    }
+
+    window.addEventListener('resize', () => {
+      initDustCanvas();
+      initBurstCanvas();
+    });
+    initDustCanvas();
+    initBurstCanvas();
+    renderDust();
+    renderBurst();
+
+    // =========================================================
+    // C. SPA VIEW ROUTING
+    // =========================================================
+    let currentActiveView = 'hub';
+
+    function switchView(viewId) {
+      SoundEngine.init();
+      currentActiveView = viewId;
+
+      const views = ['hub', 'cortex', 'sequence', 'woodpuzzle', 'crossrecall', 'telemetry'];
+      views.forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) {
+          if (v === viewId) {
+            el.classList.remove('hidden');
+            el.style.opacity = '0';
+            setTimeout(() => { el.style.opacity = '1'; }, 20);
+          } else {
+            el.classList.add('hidden');
+          }
+        }
+      });
+
+      // Update Nav Tabs
+      document.querySelectorAll('#navTabs .nav-tab').forEach(tab => {
+        if (tab.dataset.view === viewId) {
+          tab.className = 'nav-tab px-space-md py-1.5 rounded-DEFAULT font-label-md text-label-md transition-all bg-primary-container text-on-primary-container font-semibold shadow-[0_2px_8px_rgba(224,159,62,0.25)]';
+        } else {
+          tab.className = 'nav-tab px-space-md py-1.5 rounded-DEFAULT font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all';
+        }
+      });
+
+      document.querySelectorAll('.mobile-nav-tab').forEach(tab => {
+        if (tab.dataset.view === viewId) {
+          tab.className = 'mobile-nav-tab text-primary font-semibold px-2 py-1';
+        } else {
+          tab.className = 'mobile-nav-tab text-on-surface-variant px-2 py-1';
+        }
+      });
+
+      // Update Embedded Station Tabs
+      document.querySelectorAll('.embedded-tab').forEach(tab => {
+        if (tab.dataset.view === viewId) {
+          tab.className = 'embedded-tab px-3 py-1 rounded-DEFAULT bg-primary-container text-on-primary-container font-semibold transition-all cursor-pointer';
+        } else {
+          tab.className = 'embedded-tab px-3 py-1 rounded-DEFAULT text-on-surface-variant hover:text-white hover:bg-surface-container transition-all cursor-pointer';
+        }
+      });
+
+      // Update Volumetric Backdrop Cones
+      const g1 = document.getElementById('glow1');
+      if (viewId === 'cortex') {
+        g1.className = 'absolute -top-32 left-1/4 w-[32rem] h-[32rem] rounded-full bg-primary/20 blur-[130px] transition-colors duration-1000';
+      } else if (viewId === 'sequence') {
+        g1.className = 'absolute -top-32 left-1/4 w-[32rem] h-[32rem] rounded-full bg-secondary/20 blur-[130px] transition-colors duration-1000';
+      } else if (viewId === 'woodpuzzle') {
+        g1.className = 'absolute -top-32 left-1/4 w-[32rem] h-[32rem] rounded-full bg-tertiary/20 blur-[130px] transition-colors duration-1000';
+      } else if (viewId === 'crossrecall') {
+        g1.className = 'absolute -top-32 left-1/4 w-[32rem] h-[32rem] rounded-full bg-primary/25 blur-[130px] transition-colors duration-1000';
+      } else {
+        g1.className = 'absolute -top-32 left-1/4 w-[32rem] h-[32rem] rounded-full bg-primary/10 blur-[130px] transition-colors duration-1000';
+      }
+
+      // Ensure entering game starts FRESH and active (never frozen on old completed state!)
+      if (viewId === 'cortex') {
+        if (cortexState.cards.length === 0 || cortexState.matchedPairs === cortexState.pairsCount) {
+          initCortexLevel(cortexState.currentLevel);
+        }
+      } else if (viewId === 'sequence') {
+        if (!sequenceState.started) {
+          initSequenceGame();
+        }
+      } else if (viewId === 'woodpuzzle') {
+        if (woodPuzzleState.tiles.length === 0) {
+          initWoodPuzzle();
+        }
+      } else if (viewId === 'crossrecall') {
+        // Immediately ensure fallback data is available so questions generate instantly
+        if (crossRecallState.pool.people.length === 0) {
+          crossRecallState.pool.people = sanctuaryGroundingFallbacks.people;
+          crossRecallState.pool.objects = sanctuaryGroundingFallbacks.objects;
+          crossRecallState.pool.anchors = sanctuaryGroundingFallbacks.anchors;
+        }
+        // Generate question immediately with whatever data we have
+        crossRecallState.questionNum = 1;
+        crossRecallState.score = 0;
+        crossRecallState.streak = 0;
+        crossRecallState.currentQuestion = null;
+        generateNewCrossQuestion();
+        // Then try to load real data in background for next session
+        loadCrossMemoryPool();
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showToast(text) {
+      const existing = document.getElementById('toastNotice');
+      if (existing) existing.remove();
+      const toast = document.createElement('div');
+      toast.id = 'toastNotice';
+      toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-DEFAULT bg-surface-container-high border border-primary/40 text-on-surface text-xs font-label-md shadow-2xl flex items-center gap-2 pointer-events-none transition-all duration-300 transform translate-y-2 opacity-0';
+      toast.innerHTML = `<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span><span>${text}</span>`;
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.classList.remove('translate-y-2', 'opacity-0'); }, 20);
+      setTimeout(() => {
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 2600);
+    }
+
+    // =========================================================
+    // D. GAME 1: CORTEX MATCH (With FIXED Glimpse & Next Level!)
+    // =========================================================
+    const CORTEX_SPECIMENS = [
+      { id: 'astrolabe', title: 'The Astrolabe', sigil: 'explore', code: 'ARC-01', color: 'text-primary' },
+      { id: 'golden_key', title: 'The Golden Key', sigil: 'key', code: 'ARC-02', color: 'text-amber-300' },
+      { id: 'compass', title: 'Obsidian Compass', sigil: 'navigation', code: 'ARC-03', color: 'text-secondary' },
+      { id: 'nautilus', title: 'Nautilus Shell', sigil: 'cyclone', code: 'ARC-04', color: 'text-tertiary' },
+      { id: 'chronometer', title: 'The Chronometer', sigil: 'hourglass_empty', code: 'ARC-05', color: 'text-on-surface' },
+      { id: 'prism', title: 'Refractive Prism', sigil: 'change_history', code: 'ARC-06', color: 'text-cyan-300' },
+      { id: 'monad', title: 'Folio Monad', sigil: 'psychology', code: 'ARC-07', color: 'text-emerald-400' },
+      { id: 'chalice', title: 'Sacred Chalice', sigil: 'local_cafe', code: 'ARC-08', color: 'text-rose-400' }
+    ];
+
+    const cortexState = {
+      currentLevel: 1, // 1: 4 pairs, 2: 6 pairs, 3: 8 pairs
+      pairsCount: 4,
+      cards: [],
+      flippedIndices: [],
+      matchedPairs: 0,
+      moves: 0,
+      score: 0,
+      streak: 1.0,
+      glimpsesLeft: 2,
+      isLocked: false
+    };
+
+    function setCortexDifficulty(pairs, btn) {
+      cortexState.pairsCount = pairs;
+      cortexState.currentLevel = (pairs === 4) ? 1 : (pairs === 6 ? 2 : 3);
+      document.querySelectorAll('#cortexDiffSelector .diff-btn').forEach(b => {
+        b.className = 'diff-btn px-3 py-1 rounded-DEFAULT font-label-sm text-[10px] bg-surface-container text-on-surface-variant hover:text-on-surface transition-all';
+      });
+      btn.className = 'diff-btn px-3 py-1 rounded-DEFAULT font-label-sm text-[10px] bg-primary-container text-on-primary-container font-semibold transition-all';
+      initCortexLevel(cortexState.currentLevel);
+    }
+
+    function initCortexLevel(levelNum) {
+      cortexState.currentLevel = levelNum;
+      cortexState.pairsCount = (levelNum === 1) ? 4 : (levelNum === 2 ? 6 : 8);
+      cortexState.cards = [];
+      cortexState.flippedIndices = [];
+      cortexState.matchedPairs = 0;
+      cortexState.moves = 0;
+      cortexState.glimpsesLeft = 2;
+      cortexState.isLocked = false;
+
+      // Update HUD
+      document.getElementById('cortexStageIndicator').textContent = `STAGE ${levelNum} / 3`;
+      document.getElementById('cortexScore').textContent = cortexState.score;
+      document.getElementById('cortexMoves').textContent = '0';
+      document.getElementById('cortexStreak').textContent = '1.0x';
+      document.getElementById('glimpseCount').textContent = cortexState.glimpsesLeft;
+
+      // Select and shuffle cards
+      const selected = CORTEX_SPECIMENS.slice(0, cortexState.pairsCount);
+      const deck = [];
+      selected.forEach(specimen => {
+        deck.push({ ...specimen, cardUid: `${specimen.id}-a` });
+        deck.push({ ...specimen, cardUid: `${specimen.id}-b` });
+      });
+
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      cortexState.cards = deck;
+
+      renderCortexGrid();
+    }
+
+    function renderCortexGrid() {
+      const grid = document.getElementById('cortexGrid');
+      grid.innerHTML = '';
+
+      cortexState.cards.forEach((card, index) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'card-perspective relative h-32 sm:h-40 w-full cursor-pointer select-none';
+        cardEl.innerHTML = `
+          <div class="card-flipper w-full h-full relative rounded-DEFAULT shadow-lg border border-white/[0.08]" id="cortex-card-${index}" onclick="handleCortexCardClick(${index})">
+            <!-- Card Back -->
+            <div class="card-face absolute inset-0 bg-surface-container-high rounded-DEFAULT p-2.5 flex flex-col items-center justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]">
+              <div class="w-full flex justify-between items-center opacity-60">
+                <span class="font-label-sm text-[8px] text-outline font-mono">NRN</span>
+                <span class="font-label-sm text-[8px] text-primary tracking-widest font-mono">ARC</span>
+              </div>
+              <div class="w-12 h-12 rounded-full bg-surface-container-lowest flex items-center justify-center border border-white/[0.06] shadow-inner">
+                <span class="material-symbols-outlined text-outline text-[22px]">auto_stories</span>
+              </div>
+              <span class="font-label-sm text-[8px] text-outline uppercase tracking-wider font-mono">FOLIO ${index + 1}</span>
+            </div>
+            <!-- Card Front -->
+            <div class="card-face card-front absolute inset-0 bg-surface-container rounded-DEFAULT p-2.5 flex flex-col items-center justify-between border-2 border-primary shadow-[0_0_20px_rgba(255,186,86,0.3)]">
+              <div class="w-full flex justify-between items-center">
+                <span class="font-label-sm text-[8px] text-primary font-mono font-semibold">${card.code}</span>
+                <span class="material-symbols-outlined text-primary text-[14px]">verified</span>
+              </div>
+              <div class="w-12 h-12 rounded-DEFAULT bg-surface-container-lowest flex items-center justify-center shadow-inner border border-white/[0.05]">
+                <span class="material-symbols-outlined ${card.color} text-[28px] drop-shadow-[0_0_6px_currentColor]">${card.sigil}</span>
+              </div>
+              <span class="font-label-sm text-[8px] text-on-surface font-semibold uppercase tracking-wider truncate max-w-full text-center">${card.title}</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(cardEl);
+      });
+    }
+
+    function handleCortexCardClick(index) {
+      if (cortexState.isLocked) return;
+      if (cortexState.flippedIndices.includes(index)) return;
+
+      const cardFlipper = document.getElementById(`cortex-card-${index}`);
+      if (!cardFlipper || cardFlipper.classList.contains('flipped')) return;
+
+      SoundEngine.flip();
+      cardFlipper.classList.add('flipped');
+      cortexState.flippedIndices.push(index);
+
+      if (cortexState.flippedIndices.length === 2) {
+        cortexState.moves++;
+        document.getElementById('cortexMoves').textContent = cortexState.moves;
+        cortexState.isLocked = true;
+
+        const [idx1, idx2] = cortexState.flippedIndices;
+        const card1 = cortexState.cards[idx1];
+        const card2 = cortexState.cards[idx2];
+
+        if (card1.id === card2.id) {
+          // MATCH!
+          setTimeout(() => {
+            SoundEngine.match();
+            const rect = document.getElementById(`cortex-card-${idx1}`).getBoundingClientRect();
+            triggerParticleBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, '#ffba56');
+
+            cortexState.matchedPairs++;
+            cortexState.score += Math.round(100 * cortexState.streak);
+            cortexState.streak = Math.min(3.0, cortexState.streak + 0.5);
+            document.getElementById('cortexScore').textContent = cortexState.score;
+            document.getElementById('cortexStreak').textContent = `${cortexState.streak.toFixed(1)}x`;
+
+            document.getElementById(`cortex-card-${idx1}`).classList.add('matched');
+            document.getElementById(`cortex-card-${idx2}`).classList.add('matched');
+
+            cortexState.flippedIndices = [];
+            cortexState.isLocked = false;
+
+            // Check if level is complete
+            if (cortexState.matchedPairs === cortexState.pairsCount) {
+              setTimeout(() => {
+                SoundEngine.victory();
+                const nextLevel = cortexState.currentLevel < 3 ? cortexState.currentLevel + 1 : 1;
+                showVictoryModal(
+                  'Archival Synthesis Complete',
+                  `All celestial folios synchronized in ${cortexState.moves} moves with high fidelity.`,
+                  cortexState.score,
+                  '98%',
+                  '+150 XP',
+                  nextLevel
+                );
+              }, 400);
+            }
+          }, 350);
+        } else {
+          // MISMATCH
+          setTimeout(() => {
+            SoundEngine.mismatch();
+            cortexState.streak = 1.0;
+            document.getElementById('cortexStreak').textContent = '1.0x';
+            const el1 = document.getElementById(`cortex-card-${idx1}`);
+            const el2 = document.getElementById(`cortex-card-${idx2}`);
+            if (el1) el1.classList.remove('flipped');
+            if (el2) el2.classList.remove('flipped');
+            cortexState.flippedIndices = [];
+            cortexState.isLocked = false;
+          }, 900);
+        }
+      }
+    }
+
+    // FIXED GLIMPSE: Cards are 100% visible, no dark modal covering the screen!
+    function triggerGlimpse() {
+      if (cortexState.glimpsesLeft <= 0 || cortexState.isLocked) return;
+      cortexState.glimpsesLeft--;
+      document.getElementById('glimpseCount').textContent = cortexState.glimpsesLeft;
+      cortexState.isLocked = true;
+
+      // 1. Flip all cards face up with glowing border
+      cortexState.cards.forEach((_, idx) => {
+        const el = document.getElementById(`cortex-card-${idx}`);
+        if (el) {
+          el.classList.add('flipped');
+          el.style.boxShadow = '0 0 20px rgba(255, 186, 86, 0.6)';
+        }
+      });
+
+      // 2. Show non-blocking countdown banner above the grid
+      const banner = document.getElementById('cortexPeekBanner');
+      const countEl = document.getElementById('peekCountdown');
+      banner.classList.remove('hidden');
+
+      let remaining = 3;
+      countEl.textContent = remaining;
+      const timer = setInterval(() => {
+        remaining--;
+        if (remaining > 0) {
+          countEl.textContent = remaining;
+        } else {
+          clearInterval(timer);
+          banner.classList.add('hidden');
+          // 3. Flip back only unmatched cards
+          cortexState.cards.forEach((_, idx) => {
+            const el = document.getElementById(`cortex-card-${idx}`);
+            if (el) {
+              el.style.boxShadow = '';
+              if (!el.classList.contains('matched')) {
+                el.classList.remove('flipped');
+              }
+            }
+          });
+          cortexState.isLocked = false;
+        }
+      }, 1000);
+    }
+
+    function resetCortexGame() {
+      initCortexLevel(cortexState.currentLevel);
+    }
+
+    // =========================================================
+    // E. GAME 2: NEURO SEQUENCE (THE CONSTELLATION)
+    // =========================================================
+    const sequenceState = {
+      round: 1,
+      score: 0,
+      sequence: [],
+      playerIndex: 0,
+      isPlayingDemo: false,
+      started: false,
+      lives: 3
+    };
+
+    function initSequenceGame() {
+      sequenceState.round = 1;
+      sequenceState.score = 0;
+      sequenceState.sequence = [];
+      sequenceState.playerIndex = 0;
+      sequenceState.isPlayingDemo = false;
+      sequenceState.started = true;
+      sequenceState.lives = 3;
+
+      document.getElementById('sequenceRound').textContent = '01';
+      document.getElementById('sequenceScore').textContent = '0000';
+      document.getElementById('spanCapacityText').textContent = '3 Nodes';
+      document.getElementById('spanCapacityBar').style.width = '30%';
+      document.getElementById('sequenceStatusText').textContent = 'Awaiting Genesis Pulse';
+      document.getElementById('sequenceSubText').textContent = 'Click "Commence Sequence" to generate harmonic vector.';
+    }
+
+    function startNextSequenceRound() {
+      if (sequenceState.isPlayingDemo) return;
+      sequenceState.isPlayingDemo = true;
+      sequenceState.playerIndex = 0;
+
+      // Sequence length = round + 2
+      if (sequenceState.sequence.length < sequenceState.round + 2) {
+        sequenceState.sequence.push(Math.floor(Math.random() * 4));
+      }
+
+      document.getElementById('sequenceStatusText').textContent = 'Transmitting Celestial Resonance...';
+      document.getElementById('sequenceStatusPip').className = 'w-2 h-2 rounded-full bg-secondary animate-ping';
+      document.getElementById('sequenceSubText').textContent = 'Observe the stellar harmonic vector path.';
+
+      playSequenceDemo(0);
+    }
+
+    function playSequenceDemo(stepIdx) {
+      if (stepIdx >= sequenceState.sequence.length) {
+        sequenceState.isPlayingDemo = false;
+        document.getElementById('sequenceStatusText').textContent = 'Your Echo Resonance';
+        document.getElementById('sequenceStatusPip').className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+        document.getElementById('sequenceSubText').textContent = 'Attune the nodes in identical sequence.';
+        return;
+      }
+
+      const nodeIdx = sequenceState.sequence[stepIdx];
+      flashNode(nodeIdx, true);
+
+      setTimeout(() => {
+        playSequenceDemo(stepIdx + 1);
+      }, 700);
+    }
+
+    function flashNode(nodeIdx, playAudio = true) {
+      if (playAudio) SoundEngine.nodeSound(nodeIdx);
+
+      const inner = document.getElementById(`nodeInner${nodeIdx}`);
+      if (inner) {
+        inner.classList.add('bg-white', 'scale-105');
+        setTimeout(() => {
+          inner.classList.remove('bg-white', 'scale-105');
+        }, 320);
+      }
+
+      const star = document.getElementById('starPulse');
+      const coords = [
+        { x: 210, y: 50 },
+        { x: 370, y: 210 },
+        { x: 210, y: 370 },
+        { x: 50, y: 210 }
+      ];
+      if (star && coords[nodeIdx]) {
+        star.setAttribute('cx', coords[nodeIdx].x);
+        star.setAttribute('cy', coords[nodeIdx].y);
+        star.classList.remove('opacity-0');
+        setTimeout(() => star.classList.add('opacity-0'), 400);
+      }
+    }
+
+    function handleNodeClick(nodeIdx) {
+      if (sequenceState.isPlayingDemo || !sequenceState.started) return;
+      if (sequenceState.sequence.length === 0) return;
+
+      flashNode(nodeIdx, true);
+
+      const expected = sequenceState.sequence[sequenceState.playerIndex];
+      if (nodeIdx === expected) {
+        sequenceState.playerIndex++;
+
+        if (sequenceState.playerIndex === sequenceState.sequence.length) {
+          // Completed this round!
+          sequenceState.score += sequenceState.round * 150;
+          sequenceState.round++;
+          document.getElementById('sequenceRound').textContent = String(sequenceState.round).padStart(2, '0');
+          document.getElementById('sequenceScore').textContent = String(sequenceState.score).padStart(4, '0');
+          document.getElementById('spanCapacityText').textContent = `${sequenceState.sequence.length + 1} Nodes`;
+          document.getElementById('spanCapacityBar').style.width = `${Math.min(100, (sequenceState.sequence.length + 1) * 15)}%`;
+
+          document.getElementById('sequenceStatusText').textContent = 'Vector Harmonized!';
+          document.getElementById('sequenceStatusPip').className = 'w-2 h-2 rounded-full bg-emerald-400';
+
+          SoundEngine.match();
+          showToast(`Round ${sequenceState.round - 1} Harmonized! +${(sequenceState.round - 1) * 150} pts`);
+
+          if (sequenceState.round > 5) {
+            SoundEngine.victory();
+            showVictoryModal('Stellar Vector Mastered', 'All astral sequences synthesized with unbroken harmonic focus.', sequenceState.score, '100%', '+200 XP', 1);
+          } else {
+            setTimeout(() => {
+              startNextSequenceRound();
+            }, 1200);
+          }
+        }
+      } else {
+        // Misstep
+        SoundEngine.mismatch();
+        sequenceState.lives--;
+        showToast('Resonance Slip — Replay Vector Available');
+        
+        const essenceContainer = document.getElementById('sequenceEssence');
+        if (essenceContainer) {
+          essenceContainer.innerHTML = '';
+          for (let i = 0; i < 3; i++) {
+            const icon = document.createElement('span');
+            icon.className = i < sequenceState.lives
+              ? 'material-symbols-outlined text-secondary text-[18px] filled'
+              : 'material-symbols-outlined text-surface-variant text-[18px]';
+            icon.textContent = 'diamond';
+            essenceContainer.appendChild(icon);
+          }
+        }
+
+        if (sequenceState.lives <= 0) {
+          showToast('Essence Restored — Re-attuning Sector');
+          sequenceState.lives = 3;
+          initSequenceGame();
+        } else {
+          sequenceState.playerIndex = 0;
+          document.getElementById('sequenceStatusText').textContent = 'Attunement Error — Try Again';
+        }
+      }
+    }
+
+    function replaySequence() {
+      if (sequenceState.sequence.length === 0 || sequenceState.isPlayingDemo) return;
+      sequenceState.isPlayingDemo = true;
+      sequenceState.playerIndex = 0;
+      playSequenceDemo(0);
+    }
+
+    // =========================================================
+    // F. GAME 3: WOOD BLOCK SLIDING PUZZLE (THE WORKSHOP)
+    // =========================================================
+    const woodPuzzleState = {
+      size: 3, // 3: 3x3, 4: 4x4
+      tiles: [],
+      moves: 0
+    };
+
+    function setWoodPuzzleSize(size) {
+      woodPuzzleState.size = size;
+      const b3 = document.getElementById('btnWood3x3');
+      const b4 = document.getElementById('btnWood4x4');
+      if (size === 3) {
+        b3.className = 'px-3 py-1 rounded-DEFAULT font-label-sm text-[10px] font-mono font-semibold transition-all bg-tertiary text-on-tertiary shadow-sm';
+        b4.className = 'px-3 py-1 rounded-DEFAULT font-label-sm text-[10px] font-mono text-outline hover:text-on-surface transition-all';
+      } else {
+        b4.className = 'px-3 py-1 rounded-DEFAULT font-label-sm text-[10px] font-mono font-semibold transition-all bg-tertiary text-on-tertiary shadow-sm';
+        b3.className = 'px-3 py-1 rounded-DEFAULT font-label-sm text-[10px] font-mono text-outline hover:text-on-surface transition-all';
+      }
+      initWoodPuzzle(true);
+    }
+
+    function initWoodPuzzle(shuffle = true) {
+      woodPuzzleState.moves = 0;
+      document.getElementById('woodMoves').textContent = '0';
+
+      const total = woodPuzzleState.size * woodPuzzleState.size;
+      let tiles = [];
+      for (let i = 1; i < total; i++) tiles.push(i);
+      tiles.push(null);
+
+      if (shuffle) {
+        const shuffleSteps = (woodPuzzleState.size === 3) ? 35 : 65;
+        for (let s = 0; s < shuffleSteps; s++) {
+          const emptyIdx = tiles.indexOf(null);
+          const r = Math.floor(emptyIdx / woodPuzzleState.size);
+          const c = emptyIdx % woodPuzzleState.size;
+          const neighbors = [];
+          if (r > 0) neighbors.push(emptyIdx - woodPuzzleState.size);
+          if (r < woodPuzzleState.size - 1) neighbors.push(emptyIdx + woodPuzzleState.size);
+          if (c > 0) neighbors.push(emptyIdx - 1);
+          if (c < woodPuzzleState.size - 1) neighbors.push(emptyIdx + 1);
+
+          const pick = neighbors[Math.floor(Math.random() * neighbors.length)];
+          [tiles[emptyIdx], tiles[pick]] = [tiles[pick], tiles[emptyIdx]];
+        }
+      }
+
+      woodPuzzleState.tiles = tiles;
+      renderWoodPuzzleBoard();
+    }
+
+    function renderWoodPuzzleBoard() {
+      const grid = document.getElementById('woodBoardGrid');
+      grid.innerHTML = '';
+      grid.style.gridTemplateColumns = `repeat(${woodPuzzleState.size}, 1fr)`;
+
+      woodPuzzleState.tiles.forEach((num, index) => {
+        const slot = document.createElement('div');
+        if (num !== null) {
+          slot.className = 'wood-tile-block';
+          slot.id = `wood-block-${num}`;
+          slot.onclick = (e) => handleWoodTileClick(index, e);
+          slot.innerHTML = `
+            <span class="text-xs font-mono text-[#8c531b] mb-0.5 leading-none">0${num}</span>
+            <span class="text-2xl sm:text-3xl font-extrabold leading-none drop-shadow-sm font-serif">${num}</span>
+          `;
+        } else {
+          slot.className = 'wood-tile-empty';
+          slot.id = 'wood-empty-slot';
+        }
+        grid.appendChild(slot);
+      });
+    }
+
+    function handleWoodTileClick(clickedIndex, event) {
+      const emptyIndex = woodPuzzleState.tiles.indexOf(null);
+      const r1 = Math.floor(clickedIndex / woodPuzzleState.size);
+      const c1 = clickedIndex % woodPuzzleState.size;
+      const r2 = Math.floor(emptyIndex / woodPuzzleState.size);
+      const c2 = emptyIndex % woodPuzzleState.size;
+
+      if (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1) {
+        SoundEngine.woodClick();
+        [woodPuzzleState.tiles[clickedIndex], woodPuzzleState.tiles[emptyIndex]] = [woodPuzzleState.tiles[emptyIndex], woodPuzzleState.tiles[clickedIndex]];
+        woodPuzzleState.moves++;
+        document.getElementById('woodMoves').textContent = woodPuzzleState.moves;
+
+        if (event) {
+          triggerParticleBurst(event.clientX, event.clientY, '#ffb797');
+        }
+
+        renderWoodPuzzleBoard();
+
+        // Check if solved
+        const total = woodPuzzleState.size * woodPuzzleState.size;
+        const isSolved = woodPuzzleState.tiles.slice(0, total - 1).every((v, i) => v === i + 1);
+        if (isSolved) {
+          SoundEngine.victory();
+          showVictoryModal(
+            'Wood Puzzle Calibration Assembled',
+            `All carved oak blocks locked in sequential geometry in ${woodPuzzleState.moves} moves.`,
+            400,
+            '100%',
+            '+180 XP',
+            4
+          );
+        }
+      } else {
+        showToast('Tap a wooden block directly adjacent to the hollow slot');
+      }
+    }
+
+    function showWoodPuzzleHint() {
+      const emptyIndex = woodPuzzleState.tiles.indexOf(null);
+      if (emptyIndex === -1) return;
+      const r = Math.floor(emptyIndex / woodPuzzleState.size);
+      const c = emptyIndex % woodPuzzleState.size;
+      const neighbors = [];
+      if (r > 0) neighbors.push(emptyIndex - woodPuzzleState.size);
+      if (r < woodPuzzleState.size - 1) neighbors.push(emptyIndex + woodPuzzleState.size);
+      if (c > 0) neighbors.push(emptyIndex - 1);
+      if (c < woodPuzzleState.size - 1) neighbors.push(emptyIndex + 1);
+
+      SoundEngine.playTone(660, 'sine', 0.25, 0.12);
+
+      let count = 0;
+      neighbors.forEach(nIdx => {
+        const num = woodPuzzleState.tiles[nIdx];
+        if (num !== null && num !== undefined) {
+          const el = document.getElementById(`wood-block-${num}`);
+          if (el) {
+            count++;
+            el.classList.add('hint-glow');
+            setTimeout(() => el.classList.remove('hint-glow'), 2200);
+          }
+        }
+      });
+      showToast(count > 0 ? 'Highlighted blocks can slide into the empty space!' : 'Tap an adjacent block');
+    }
+
+    // =========================================================
+    // G. VICTORY & LEVEL PROGRESSION LOGIC
+    // =========================================================
+    let nextLevelTarget = 1;
+
+    function showVictoryModal(title, desc, score, accuracy, xp, nextLvl) {
+      document.getElementById('modalVictoryTitle').textContent = title;
+      document.getElementById('modalVictoryDesc').textContent = desc;
+      document.getElementById('modalScore').textContent = `+${score}`;
+      document.getElementById('modalAccuracy').textContent = accuracy;
+      document.getElementById('modalXp').textContent = xp;
+
+      nextLevelTarget = nextLvl || 1;
+
+      const modal = document.getElementById('victoryModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      // Update global XP counter
+      const currScore = parseInt(document.getElementById('globalScore').textContent.replace(/\D/g, '')) || 2840;
+      document.getElementById('globalScore').innerHTML = `${currScore + score}<span class="text-outline font-normal ml-0.5">XP</span>`;
+    }
+
+    function closeVictoryModal(continueNext) {
+      const modal = document.getElementById('victoryModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      if (!continueNext) {
+        switchView('hub');
+      }
+    }
+
+    function handleModalNextLevel() {
+      closeVictoryModal(true);
+      if (currentActiveView === 'cortex') {
+        initCortexLevel(nextLevelTarget);
+      } else if (currentActiveView === 'sequence') {
+        initSequenceGame();
+        startNextSequenceRound();
+      } else if (currentActiveView === 'woodpuzzle') {
+        if (woodPuzzleState.size === 3) setWoodPuzzleSize(4);
+        else initWoodPuzzle(true);
+      } else {
+        switchView('cortex');
+      }
+    }
+
+    // =========================================================
+    // I. CROSS-MEMORY RECALL GAME ENGINE (4-CHOICE PERSONAL TRIVIA)
+    // =========================================================
+    const crossRecallState = {
+      pool: {
+        people: [],
+        objects: [],
+        anchors: []
+      },
+      loaded: false,
+      currentQuestion: null,
+      questionNum: 1,
+      totalQuestions: 10,
+      score: 0,
+      streak: 0,
+      autoAdvanceTimer: null,
+      answered: false
+    };
+
+    // Grounding fallback data for dementia/Alzheimer's reassurance
+    const sanctuaryGroundingFallbacks = {
+      people: [
+        { name: "Family Companion", relation: "Caregiver", notes: "Assists with gentle daily routines and tea", icon: "support_agent" },
+        { name: "Marco", relation: "Grandson", notes: "Loves drawing sketches of birds in the backyard garden", age: 12, icon: "palette" },
+        { name: "Clara", relation: "Sister", notes: "Enjoys chatting on phone every Tuesday evening", age: 72, icon: "call" }
+      ],
+      objects: [
+        { name: "Reading Glasses", location: "On the wooden bedside nightstand", notes: "Gold-rimmed reading glasses" },
+        { name: "Front Door Keys", location: "Hanging on the brass hook by the entryway", notes: "With the wooden lighthouse keychain" },
+        { name: "Herbal Morning Tea Mug", location: "On the breakfast table tray", notes: "Blue ceramic mug with chamomile honey tea" },
+        { name: "Daily Medicine Organizer", location: "Next to the water carafe in the kitchen", notes: "Labeled morning and evening slots" },
+        { name: "Walking Shoes", location: "By the front coat closet in the hallway", notes: "Soft supportive walking shoes" }
+      ],
+      anchors: [
+        {
+          question: "Where are your reading glasses typically kept for evening reading?",
+          answer: "On the bedside table next to your book",
+          distractors: ["Inside the hallway umbrella stand", "In the refrigerator crisper drawer", "Underneath the living room rug"],
+          category: "Everyday Essentials",
+          icon: "visibility"
+        },
+        {
+          question: "What time is your calming morning tea routine scheduled?",
+          answer: "9:00 AM in the sunlit breakfast nook",
+          distractors: ["1:30 AM in the dark", "11:45 PM before bed", "5:00 AM before sunrise"],
+          category: "Daily Routine",
+          icon: "emoji_food_beverage"
+        },
+        {
+          question: "Who is your primary physician who assists with your wellness check-ins?",
+          answer: "Dr. Julian Vance (Neurology & Wellness)",
+          distractors: ["Officer Bradley Cooper", "Chef Antonio", "Captain Jack Miller"],
+          category: "Care Team",
+          icon: "medical_services"
+        },
+        {
+          question: "What is the name of your gentle companion cat that loves sunny windowsills?",
+          answer: "Barnaby the ginger tabby",
+          distractors: ["Thunderbolt the greyhound", "Professor Whiskers the parrot", "Shelly the tortoise"],
+          category: "Home Companions",
+          icon: "pets"
+        },
+        {
+          question: "Where is your daily medicine organizer kept for easy morning access?",
+          answer: "Next to the water carafe in the kitchen",
+          distractors: ["In the outdoor garden shed", "Behind the basement furnace", "Under the car driver seat"],
+          category: "Health & Care",
+          icon: "medication"
+        }
+      ]
+    };
+
+    async function loadCrossMemoryPool() {
+      if (crossRecallState.loaded) return;
+      try {
+        const res = await fetch('/api/v1/game/memory-pool');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.status === 'success') {
+            crossRecallState.pool.people = (data.people && data.people.length > 0) ? data.people : sanctuaryGroundingFallbacks.people;
+            crossRecallState.pool.objects = (data.objects && data.objects.length > 0) ? data.objects : sanctuaryGroundingFallbacks.objects;
+            crossRecallState.pool.anchors = (data.anchors && data.anchors.length > 0) ? data.anchors : sanctuaryGroundingFallbacks.anchors;
+            crossRecallState.loaded = true;
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Memory pool endpoint warning, loading sanctuary fallbacks:', e);
+      }
+
+      try {
+        const res = await fetch('/api/v1/people');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.people && data.people.length > 0) {
+            crossRecallState.pool.people = data.people;
+          }
+        }
+      } catch (e) {}
+
+      if (crossRecallState.pool.people.length === 0) crossRecallState.pool.people = sanctuaryGroundingFallbacks.people;
+      if (crossRecallState.pool.objects.length === 0) crossRecallState.pool.objects = sanctuaryGroundingFallbacks.objects;
+      if (crossRecallState.pool.anchors.length === 0) crossRecallState.pool.anchors = sanctuaryGroundingFallbacks.anchors;
+      crossRecallState.loaded = true;
+    }
+
+    function getRandomDistractors(pool, count) {
+      const unique = Array.from(new Set(pool.filter(Boolean)));
+      const shuffled = [...unique];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const results = [];
+      for (let i = 0; i < shuffled.length && results.length < count; i++) {
+        results.push(shuffled[i]);
+      }
+      const safeFallbacks = [
+        "In the kitchen tea corner",
+        "On the sunny patio table",
+        "Next to the arm-chair side lamp",
+        "Visiting during Sunday afternoon"
+      ];
+      while (results.length < count) {
+        const fallback = safeFallbacks[results.length % safeFallbacks.length];
+        if (!results.includes(fallback)) results.push(fallback);
+        else results.push(`${fallback} (Area ${results.length + 1})`);
+      }
+      return results.slice(0, count);
+    }
+
+    function generateNewCrossQuestion() {
+      clearTimeout(crossRecallState.autoAdvanceTimer);
+      crossRecallState.answered = false;
+
+      const fb = document.getElementById('crossFeedbackPanel');
+      if (fb) fb.classList.add('hidden');
+
+      const people = crossRecallState.pool.people.length > 0 ? crossRecallState.pool.people : sanctuaryGroundingFallbacks.people;
+      const objects = crossRecallState.pool.objects.length > 0 ? crossRecallState.pool.objects : sanctuaryGroundingFallbacks.objects;
+      const anchors = crossRecallState.pool.anchors.length > 0 ? crossRecallState.pool.anchors : sanctuaryGroundingFallbacks.anchors;
+
+      const availableTypes = [0, 1, 2, 3, 4];
+      const hasPhoto = people.some(p => p.image_base64 || p.avatar_url);
+      if (hasPhoto) availableTypes.push(5);
+
+      const qType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+      let qData = null;
+
+      if (qType === 0) {
+        // Relation -> Name
+        const target = people[Math.floor(Math.random() * people.length)];
+        const correctAnswer = target.name;
+        const otherNames = people.filter(p => p.name !== target.name).map(p => p.name);
+        const namePool = [...otherNames, "Margaret", "Arthur", "Jonathan", "Beatrice", "David"];
+        const distractors = getRandomDistractors(namePool, 3);
+
+        qData = {
+          category: "Family & Loved Ones",
+          categoryIcon: "family_restroom",
+          question: `Who is your ${target.relation || 'beloved family member'}?`,
+          image: target.image_base64 || target.avatar_url || null,
+          correctAnswer,
+          distractors,
+          explanation: `${target.name} is your ${target.relation || 'family member'}.${target.notes ? ' ' + target.notes : ''}`
+        };
+      } else if (qType === 1) {
+        // Name -> Relation
+        const target = people[Math.floor(Math.random() * people.length)];
+        const correctAnswer = target.relation || "Loved One";
+        const relationPool = ["Daughter", "Neurology Doctor & Caregiver", "Grandson", "Care Specialist", "Sister", "Physical Therapist", "Neighbor", "Son", "Niece"];
+        const otherRelations = relationPool.filter(r => r.toLowerCase() !== correctAnswer.toLowerCase());
+        const distractors = getRandomDistractors(otherRelations, 3);
+
+        qData = {
+          category: "Relationships & Roles",
+          categoryIcon: "badge",
+          question: `What is your relationship to ${target.name}?`,
+          image: target.image_base64 || target.avatar_url || null,
+          correctAnswer,
+          distractors,
+          explanation: `${target.name} is your ${correctAnswer}.${target.notes ? ' (' + target.notes + ')' : ''}`
+        };
+      } else if (qType === 2) {
+        // Person -> Memory Note
+        const targetsWithNotes = people.filter(p => p.notes && p.notes.length > 5);
+        const target = targetsWithNotes.length > 0 ? targetsWithNotes[Math.floor(Math.random() * targetsWithNotes.length)] : people[0];
+        const correctAnswer = target.notes || `${target.name} visits and helps you frequently`;
+        const noteDistractorsPool = [
+          "Brings fresh lavender from the garden",
+          "Calls every evening to share daily stories",
+          "Helps water the potted geraniums on the balcony",
+          "Plays classical piano music during visits",
+          "Bakes delicious cinnamon scones on weekends",
+          "Helps arrange the photo albums in the study"
+        ].filter(n => n !== correctAnswer);
+        const distractors = getRandomDistractors(noteDistractorsPool, 3);
+
+        qData = {
+          category: "Personal Memories & Details",
+          categoryIcon: "favorite",
+          question: `What lovely memory or detail is connected with ${target.name}?`,
+          image: target.image_base64 || target.avatar_url || null,
+          correctAnswer,
+          distractors,
+          explanation: `${target.name}: ${correctAnswer}.`
+        };
+      } else if (qType === 3) {
+        // Object -> Location
+        const target = objects[Math.floor(Math.random() * objects.length)];
+        const correctAnswer = target.location || "On the wooden bedside nightstand";
+        const locationPool = [
+          "On the wooden bedside nightstand",
+          "Hanging on the brass hook by the entryway",
+          "On the breakfast nook dining tray",
+          "Next to the water carafe in the kitchen",
+          "By the front coat closet in the hallway",
+          "Inside the top desk drawer in the library",
+          "On the side table next to your favorite armchair"
+        ].filter(l => l.toLowerCase() !== correctAnswer.toLowerCase());
+        const distractors = getRandomDistractors(locationPool, 3);
+
+        qData = {
+          category: "Everyday Essentials",
+          categoryIcon: "inventory_2",
+          question: `Where are your ${target.name} typically placed in the home?`,
+          image: target.image_base64 || null,
+          correctAnswer,
+          distractors,
+          explanation: `Your ${target.name} are kept ${correctAnswer}.`
+        };
+      } else if (qType === 4) {
+        // Daily Sanctuary Anchor
+        const target = anchors[Math.floor(Math.random() * anchors.length)];
+        qData = {
+          category: target.category || "Sanctuary Routines",
+          categoryIcon: target.icon || "self_improvement",
+          question: target.question,
+          image: null,
+          correctAnswer: target.answer,
+          distractors: getRandomDistractors(target.distractors, 3),
+          explanation: target.answer
+        };
+      } else if (qType === 5) {
+        // Visual Photo Recognition
+        const photoPeople = people.filter(p => p.image_base64 || p.avatar_url);
+        const target = photoPeople[Math.floor(Math.random() * photoPeople.length)];
+        const correctAnswer = `${target.name} (${target.relation || 'Loved One'})`;
+        const otherNames = people.filter(p => p.name !== target.name).map(p => `${p.name} (${p.relation || 'Family'})`);
+        const namePool = [...otherNames, "Family Caregiver", "Dr. Julian (Doctor)", "Marco (Grandson)", "Clara (Sister)"];
+        const distractors = getRandomDistractors(namePool, 3);
+
+        qData = {
+          category: "Visual Face Recall",
+          categoryIcon: "face",
+          question: `Who is this familiar loved one visiting you in the photo?`,
+          image: target.image_base64 || target.avatar_url,
+          correctAnswer,
+          distractors,
+          explanation: `That is ${target.name}, your ${target.relation || 'loved one'}.`
+        };
+      }
+
+      // Combine exactly 1 correct answer + 3 distractors
+      const rawOptions = [
+        { text: qData.correctAnswer, isCorrect: true },
+        { text: qData.distractors[0], isCorrect: false },
+        { text: qData.distractors[1], isCorrect: false },
+        { text: qData.distractors[2], isCorrect: false }
+      ];
+
+      // MATHEMATICAL FISHER-YATES SHUFFLE:
+      // Uniformly distributes the correct answer across indices 0, 1, 2, 3!
+      for (let i = rawOptions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [rawOptions[i], rawOptions[j]] = [rawOptions[j], rawOptions[i]];
+      }
+
+      const correctIndex = rawOptions.findIndex(o => o.isCorrect);
+
+      crossRecallState.currentQuestion = {
+        ...qData,
+        options: rawOptions.map(o => o.text),
+        correctIndex
+      };
+
+      renderCrossQuestion();
+    }
+
+    function renderCrossQuestion() {
+      const q = crossRecallState.currentQuestion;
+      if (!q) return;
+
+      document.getElementById('crossCategoryText').textContent = q.category;
+      document.getElementById('crossCategoryIcon').textContent = q.categoryIcon || 'group';
+      document.getElementById('crossQuestionText').textContent = q.question;
+      document.getElementById('crossQuestionNum').textContent = crossRecallState.questionNum;
+      document.getElementById('crossScore').textContent = crossRecallState.score;
+      document.getElementById('crossStreak').textContent = crossRecallState.streak;
+
+      // Image Container
+      const imgContainer = document.getElementById('crossImageContainer');
+      const imgEl = document.getElementById('crossQuestionImg');
+      if (q.image) {
+        imgEl.src = (q.image.startsWith('data:') || q.image.startsWith('http')) ? q.image : `data:image/jpeg;base64,${q.image}`;
+        imgContainer.classList.remove('hidden');
+      } else {
+        imgContainer.classList.add('hidden');
+      }
+
+      // 4 Options Grid
+      const grid = document.getElementById('crossOptionsGrid');
+      grid.innerHTML = '';
+      const letterBadges = ['A', 'B', 'C', 'D'];
+
+      q.options.forEach((optText, index) => {
+        const btn = document.createElement('button');
+        btn.id = `cross-opt-${index}`;
+        btn.className = 'cross-option-btn group text-left p-4 rounded-xl bg-surface-container-low border border-white/[0.08] hover:border-primary/60 hover:bg-surface-container-high transition-all duration-200 flex items-center gap-3.5 shadow-md cursor-pointer select-none active:scale-[0.99]';
+        btn.onclick = (e) => handleCrossOptionSelect(index, e);
+
+        btn.innerHTML = `
+          <span class="opt-badge w-9 h-9 rounded-full bg-surface-container flex items-center justify-center font-mono font-bold text-sm text-primary border border-primary/30 group-hover:scale-105 transition-transform flex-shrink-0">
+            ${letterBadges[index]}
+          </span>
+          <span class="opt-text font-title-md text-on-surface text-sm sm:text-base leading-snug flex-1 font-sans">
+            ${optText}
+          </span>
+        `;
+        grid.appendChild(btn);
+      });
+    }
+
+    function handleCrossOptionSelect(selectedIndex, event) {
+      if (crossRecallState.answered) return;
+      crossRecallState.answered = true;
+
+      const q = crossRecallState.currentQuestion;
+      const isCorrect = (selectedIndex === q.correctIndex);
+
+      // Disable all option buttons
+      document.querySelectorAll('.cross-option-btn').forEach(btn => {
+        btn.disabled = true;
+        btn.classList.remove('hover:border-primary/60', 'hover:bg-surface-container-high', 'cursor-pointer');
+      });
+
+      const selectedBtn = document.getElementById(`cross-opt-${selectedIndex}`);
+      const correctBtn = document.getElementById(`cross-opt-${q.correctIndex}`);
+
+      if (isCorrect) {
+        SoundEngine.match();
+        if (event && event.clientX) {
+          triggerParticleBurst(event.clientX, event.clientY, '#ffba56');
+        } else {
+          triggerParticleBurst(window.innerWidth / 2, window.innerHeight / 2, '#ffba56');
+        }
+
+        crossRecallState.score += 100;
+        crossRecallState.streak += 1;
+        document.getElementById('crossScore').textContent = crossRecallState.score;
+        document.getElementById('crossStreak').textContent = crossRecallState.streak;
+
+        // Highlight selected as success
+        selectedBtn.classList.remove('border-white/[0.08]', 'bg-surface-container-low');
+        selectedBtn.classList.add('border-emerald-400', 'bg-emerald-950/40', 'shadow-[0_0_20px_rgba(52,211,153,0.3)]');
+        selectedBtn.querySelector('.opt-badge').className = 'opt-badge w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold text-sm flex items-center justify-center border border-emerald-400/50 flex-shrink-0';
+        selectedBtn.querySelector('.opt-badge').innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span>';
+
+        showCrossFeedback(true, 'Wonderful! That is correct.', q.explanation);
+      } else {
+        SoundEngine.mismatch();
+
+        crossRecallState.streak = 0;
+        document.getElementById('crossStreak').textContent = crossRecallState.streak;
+
+        // Softly mark chosen
+        selectedBtn.classList.remove('border-white/[0.08]');
+        selectedBtn.classList.add('border-amber-500/40', 'bg-surface-container');
+        selectedBtn.querySelector('.opt-badge').className = 'opt-badge w-9 h-9 rounded-full bg-amber-500/10 text-outline font-mono font-bold text-sm flex items-center justify-center border border-amber-500/30 flex-shrink-0';
+
+        // Gently illuminate correct button so user learns with reassurance
+        correctBtn.classList.remove('border-white/[0.08]', 'bg-surface-container-low');
+        correctBtn.classList.add('border-primary', 'bg-primary/10', 'shadow-[0_0_16px_rgba(255,186,86,0.25)]');
+        correctBtn.querySelector('.opt-badge').className = 'opt-badge w-9 h-9 rounded-full bg-primary/20 text-primary font-mono font-bold text-sm flex items-center justify-center border border-primary/50 flex-shrink-0';
+
+        showCrossFeedback(false, 'Good try! Here is the answer:', q.explanation);
+      }
+
+      // Check session completion
+      if (crossRecallState.questionNum >= crossRecallState.totalQuestions) {
+        document.getElementById('crossNextBtn').innerHTML = '<span>Complete Session</span><span class="material-symbols-outlined text-[18px]">workspace_premium</span>';
+      } else {
+        crossRecallState.autoAdvanceTimer = setTimeout(() => {
+          advanceCrossQuestion();
+        }, 3800);
+      }
+    }
+
+    function showCrossFeedback(isCorrect, title, desc) {
+      const panel = document.getElementById('crossFeedbackPanel');
+      const iconWrap = document.getElementById('crossFeedbackIconWrapper');
+      const icon = document.getElementById('crossFeedbackIcon');
+      const titleEl = document.getElementById('crossFeedbackTitle');
+      const descEl = document.getElementById('crossFeedbackDesc');
+
+      if (isCorrect) {
+        panel.className = 'w-full max-w-2xl p-4 rounded-xl border border-emerald-500/40 bg-emerald-950/30 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-300';
+        iconWrap.className = 'w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center flex-shrink-0 border border-emerald-500/30';
+        icon.textContent = 'verified';
+        titleEl.className = 'font-title-md font-bold text-sm sm:text-base text-emerald-200';
+      } else {
+        panel.className = 'w-full max-w-2xl p-4 rounded-xl border border-primary/40 bg-surface-container shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-300';
+        iconWrap.className = 'w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center flex-shrink-0 border border-primary/30';
+        icon.textContent = 'lightbulb';
+        titleEl.className = 'font-title-md font-bold text-sm sm:text-base text-primary';
+      }
+
+      titleEl.textContent = title;
+      descEl.textContent = desc;
+      panel.classList.remove('hidden');
+    }
+
+    function advanceCrossQuestion() {
+      clearTimeout(crossRecallState.autoAdvanceTimer);
+      if (crossRecallState.questionNum >= crossRecallState.totalQuestions) {
+        SoundEngine.victory();
+        showVictoryModal(
+          'Personal Recall Archive Complete',
+          `You recalled ${crossRecallState.score / 100} out of ${crossRecallState.totalQuestions} personal memories in this sanctuary session.`,
+          crossRecallState.score,
+          `${Math.round((crossRecallState.score / (crossRecallState.totalQuestions * 100)) * 100)}%`,
+          `+${crossRecallState.score + 50} XP`,
+          1
+        );
+        crossRecallState.questionNum = 1;
+        crossRecallState.score = 0;
+        crossRecallState.streak = 0;
+        return;
+      }
+
+      crossRecallState.questionNum++;
+      generateNewCrossQuestion();
+    }
+
+    // =========================================================
+    // J. INITIAL STARTUP
+    // =========================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      switchView('hub');
+      document.body.addEventListener('click', () => {
+        SoundEngine.init();
+      }, { once: true });
+    });
+  </script>
+</body>
+</html>

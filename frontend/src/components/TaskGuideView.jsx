@@ -584,81 +584,73 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
         : 0;
 
     return (
-        <div className="w-full h-full flex flex-col bg-[#060a12] text-slate-100 overflow-hidden font-sans select-none">
+        <div className="w-full h-full flex flex-col bg-[#111318] text-slate-100 overflow-hidden font-sans select-none">
             <canvas ref={canvasRef} className="hidden" />
 
-            {/* TOP HEADER */}
-            <div className="px-6 py-3 bg-[#0a0f1d]/90 border-b border-cyan-500/20 backdrop-blur-md flex items-center justify-between z-20">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-cyan-950 border border-cyan-500/40 flex items-center justify-center shadow-[0_0_12px_rgba(0,240,255,0.25)]">
-                        <Sparkles size={18} className="text-cyan-400 animate-pulse" />
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h2 className="font-mono text-sm font-bold tracking-wider text-cyan-300 uppercase">
-                                NEURON LIVE COGNITIVE TASK COACH
-                            </h2>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-950 text-cyan-400 border border-cyan-500/30">
-                                CONTINUOUS MULTIMODAL VOICE
-                            </span>
+            {/* Active Session Status Bar (NO duplicate top navbar) */}
+            {activeSession && (
+                <div className="px-6 py-2.5 bg-[#181a20] border-b border-amber-500/20 flex items-center justify-between z-20">
+                    <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+                            <Sparkles size={15} className="text-amber-400" />
                         </div>
-                        <p className="text-[11px] text-slate-400 font-mono">Real-time object recognition, ingredient verification & voice-guided assistance</p>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h2 className="font-serif text-sm font-semibold text-white">
+                                    {activeSession.task_title || "Task Coach"}
+                                </h2>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                    STEP {(activeSession.current_step_index || 0) + 1} OF {activeSession.total_steps || 1}
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                {/* Right controls */}
-                <div className="flex items-center gap-2.5">
-                    {/* Continuous Voice Indicator / Clickable Toggle */}
-                    <button
-                        onClick={handleToggleMic}
-                        className={`px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
-                            isSpeakingTTS
-                                ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300 animate-pulse'
-                                : isListening
-                                ? 'bg-cyan-950/80 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
-                                : 'bg-slate-900 border-slate-700 text-slate-400'
-                        }`}
-                        title="Click to toggle microphone / ask question"
-                    >
-                        {isSpeakingTTS ? (
-                            <Volume2 size={15} className="text-emerald-400" />
-                        ) : isListening ? (
-                            <Mic size={15} className="text-cyan-400 animate-pulse" />
-                        ) : (
-                            <MicOff size={15} className="text-slate-400" />
-                        )}
-                        <span>
-                            {isSpeakingTTS
-                                ? 'COACH SPEAKING...'
-                                : isListening
-                                ? 'MIC ACTIVE • LISTENING'
-                                : 'MIC PAUSED (CLICK TO START)'}
-                        </span>
-                    </button>
+                    <div className="flex items-center gap-2.5">
+                        <button
+                            onClick={handleToggleMic}
+                            className={`px-3 py-1 rounded-lg border text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
+                                isSpeakingTTS
+                                    ? 'bg-amber-500/20 border-amber-400 text-amber-200 animate-pulse'
+                                    : isListening
+                                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                                    : 'bg-[#1f222a] border-white/[0.08] text-slate-400'
+                            }`}
+                        >
+                            {isSpeakingTTS ? (
+                                <Volume2 size={14} className="text-amber-400" />
+                            ) : isListening ? (
+                                <Mic size={14} className="text-amber-400 animate-pulse" />
+                            ) : (
+                                <MicOff size={14} className="text-slate-400" />
+                            )}
+                            <span className="text-[11px]">
+                                {isSpeakingTTS ? 'COACH SPEAKING' : isListening ? 'LISTENING' : 'MIC PAUSED'}
+                            </span>
+                        </button>
 
-                    {activeSession && (
                         <button
                             onClick={handleEndSession}
-                            className="px-3.5 py-1.5 rounded-lg border border-red-500/40 bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs font-mono font-bold tracking-wider transition-all cursor-pointer"
+                            className="px-3 py-1 rounded-lg border border-red-500/40 bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs font-sans font-semibold transition-all cursor-pointer"
                         >
-                            END TASK
+                            End Task
                         </button>
-                    )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* MAIN CONTENT AREA */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6">
                 {!activeSession ? (
                     /* TASK LAUNCHER SCREEN */
                     <div className="max-w-4xl mx-auto space-y-6">
-                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0c1427] via-[#091124] to-[#060a12] border border-cyan-500/30 p-6 md:p-8 shadow-[0_0_35px_rgba(0,240,255,0.08)]">
+                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0c1427] via-[#091124] to-[#060a12] border border-amber-500/30 p-6 md:p-8 shadow-[0_0_35px_rgba(245,158,11,0.08)]">
                             <div className="relative z-10 max-w-2xl">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/90 border border-cyan-500/40 text-cyan-300 text-xs font-mono mb-3">
-                                    <Activity size={12} className="text-cyan-400 animate-spin" />
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-950/90 border border-amber-500/40 text-amber-300 text-xs font-mono mb-3">
+                                    <Activity size={12} className="text-amber-400 animate-spin" />
                                     <span>VOICE-FIRST MULTIMODAL ASSISTANT</span>
                                 </div>
-                                <h1 className="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-200 to-purple-300">
+                                <h1 className="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-100 to-white">
                                     What activity would you like me to guide you through?
                                 </h1>
                                 <p className="text-sm text-slate-300 mt-2 leading-relaxed">
@@ -669,7 +661,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                             {/* Custom Task Input */}
                             <form
                                 onSubmit={(e) => { e.preventDefault(); handleStartTask(); }}
-                                className="relative z-10 mt-6 flex items-center gap-2 bg-[#060a12]/80 border border-cyan-500/40 rounded-xl p-1.5 focus-within:border-cyan-400 focus-within:shadow-[0_0_20px_rgba(0,240,255,0.25)] transition-all"
+                                className="relative z-10 mt-6 flex items-center gap-2 bg-[#111318]/80 border border-amber-500/40 rounded-xl p-1.5 focus-within:border-amber-400 focus-within:shadow-[0_0_20px_rgba(245,158,11,0.25)] transition-all"
                             >
                                 <input
                                     type="text"
@@ -685,12 +677,12 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                     onClick={handleToggleMic}
                                     className={`px-3.5 py-2 rounded-lg border font-mono text-xs font-bold flex items-center gap-1.5 transition-all duration-300 cursor-pointer ${
                                         isListening
-                                            ? 'bg-gradient-to-r from-cyan-950 to-blue-950 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(0,240,255,0.4)] animate-pulse'
-                                            : 'bg-slate-900/90 hover:bg-slate-800 border-slate-700/80 text-slate-300 hover:text-cyan-300 hover:border-cyan-500/50'
+                                            ? 'bg-gradient-to-r from-amber-950 to-amber-950 border-amber-400 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.4)] animate-pulse'
+                                            : 'bg-slate-900/90 hover:bg-slate-800 border-slate-700/80 text-slate-300 hover:text-amber-300 hover:border-amber-500/50'
                                     }`}
                                     title={isListening ? "Listening active - speak and it will auto-start" : "Click to speak your task by voice"}
                                 >
-                                    <Mic size={16} className={isListening ? 'text-cyan-300 animate-pulse' : 'text-cyan-400'} />
+                                    <Mic size={16} className={isListening ? 'text-amber-300 animate-pulse' : 'text-amber-400'} />
                                     <span className="hidden sm:inline">
                                         {isListening ? 'LISTENING...' : 'MIC'}
                                     </span>
@@ -700,7 +692,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                 <button
                                     type="submit"
                                     disabled={isLoading || !customQuery.trim()}
-                                    className="px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-mono text-xs font-bold tracking-wider flex items-center gap-2 transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.3)] flex-shrink-0"
+                                    className="px-5 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white font-mono text-xs font-bold tracking-wider flex items-center gap-2 transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.3)] flex-shrink-0"
                                 >
                                     {isLoading ? (
                                         <>
@@ -718,15 +710,15 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
 
                             {/* Voice Feedback Banner with Auto-Launch Indicator */}
                             {(isListening || launcherTranscript) && (
-                                <div className="relative z-10 mt-3 p-3 rounded-xl bg-gradient-to-r from-[#061826] via-[#091f33] to-[#0a1826] border border-cyan-400/70 shadow-[0_0_20px_rgba(0,240,255,0.2)] flex items-center justify-between gap-3">
+                                <div className="relative z-10 mt-3 p-3 rounded-xl bg-gradient-to-r from-[#061826] via-[#091f33] to-[#0a1826] border border-amber-400/70 shadow-[0_0_20px_rgba(245,158,11,0.2)] flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-2.5 overflow-hidden">
                                         <div className="flex items-center gap-1">
-                                            <span className="w-1 h-3 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                                            <span className="w-1 h-4 bg-cyan-300 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                                            <span className="w-1 h-3 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                                            <span className="w-1 h-4 bg-amber-300 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                                             <span className="w-1 h-5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
                                         </div>
                                         <div className="text-xs font-mono truncate">
-                                            <span className="text-cyan-400 font-bold mr-1">🎙️ VOICE CAPTURE:</span>
+                                            <span className="text-amber-400 font-bold mr-1">🎙️ VOICE CAPTURE:</span>
                                             <span className="text-slate-200">
                                                 {launcherTranscript || customQuery ? `"${launcherTranscript || customQuery}"` : "Listening... Speak your task (auto-starts when you stop speaking)"}
                                             </span>
@@ -754,7 +746,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                         {/* Quick Presets */}
                         <div>
                             <h3 className="font-mono text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                <Zap size={14} className="text-cyan-400" />
+                                <Zap size={14} className="text-amber-400" />
                                 <span>POPULAR GUIDED ACTIVITIES</span>
                             </h3>
 
@@ -763,17 +755,17 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                     <div
                                         key={preset.id}
                                         onClick={() => handleStartTask(preset.query)}
-                                        className="group relative bg-[#0a1020]/70 hover:bg-[#0f172a] border border-cyan-500/20 hover:border-cyan-400/60 rounded-xl p-4 transition-all duration-300 cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(0,240,255,0.15)] flex items-start gap-4"
+                                        className="group relative bg-[#0a1020]/70 hover:bg-[#0f172a] border border-amber-500/20 hover:border-amber-400/60 rounded-xl p-4 transition-all duration-300 cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(245,158,11,0.15)] flex items-start gap-4"
                                     >
-                                        <div className="text-3xl p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 group-hover:scale-110 transition-transform">
+                                        <div className="text-3xl p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 group-hover:scale-110 transition-transform">
                                             {preset.icon}
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between mb-1">
-                                                <h4 className="font-bold text-base text-slate-100 group-hover:text-cyan-300 transition-colors">
+                                                <h4 className="font-bold text-base text-slate-100 group-hover:text-amber-300 transition-colors">
                                                     {preset.title}
                                                 </h4>
-                                                <span className="font-mono text-[10px] text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/30">
+                                                <span className="font-mono text-[10px] text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/30">
                                                     {preset.badge}
                                                 </span>
                                             </div>
@@ -801,7 +793,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                         <div className="w-full lg:w-[48%] flex flex-col gap-3">
                             
                             {/* Camera Viewfinder */}
-                            <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border-2 border-cyan-500/40 shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+                            <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border-2 border-amber-500/40 shadow-[0_0_30px_rgba(0,0,0,0.8)]">
                                 <video
                                     ref={videoRef}
                                     autoPlay
@@ -812,34 +804,34 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
 
                                 {/* Targeting Reticle */}
                                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                    <div className="w-56 h-56 border border-cyan-400/40 rounded-2xl flex items-center justify-center">
-                                        <div className="w-28 h-28 border border-cyan-300/60 rounded-xl flex items-center justify-center animate-pulse">
-                                            <Eye size={28} className="text-cyan-400/70" />
+                                    <div className="w-56 h-56 border border-amber-400/40 rounded-2xl flex items-center justify-center">
+                                        <div className="w-28 h-28 border border-amber-300/60 rounded-xl flex items-center justify-center animate-pulse">
+                                            <Eye size={28} className="text-amber-400/70" />
                                         </div>
                                     </div>
                                     <div className="scan-line" />
                                 </div>
 
                                 {/* Top Left Status Tag */}
-                                <div className="absolute top-3 left-3 flex items-center gap-2 bg-slate-950/85 backdrop-blur-md px-3 py-1 rounded-full border border-cyan-500/40 font-mono text-[11px] text-cyan-300">
+                                <div className="absolute top-3 left-3 flex items-center gap-2 bg-slate-950/85 backdrop-blur-md px-3 py-1 rounded-full border border-amber-500/40 font-mono text-[11px] text-amber-300">
                                     <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
                                     <span>EYE SENSOR ACTIVE</span>
                                     {isProcessingFrame && (
-                                        <span className="text-[10px] text-cyan-300 animate-pulse font-semibold">
+                                        <span className="text-[10px] text-amber-300 animate-pulse font-semibold">
                                             • INSPECTING...
                                         </span>
                                     )}
                                 </div>
 
                                 {/* Top Right Step Phase Badge */}
-                                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md px-3 py-1 rounded-full border border-cyan-500/40 font-mono text-[11px]">
+                                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md px-3 py-1 rounded-full border border-amber-500/40 font-mono text-[11px]">
                                     {currentPhase === 'verify_ingredient' && (
                                         <span className="text-amber-300 font-bold flex items-center gap-1">
                                             🔍 1. SHOW INGREDIENT
                                         </span>
                                     )}
                                     {currentPhase === 'perform_action' && (
-                                        <span className="text-cyan-300 font-bold flex items-center gap-1">
+                                        <span className="text-amber-300 font-bold flex items-center gap-1">
                                             ⚡ 2. PERFORM STEP
                                         </span>
                                     )}
@@ -871,7 +863,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                         {detectedObjects.map((obj, i) => (
                                             <span
                                                 key={i}
-                                                className="bg-cyan-950/90 backdrop-blur-md text-cyan-300 border border-cyan-400/40 px-2.5 py-0.5 rounded-full text-[10px] font-mono shadow"
+                                                className="bg-amber-950/90 backdrop-blur-md text-amber-300 border border-amber-400/40 px-2.5 py-0.5 rounded-full text-[10px] font-mono shadow"
                                             >
                                                 👁️ {obj}
                                             </span>
@@ -894,12 +886,12 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                             )}
 
                             {/* LIVE SPOKEN SUBTITLES (WHAT THE AI COACH IS SAYING) */}
-                            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#0a1426] to-[#0d1b33] border-2 border-cyan-500/40 shadow-[0_0_20px_rgba(0,240,255,0.15)] flex items-start gap-3">
-                                <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                    <Volume2 size={16} className="text-cyan-300 animate-pulse" />
+                            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#0a1426] to-[#0d1b33] border-2 border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.15)] flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <Volume2 size={16} className="text-amber-300 animate-pulse" />
                                 </div>
                                 <div className="flex-1">
-                                    <span className="font-mono text-[10px] text-cyan-400 font-bold uppercase tracking-wider block mb-0.5">
+                                    <span className="font-mono text-[10px] text-amber-400 font-bold uppercase tracking-wider block mb-0.5">
                                         COACH'S LIVE VOICE ADVICE:
                                     </span>
                                     <p className="text-sm font-semibold text-white leading-relaxed">
@@ -911,16 +903,16 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                             {/* LIVE SPEECH LISTENING & REAL-TIME TRANSCRIPT CARD */}
                             <div className={`p-3.5 rounded-2xl border transition-all duration-300 ${
                                 isListening || liveTranscript
-                                    ? 'bg-gradient-to-r from-[#061826] via-[#091f33] to-[#0a1826] border-cyan-400/80 shadow-[0_0_25px_rgba(0,240,255,0.25)]'
-                                    : 'bg-[#0a1020] border-cyan-500/30'
+                                    ? 'bg-gradient-to-r from-[#061826] via-[#091f33] to-[#0a1826] border-amber-400/80 shadow-[0_0_25px_rgba(245,158,11,0.25)]'
+                                    : 'bg-[#0a1020] border-amber-500/30'
                             }`}>
                                 <div className="flex items-center justify-between gap-2 mb-1.5">
                                     <div className="flex items-center gap-2">
                                         <div className={`w-2.5 h-2.5 rounded-full ${
-                                            isListening ? 'bg-cyan-400 animate-ping' : 'bg-slate-600'
+                                            isListening ? 'bg-amber-400 animate-ping' : 'bg-slate-600'
                                         }`} />
-                                        <span className="font-mono text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
-                                            <Radio size={14} className={isListening ? 'text-cyan-400 animate-pulse' : 'text-slate-500'} />
+                                        <span className="font-mono text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                                            <Radio size={14} className={isListening ? 'text-amber-400 animate-pulse' : 'text-slate-500'} />
                                             <span>{isListening ? 'VOICE LISTENING ACTIVE' : 'VOICE CAPTURE'}</span>
                                         </span>
                                     </div>
@@ -928,22 +920,22 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                     {/* Animated Waveform Visualizer */}
                                     {isListening && (
                                         <div className="flex items-center gap-1">
-                                            <span className="w-1 h-3 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                                            <span className="w-1 h-5 bg-cyan-300 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                                            <span className="w-1 h-3 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                                            <span className="w-1 h-5 bg-amber-300 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                                             <span className="w-1 h-4 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
-                                            <span className="w-1 h-6 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
-                                            <span className="w-1 h-3 bg-cyan-300 rounded-full animate-bounce" style={{ animationDelay: '0.25s' }} />
+                                            <span className="w-1 h-6 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+                                            <span className="w-1 h-3 bg-amber-300 rounded-full animate-bounce" style={{ animationDelay: '0.25s' }} />
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Spoken Words Display */}
-                                <div className="min-h-[38px] flex items-center justify-between gap-2 bg-[#050b14] border border-cyan-500/20 rounded-xl px-3 py-2">
+                                <div className="min-h-[38px] flex items-center justify-between gap-2 bg-[#050b14] border border-amber-500/20 rounded-xl px-3 py-2">
                                     <div className="flex items-center gap-2 flex-1 overflow-hidden">
-                                        <Mic size={15} className={`flex-shrink-0 ${isListening ? 'text-cyan-400 animate-pulse' : 'text-slate-500'}`} />
+                                        <Mic size={15} className={`flex-shrink-0 ${isListening ? 'text-amber-400 animate-pulse' : 'text-slate-500'}`} />
                                         <p className="text-xs font-medium text-slate-200 truncate">
                                             {liveTranscript ? (
-                                                <span className="text-cyan-200 font-semibold">
+                                                <span className="text-amber-200 font-semibold">
                                                     "{liveTranscript}"
                                                     <span className="ml-2 text-[10px] text-emerald-400 animate-pulse font-mono font-bold">
                                                         (Auto-answering...)
@@ -981,11 +973,11 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                         liveTranscript.trim()
                                             ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-emerald-400 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] animate-pulse'
                                             : isListening
-                                            ? 'bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 border-cyan-300 text-white shadow-[0_0_20px_rgba(0,240,255,0.35)]'
-                                            : 'bg-slate-900/90 hover:bg-slate-800 border-cyan-500/40 text-cyan-300 hover:text-white'
+                                            ? 'bg-gradient-to-r from-amber-600 to-blue-700 hover:from-amber-500 hover:to-amber-600 border-amber-300 text-white shadow-[0_0_20px_rgba(245,158,11,0.35)]'
+                                            : 'bg-slate-900/90 hover:bg-slate-800 border-amber-500/40 text-amber-300 hover:text-white'
                                     }`}
                                 >
-                                    <Mic size={18} className={isListening ? 'text-cyan-200 animate-pulse' : 'text-cyan-400'} />
+                                    <Mic size={18} className={isListening ? 'text-amber-200 animate-pulse' : 'text-amber-400'} />
                                     <span>
                                         {liveTranscript.trim()
                                             ? 'SEND QUESTION ➔'
@@ -999,9 +991,9 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                 <button
                                     onClick={() => captureAndAnalyzeFrame('')}
                                     disabled={isProcessingFrame}
-                                    className="py-3 px-4 rounded-xl bg-gradient-to-r from-[#0b1b36] to-[#0c2447] hover:from-[#0e2245] hover:to-[#0f2d57] border border-cyan-500/50 hover:border-cyan-400 text-cyan-200 hover:text-white font-mono text-xs font-bold tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.15)] disabled:opacity-50"
+                                    className="py-3 px-4 rounded-xl bg-gradient-to-r from-[#0b1b36] to-[#0c2447] hover:from-[#0e2245] hover:to-[#0f2d57] border border-amber-500/50 hover:border-amber-400 text-amber-200 hover:text-white font-mono text-xs font-bold tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.15)] disabled:opacity-50"
                                 >
-                                    <RefreshCw size={18} className={`text-cyan-400 ${isProcessingFrame ? 'animate-spin' : ''}`} />
+                                    <RefreshCw size={18} className={`text-amber-400 ${isProcessingFrame ? 'animate-spin' : ''}`} />
                                     <span>{isProcessingFrame ? 'INSPECTING...' : 'RE-SCAN CAMERA'}</span>
                                 </button>
                             </div>
@@ -1009,7 +1001,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                             {/* DIRECT TEXT QUESTION INPUT */}
                             <form
                                 onSubmit={handleSendQuestion}
-                                className="flex items-center gap-2 bg-[#0a1020]/90 border border-cyan-500/30 rounded-xl p-1.5 focus-within:border-cyan-400 focus-within:shadow-[0_0_15px_rgba(0,240,255,0.2)] transition-all"
+                                className="flex items-center gap-2 bg-[#0a1020]/90 border border-amber-500/30 rounded-xl p-1.5 focus-within:border-amber-400 focus-within:shadow-[0_0_15px_rgba(245,158,11,0.2)] transition-all"
                             >
                                 <input
                                     type="text"
@@ -1021,7 +1013,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                 <button
                                     type="submit"
                                     disabled={!manualQuestion.trim() || isProcessingFrame}
-                                    className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-40 cursor-pointer shadow-[0_0_10px_rgba(0,240,255,0.3)]"
+                                    className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-40 cursor-pointer shadow-[0_0_10px_rgba(245,158,11,0.3)]"
                                 >
                                     <Send size={13} />
                                     <span>SEND</span>
@@ -1033,10 +1025,10 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                         <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
                             
                             {/* Task Progress Header */}
-                            <div className="bg-[#0a1020]/90 border border-cyan-500/30 rounded-2xl p-5 shadow-[0_0_25px_rgba(0,0,0,0.6)]">
+                            <div className="bg-[#0a1020]/90 border border-amber-500/30 rounded-2xl p-5 shadow-[0_0_25px_rgba(0,0,0,0.6)]">
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-mono text-xs text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-500/30 uppercase">
+                                        <span className="font-mono text-xs text-amber-400 bg-amber-950 px-2 py-0.5 rounded border border-amber-500/30 uppercase">
                                             STEP {activeSession.current_step_index + 1} OF {activeSession.total_steps}
                                         </span>
                                         {activeSession.status === 'completed' && (
@@ -1050,7 +1042,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                     <div className="flex items-center gap-2">
                                         <div className="w-24 h-2 bg-slate-800 rounded-full overflow-hidden">
                                             <div
-                                                className="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-500"
+                                                className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-500"
                                                 style={{ width: `${progressPercent}%` }}
                                             />
                                         </div>
@@ -1067,12 +1059,12 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                             </div>
 
                             {/* TAB SELECTOR: CHECKLIST VS CONVERSATION LOG */}
-                            <div className="flex items-center gap-2 border-b border-cyan-500/20 pb-1">
+                            <div className="flex items-center gap-2 border-b border-amber-500/20 pb-1">
                                 <button
                                     onClick={() => setActiveRightTab('checklist')}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-xs font-bold tracking-wider transition-all cursor-pointer border ${
                                         activeRightTab === 'checklist'
-                                            ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(0,240,255,0.25)]'
+                                            ? 'bg-amber-500/20 border-amber-400 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
                                             : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:text-slate-200'
                                     }`}
                                 >
@@ -1097,25 +1089,25 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                 <div className="space-y-4">
                                     {/* ACTIVE STEP CARD */}
                                     {currentStep && (
-                                        <div className="bg-gradient-to-br from-cyan-950/40 via-[#0a1426] to-[#060a12] border-2 border-cyan-400/60 rounded-2xl p-5 shadow-[0_0_30px_rgba(0,240,255,0.15)] relative overflow-hidden">
+                                        <div className="bg-gradient-to-br from-amber-950/40 via-[#0a1426] to-[#060a12] border-2 border-amber-400/60 rounded-2xl p-5 shadow-[0_0_30px_rgba(245,158,11,0.15)] relative overflow-hidden">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 rounded-xl bg-cyan-500 text-black font-extrabold flex items-center justify-center text-base font-mono shadow-[0_0_15px_rgba(0,240,255,0.4)]">
+                                                    <div className="w-9 h-9 rounded-xl bg-amber-500 text-black font-extrabold flex items-center justify-center text-base font-mono shadow-[0_0_15px_rgba(245,158,11,0.4)]">
                                                         {activeSession.current_step_index + 1}
                                                     </div>
                                                     <div>
-                                                        <h3 className="font-bold text-lg text-cyan-200">
+                                                        <h3 className="font-bold text-lg text-amber-200">
                                                             {currentStep.title}
                                                         </h3>
                                                         <p className="text-xs text-slate-300 mt-0.5">
-                                                            Ingredient / Tool to show: <strong className="text-cyan-400 font-mono">{currentStep.expected_item}</strong>
+                                                            Ingredient / Tool to show: <strong className="text-amber-400 font-mono">{currentStep.expected_item}</strong>
                                                         </p>
                                                     </div>
                                                 </div>
 
                                                 <button
                                                     onClick={() => speakAloud(currentStep.narration || currentStep.action_instruction)}
-                                                    className="p-2 rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 hover:text-cyan-200 cursor-pointer"
+                                                    className="p-2 rounded-lg bg-amber-950/80 border border-amber-500/40 text-amber-300 hover:text-amber-200 cursor-pointer"
                                                     title="Repeat instruction"
                                                 >
                                                     <Volume2 size={16} />
@@ -1123,8 +1115,8 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                             </div>
 
                                             {/* Action Instruction Box */}
-                                            <div className="mt-4 p-4 rounded-xl bg-[#060a12]/80 border border-cyan-500/30 text-slate-100 font-medium text-sm leading-relaxed">
-                                                <span className="font-mono text-xs text-cyan-400 block mb-1 font-bold">ACTION TO DO:</span>
+                                            <div className="mt-4 p-4 rounded-xl bg-[#111318]/80 border border-amber-500/30 text-slate-100 font-medium text-sm leading-relaxed">
+                                                <span className="font-mono text-xs text-amber-400 block mb-1 font-bold">ACTION TO DO:</span>
                                                 {currentStep.action_instruction || currentStep.instruction}
                                             </div>
 
@@ -1143,7 +1135,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                             </div>
 
                                             {/* Step Navigation Controls */}
-                                            <div className="mt-5 pt-4 border-t border-cyan-500/20 flex items-center justify-between">
+                                            <div className="mt-5 pt-4 border-t border-amber-500/20 flex items-center justify-between">
                                                 <button
                                                     onClick={() => handleSetStep(Math.max(0, activeSession.current_step_index - 1))}
                                                     disabled={activeSession.current_step_index === 0}
@@ -1155,7 +1147,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
 
                                                 <button
                                                     onClick={() => handleSetStep(Math.min(activeSession.total_steps - 1, activeSession.current_step_index + 1))}
-                                                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-mono text-xs font-bold tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-[0_0_20px_rgba(0,240,255,0.3)]"
+                                                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-blue-600 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-white font-mono text-xs font-bold tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-[0_0_20px_rgba(245,158,11,0.3)]"
                                                 >
                                                     <span>
                                                         {activeSession.current_step_index === activeSession.total_steps - 1
@@ -1184,7 +1176,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                                     onClick={() => handleSetStep(idx)}
                                                     className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                                                         isCurrent
-                                                            ? 'bg-cyan-950/50 border-cyan-500/60 text-cyan-200'
+                                                            ? 'bg-amber-950/50 border-amber-500/60 text-amber-200'
                                                             : isDone
                                                             ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300'
                                                             : 'bg-slate-900/30 border-slate-800/80 text-slate-400 hover:border-slate-700'
@@ -1193,7 +1185,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-6 h-6 rounded-full flex items-center justify-center font-mono text-xs font-bold ${
                                                             isCurrent
-                                                                ? 'bg-cyan-500 text-black'
+                                                                ? 'bg-amber-500 text-black'
                                                                 : isDone
                                                                 ? 'bg-emerald-500/30 text-emerald-300'
                                                                 : 'bg-slate-800 text-slate-400'
@@ -1222,11 +1214,11 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                 </div>
                             ) : (
                                 /* TAB 2: LIVE CONVERSATION HISTORY LOG */
-                                <div className="bg-[#0a1020]/90 border border-cyan-500/30 rounded-2xl p-4 flex flex-col gap-3 min-h-[450px]">
-                                    <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2">
+                                <div className="bg-[#0a1020]/90 border border-amber-500/30 rounded-2xl p-4 flex flex-col gap-3 min-h-[450px]">
+                                    <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
                                         <div className="flex items-center gap-2">
-                                            <MessageSquare size={16} className="text-cyan-400" />
-                                            <h4 className="font-mono text-xs font-bold text-cyan-300 uppercase tracking-wider">
+                                            <MessageSquare size={16} className="text-amber-400" />
+                                            <h4 className="font-mono text-xs font-bold text-amber-300 uppercase tracking-wider">
                                                 DIALOGUE & QUESTION LOG
                                             </h4>
                                         </div>
@@ -1257,7 +1249,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                                             <span>•</span>
                                                             <span>{msg.time}</span>
                                                             {msg.badge && (
-                                                                <span className="px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-500/30 text-[9px]">
+                                                                <span className="px-1.5 py-0.2 rounded bg-amber-950 text-amber-400 border border-amber-500/30 text-[9px]">
                                                                     {msg.badge}
                                                                 </span>
                                                             )}
@@ -1267,10 +1259,10 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                                         <div
                                                             className={`p-3 rounded-2xl max-w-[85%] text-xs leading-relaxed ${
                                                                 isUser
-                                                                    ? 'bg-gradient-to-r from-cyan-900 to-blue-900 border border-cyan-400/50 text-white rounded-tr-none shadow-[0_0_15px_rgba(0,240,255,0.15)]'
+                                                                    ? 'bg-gradient-to-r from-amber-900 to-blue-900 border border-amber-400/50 text-white rounded-tr-none shadow-[0_0_15px_rgba(245,158,11,0.15)]'
                                                                     : isAlert
                                                                     ? 'bg-red-950/80 border-2 border-red-500 text-red-200 rounded-tl-none shadow-[0_0_15px_rgba(239,68,68,0.3)] font-bold'
-                                                                    : 'bg-[#0e192e] border border-cyan-500/30 text-slate-200 rounded-tl-none shadow'
+                                                                    : 'bg-[#0e192e] border border-amber-500/30 text-slate-200 rounded-tl-none shadow'
                                                             }`}
                                                         >
                                                             <div className="flex items-start justify-between gap-2">
@@ -1278,7 +1270,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                                                                 {!isUser && !isAlert && (
                                                                     <button
                                                                         onClick={() => speakAloud(msg.text)}
-                                                                        className="text-cyan-400 hover:text-cyan-200 p-1 rounded hover:bg-cyan-950 cursor-pointer"
+                                                                        className="text-amber-400 hover:text-amber-200 p-1 rounded hover:bg-amber-950 cursor-pointer"
                                                                         title="Play voice again"
                                                                     >
                                                                         <Volume2 size={13} />

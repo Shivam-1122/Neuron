@@ -13,13 +13,25 @@ import LoginPage from './pages/LoginPage';
 import CaregiverDashboard from './pages/CaregiverDashboard';
 import NavBar from './components/SideNav'; // Imported as NavBar
 import TaskGuideView from './components/TaskGuideView';
+import { MemoryGameHub } from './game';
+import SettingsModal from './components/SettingsModal';
+import soundManager from './utils/soundManager';
+import { useAuth } from './context/AuthContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
 
-
-
 function App() {
+  const { currentUser } = useAuth();
+  // Caregivers interact with their assigned patient's neural memories
+  const effectiveUserId = currentUser?.role === 'caregiver'
+    ? (currentUser?.patient_id || currentUser?.uid || 'default_user')
+    : (currentUser?.uid || 'default_user');
   const [view, setView] = useState('landing');
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsInitialSection, setSettingsInitialSection] = useState('settings');
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [dataVersion, setDataVersion] = useState(0);
+
   const [mode, setMode] = useState('person');
   const [messages, setMessages] = useState([
     { role: 'bot', text: "Hello! Show me a face or object, or ask me a question." }
@@ -58,12 +70,14 @@ function App() {
     formData.append('file', data.file, 'enroll.jpg');
     formData.append('name', data.name);
     formData.append('notes', data.notes || '');
+    formData.append('user_id', effectiveUserId);
 
     if (data.type === 'object') {
       try {
         const res = await axios.post(`${API_BASE}/remember/object`, formData);
         addBotMessage(`I've remembered your ${data.name}.`);
         speakResponse(`I have remembered your ${data.name}.`);
+        setDataVersion(v => v + 1);
         return { success: true };
       } catch (err) {
         console.error("Object enrollment error:", err);
@@ -88,6 +102,7 @@ function App() {
           addBotMessage(`I've remembered ${data.name}.`);
         }
         speakResponse(`I have remembered ${data.name}.`);
+        setDataVersion(v => v + 1);
         return { success: true, avatar_url: avatarUrl };
       } catch (err) {
         console.error("Person enrollment error:", err);
@@ -99,8 +114,88 @@ function App() {
     }
   };
 
+  const [isMusicEnabled, setIsMusicEnabled] = useState(soundManager.isMusicEnabled());
+  const [soundFxEnabled, setSoundFxEnabled] = useState(soundManager.isSoundFxEnabled());
+  const [speechEnabled, setSpeechEnabled] = useState(() => {
+    try {
+      return localStorage.getItem('neuron_speech_enabled') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    const unsub = soundManager.subscribe((state) => {
+      setIsMusicPlaying(Boolean(state.isMusicPlaying));
+      setIsMusicEnabled(Boolean(state.musicEnabled));
+      if (state.soundFxEnabled !== undefined) {
+        setSoundFxEnabled(Boolean(state.soundFxEnabled));
+      }
+    });
+    return unsub;
+  }, []);
+
+  const handleToggleSoundFx = () => {
+    const next = !soundFxEnabled;
+    setSoundFxEnabled(next);
+    soundManager.setSoundFx(next);
+    if (next) {
+      soundManager.playChime('click');
+    }
+  };
+
+  const handleToggleSpeech = () => {
+    const next = !speechEnabled;
+    setSpeechEnabled(next);
+    try {
+      localStorage.setItem('neuron_speech_enabled', next ? 'true' : 'false');
+    } catch (e) {}
+    if (!next && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      setAvatarMessage(null);
+    } else if (next) {
+      speakResponse("Voice guidance enabled.");
+    }
+  };
+
+  const handleNavigate = (newView) => {
+    setCaptureTrigger(0);
+    // Strict Auth Gating: Unauthenticated users attempting to access any feature are redirected to login
+    if (!currentUser && newView !== 'landing' && newView !== 'login') {
+      setView('login');
+      return;
+    }
+    // Caregivers have access ONLY to the Assistant feature ('patient'); no access to game, task_guide, or caregiver portal
+    if (currentUser?.role === 'caregiver' && ['game', 'task_guide', 'caregiver'].includes(newView)) {
+      setView('patient');
+      return;
+    }
+    if (newView === 'game') {
+      soundManager.startBackgroundMusic();
+    } else {
+      soundManager.stopBackgroundMusic();
+    }
+    setView(newView);
+  };
+
+  // Ensure view transitions immediately when auth state changes:
+  // When logged in, never stay on 'login' tab — switch to 'patient' (Assistant) immediately
+  useEffect(() => {
+    if (currentUser) {
+      if (view === 'login') {
+        setView('patient');
+      } else if (currentUser.role === 'caregiver' && ['game', 'task_guide', 'caregiver'].includes(view)) {
+        setView('patient');
+      }
+    } else if (view !== 'landing' && view !== 'login') {
+      setView('landing');
+    }
+  }, [currentUser, view]);
+
   useEffect(() => {
     setSuggestions([
+      "Play Memory Game",
       "Start Task Guide",
       "Where is my wallet?",
       "Enroll new person",
@@ -109,8 +204,10 @@ function App() {
   }, []);
 
   const handleSuggestionClick = (text) => {
-    if (text === "Start Task Guide") {
-      setView('task_guide');
+    if (text === "Play Memory Game") {
+      handleNavigate('game');
+    } else if (text === "Start Task Guide") {
+      handleNavigate('task_guide');
     } else if (text === "Enroll new person") {
       setEnrollType('person');
       setMode('enroll_ui');
@@ -122,14 +219,16 @@ function App() {
     }
   };
 
-  const handleCapture = async (blob) => {
+  const handleCapture = async (blob, explicitMode = null) => {
     setIsProcessing(true);
+    const activeScanMode = explicitMode || mode;
     const formData = new FormData();
 
-    if (mode === 'enroll_capture' && enrollData) {
+    if (activeScanMode === 'enroll_capture' && enrollData) {
       formData.append('file', blob, 'enroll.jpg');
       formData.append('name', enrollData.name);
       formData.append('notes', enrollData.notes);
+      formData.append('user_id', currentUser?.uid || 'default_user');
 
       try {
         if (enrollData.type === 'object') {
@@ -162,34 +261,35 @@ function App() {
     }
 
     formData.append('file', blob, 'capture.jpg');
+    formData.append('user_id', effectiveUserId);
 
     try {
-      let endpoint = mode === 'person' ? `${API_BASE}/recognize/person` : `${API_BASE}/find/object`;
+      let endpoint = activeScanMode === 'person' ? `${API_BASE}/recognize/person` : `${API_BASE}/find/object`;
       const res = await axios.post(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       const data = res.data;
 
-      if (mode === 'person' && data.status === 'identified') {
+      if (activeScanMode === 'person' && data.status === 'identified') {
         setCurrentPerson(data.person);
         addBotMessage(`I see ${data.person.name}.`);
         updateSuggestions(data.person, 'person');
         speakResponse(`Hello ${data.person.name}.`);
-      } else if (mode === 'object' && data.status === 'identified') {
+      } else if (activeScanMode === 'object' && data.status === 'identified') {
         const loc = data.object.location || "unknown location";
         addBotMessage(`I found your ${data.object.name}. It is usually in ${loc}.`);
         updateSuggestions(data.object, 'object');
         speakResponse(`That is your ${data.object.name}. Location: ${loc}.`);
-      } else if (mode === 'object' && data.status === 'generic_detection') {
-        const objects = data.objects.map(o => o.object).join(", ");
+      } else if (activeScanMode === 'object' && data.status === 'generic_detection') {
+        const objects = (data.objects || []).map(o => o.object).join(", ");
         addBotMessage(`I see: ${objects}. (Not in my personal memory)`);
         const firstObj = data.objects && data.objects[0] ? data.objects[0].object : "item";
         updateSuggestions({ name: firstObj, type: 'object' }, 'object');
         speakResponse(`I see ${objects}.`);
-      } else if (mode === 'person' && data.status === 'no_face_detected') {
+      } else if (activeScanMode === 'person' && data.status === 'no_face_detected') {
         addBotMessage("I couldn't detect a face clearly. Please look straight at the camera and try again.");
         speakResponse("I couldn't see a face clearly. Please try again.");
       } else {
-        addBotMessage(`I don't recognize that ${mode} in my memory.`);
-        speakResponse(`I don't recognize that ${mode}.`);
+        addBotMessage(`I don't recognize that ${activeScanMode} in my memory.`);
+        speakResponse(`I don't recognize that ${activeScanMode}.`);
       }
     } catch (err) {
       console.error(err);
@@ -266,12 +366,28 @@ function App() {
     try {
       let src = urlOrData;
       if (typeof urlOrData === 'string' && !urlOrData.startsWith('blob:') && !urlOrData.startsWith('http') && !urlOrData.startsWith('data:')) {
-        src = `data:audio/webm;base64,${urlOrData}`;
+        // Only treat as base64 audio if it does not contain whitespace/sentences
+        if (!urlOrData.includes(' ') && urlOrData.length > 50) {
+          src = `data:audio/webm;base64,${urlOrData}`;
+        } else {
+          // It is a text message, route to speech synthesis
+          speakResponse(urlOrData, null, true);
+          return;
+        }
       }
       const audio = new Audio(src);
-      audio.play().catch(err => console.warn("Audio playback note:", err));
+      audio.play().catch(err => {
+        console.warn("Audio playback note:", err);
+        // Fallback to TTS if audio element playback failed
+        if (typeof urlOrData === 'string') {
+          speakResponse(urlOrData, null, true);
+        }
+      });
     } catch (e) {
       console.warn("Failed to play audio sample:", e);
+      if (typeof urlOrData === 'string') {
+        speakResponse(urlOrData, null, true);
+      }
     }
   };
 
@@ -306,6 +422,18 @@ function App() {
     let imageBase64 = null;
 
     const lowerText = text.toLowerCase();
+
+    if (lowerText.includes("play game") || lowerText.includes("start game") || lowerText.includes("memory game") || lowerText.includes("open game") || lowerText.includes("memory gym")) {
+      clearInterval(statusInterval);
+      setIsProcessing(false);
+      setProcessingStatus("");
+      addBotMessage("Opening your Neuron Memory Gym now. Enjoy exercising your memory!", null, null, [], llmProvider);
+      speakResponse("Opening your Neuron Memory Gym now.", () => {
+        handleNavigate('game');
+      });
+      return;
+    }
+
     const isVoiceQuery = lowerText.includes("talk") || lowerText.includes("voice") || lowerText.includes("sound") || lowerText.includes("speak") || lowerText.includes("hear");
 
     try {
@@ -332,7 +460,11 @@ function App() {
         return;
       }
 
-      const res = await axios.post(`${API_BASE}/chat/query`, { text, provider: llmProvider });
+      const res = await axios.post(`${API_BASE}/chat/query`, {
+        text,
+        provider: llmProvider,
+        user_id: effectiveUserId
+      });
 
       clearInterval(statusInterval);
       setProcessingStatus("Finalizing...");
@@ -348,17 +480,36 @@ function App() {
         }
         if (data.image_base64) imageBase64 = data.image_base64;
         
+        if (data.task_added || data.entity_type === 'task') {
+          setDataVersion(v => v + 1);
+        }
+
         if (data.person) {
           const isObj = data.entity_type === 'object' || data.person.type === 'object' || Boolean(data.person.location && !data.person.relation);
-          if (!isObj) {
+          if (!isObj && data.entity_type !== 'task') {
             setCurrentPerson(data.person);
           }
-          updateSuggestions(data.person, isObj ? 'object' : 'person');
+          if (data.entity_type !== 'task') {
+            updateSuggestions(data.person, isObj ? 'object' : 'person');
+          }
         }
       } else {
         responseText = data.text || "I don't know who that is.";
       }
-      addBotMessage(responseText, audioUrl, imageBase64, data.gallery, responseProvider);
+
+      const isMissingData = data.status !== 'found' || 
+        (responseText && (
+          responseText.toLowerCase().includes("don't know") || 
+          responseText.toLowerCase().includes("not sure") ||
+          responseText.toLowerCase().includes("haven't learned") ||
+          responseText.toLowerCase().includes("no record") ||
+          responseText.toLowerCase().includes("not in my memory") ||
+          responseText.toLowerCase().includes("could not find") ||
+          responseText.toLowerCase().includes("couldn't find") ||
+          responseText.toLowerCase().includes("trouble searching")
+        ));
+
+      addBotMessage(responseText, audioUrl, imageBase64, data.gallery, responseProvider, isMissingData, text);
       speakResponse(responseText, () => {
         if (isVoiceQuery && audioUrl) {
           playAudioSample(audioUrl);
@@ -368,7 +519,7 @@ function App() {
       clearInterval(statusInterval);
       console.error(e);
       responseText = "I had trouble searching my memory.";
-      addBotMessage(responseText, null, null, [], llmProvider);
+      addBotMessage(responseText, null, null, [], llmProvider, true, text);
       speakResponse(responseText);
     } finally {
       if (!(currentPerson && isVoiceQuery)) {
@@ -378,11 +529,24 @@ function App() {
     }
   };
 
-  const addBotMessage = (text, audioUrl = null, imageBase64 = null, gallery = [], provider = null) => {
-    setMessages(prev => [...prev, { role: 'bot', text, audioUrl, image: imageBase64, gallery, llmProvider: provider || llmProvider }]);
+  const addBotMessage = (text, audioUrl = null, imageBase64 = null, gallery = [], provider = null, noDataFound = false, queryText = "") => {
+    setMessages(prev => [...prev, { 
+      role: 'bot', 
+      text, 
+      audioUrl, 
+      image: imageBase64, 
+      gallery, 
+      llmProvider: provider || llmProvider,
+      noDataFound,
+      queryText
+    }]);
   };
 
-  const speakResponse = (text, onComplete = null) => {
+  const speakResponse = (text, onComplete = null, force = false) => {
+    if (!speechEnabled && !force) {
+      if (onComplete) onComplete();
+      return;
+    }
     setIsSpeaking(true);
     setAvatarMessage(text);
     if ('speechSynthesis' in window) {
@@ -411,116 +575,140 @@ function App() {
   // VIEW ROUTING
   let content;
   if (view === 'landing') {
-    content = <LandingPage onGetStarted={() => setView('login')} />;
+    content = <LandingPage onGetStarted={() => handleNavigate(currentUser ? 'patient' : 'login')} onPlayGame={() => handleNavigate('game')} />;
   }
   else if (view === 'login') {
     content = (
-      <LoginPage onSelectRole={(role) => {
-        if (role === 'caregiver') setView('caregiver');
-        else setView('patient');
-      }} />
+      <LoginPage 
+        onLoginSuccess={() => {
+          handleNavigate('patient');
+        }}
+        onSelectRole={() => {
+          handleNavigate('patient');
+        }}
+      />
     );
   }
   else if (view === 'caregiver') {
     content = <CaregiverDashboard />;
+  } else if (view === 'game') {
+    content = (
+      <MemoryGameHub
+        onBackToPatient={() => handleNavigate('patient')}
+      />
+    );
   } else if (view === 'task_guide') {
     content = (
       <TaskGuideView
         apiBase={API_BASE}
-        onBackToPatient={() => setView('patient')}
+        onBackToPatient={() => handleNavigate('patient')}
       />
     );
   } else {
-    // Patient App Content
+    // Patient Sanctuary App Content
     content = (
-      <div className="app-container">
-        {/* MAIN STAGE (FULL WIDTH) */}
-        <div className="main-stage">
-          <div className="avatar-zone">
-            <AvatarCanvas isSpeaking={isSpeaking} isProcessing={isProcessing} processingStatus={processingStatus} message={avatarMessage} />
+      <div className="w-full h-full flex flex-col overflow-hidden bg-[#111318]">
+        {mode === 'enroll_ui' ? (
+          <div className="max-w-2xl mx-auto my-8 p-6 bg-[#181a20] rounded-3xl border border-white/[0.08] shadow-2xl overflow-y-auto">
+            <EnrollmentForm
+              type={enrollType}
+              onCancel={() => setMode('person')}
+              onSave={handleEnrollSave}
+            />
           </div>
-          <div className="chat-zone">
-            {mode === 'enroll_ui' ? (
-              <EnrollmentForm
-                type={enrollType}
-                onCancel={() => setMode('person')}
-                onSave={handleEnrollSave}
-              />
-            ) : (
-              <ChatInterface
-                messages={messages}
-                currentPerson={currentPerson}
-                onSendMessage={handleSendMessage}
-                suggestions={suggestions}
-                onSuggestionClick={handleSuggestionClick}
-                onPlayAudio={playAudioSample}
-                onCapture={handleCapture}
-                onScanFace={() => { setMode('person'); }}
-                onScanObject={() => { setMode('object'); }}
-                onEnroll={() => { setEnrollType('person'); setMode('enroll_ui'); }}
-                onEnrollObject={() => { setEnrollType('object'); setMode('enroll_ui'); }}
-                isTyping={isProcessing}
-                typingStatus={processingStatus}
-                captureTrigger={captureTrigger}
-                enrollType={enrollType}
-                llmProvider={llmProvider}
-                onToggleLLM={handleToggleLLM}
-              />
-            )}
+        ) : (
+          <div className="w-full h-full flex-1 overflow-hidden">
+            <ChatInterface
+              messages={messages}
+              currentPerson={currentPerson}
+              onSendMessage={handleSendMessage}
+              suggestions={suggestions}
+              onSuggestionClick={handleSuggestionClick}
+              onPlayAudio={playAudioSample}
+              onSpeakText={(text, force = true) => speakResponse(text, null, force)}
+              onCapture={handleCapture}
+              onScanFace={triggerScanFace}
+              onScanObject={triggerScanObject}
+              onEnroll={() => { setEnrollType('person'); setMode('enroll_ui'); }}
+              onEnrollObject={() => { setEnrollType('object'); setMode('enroll_ui'); }}
+              onPlayGame={() => handleNavigate('game')}
+              isTyping={isProcessing}
+              typingStatus={processingStatus}
+              captureTrigger={captureTrigger}
+              enrollType={enrollType}
+              scanMode={mode}
+              llmProvider={llmProvider}
+              onToggleLLM={handleToggleLLM}
+              onOpenSettings={(tab) => {
+                setSettingsInitialSection(tab || 'settings');
+                setShowSettings(true);
+              }}
+              isMusicPlaying={isMusicPlaying}
+              onToggleMusic={() => soundManager.toggleMusic()}
+              dataVersion={dataVersion}
+              userId={effectiveUserId}
+            />
           </div>
-        </div>
-
-        <style>{`
-        .app-container {
-            display: flex;
-            height: 100%;
-            background: #060a12;
-            color: #f1f5f9;
-            overflow: hidden;
-            flex-direction: row; 
-            width: 100%;
-        }
-        .main-stage {
-            flex: 1;
-            display: flex;
-            flex-direction: row;
-            position: relative;
-            background: transparent;
-            overflow: hidden;
-        }
-        .avatar-zone {
-            width: 460px;
-            height: 100%;
-            position: relative;
-            background: transparent;
-            flex-shrink: 0;
-            z-index: 10;
-        }
-        .chat-zone {
-            flex: 1;
-            height: 100%;
-            padding: 0;
-            box-sizing: border-box;
-            display: flex;
-            justify-content: center;
-            overflow: hidden;
-            background: transparent;
-        }
-        @media (max-width: 900px) {
-            .main-stage { flex-direction: column; }
-            .avatar-zone { width: 100%; height: 320px; }
-        }
-      `}</style>
+        )}
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#060a12', overflow: 'hidden' }}>
-      <NavBar onViewChange={setView} currentView={view} />
-      <div style={{ flex: 1, paddingTop: '70px', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#111318', overflow: 'hidden' }}>
+      <NavBar 
+        onViewChange={handleNavigate} 
+        currentView={view} 
+        onOpenSettings={(tab) => {
+          setSettingsInitialSection(tab || 'settings');
+          setShowSettings(true);
+        }}
+        isMusicPlaying={isMusicPlaying}
+        onToggleMusic={() => soundManager.toggleMusic()}
+        currentUser={currentUser}
+      />
+      <main style={{ flex: 1, paddingTop: '68px', height: 'calc(100vh - 68px)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {content}
-      </div>
+      </main>
+
+      {/* Clean Settings Modal for advanced options, Profile, LLM model, scans, enrollment */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        initialSection={settingsInitialSection}
+        onLoggedOut={() => handleNavigate('login')}
+        llmProvider={llmProvider}
+        onToggleLLM={handleToggleLLM}
+        isMusicPlaying={isMusicPlaying}
+        isMusicEnabled={isMusicEnabled}
+        onToggleMusic={() => {
+          const next = !isMusicEnabled;
+          soundManager.setMusicEnabled(next, view === 'game');
+        }}
+        soundFxEnabled={soundFxEnabled}
+        onToggleSoundFx={handleToggleSoundFx}
+        speechEnabled={speechEnabled}
+        onToggleSpeech={handleToggleSpeech}
+        onScanFace={() => {
+          setShowSettings(false);
+          triggerScanFace();
+        }}
+        onScanObject={() => {
+          setShowSettings(false);
+          triggerScanObject();
+        }}
+        onEnrollPerson={() => {
+          setShowSettings(false);
+          setEnrollType('person');
+          setMode('enroll_ui');
+        }}
+        onEnrollObject={() => {
+          setShowSettings(false);
+          setEnrollType('object');
+          setMode('enroll_ui');
+        }}
+        onDataChanged={() => setDataVersion(v => v + 1)}
+      />
     </div>
   );
 }
