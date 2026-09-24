@@ -1,49 +1,76 @@
+// Neuron Sanctuary Warm Amber & Dark Charcoal Theme
+// 100% matched to the Web Application Cognitive Sanctuary design system
+
 export const Colors = {
-  // Backgrounds
-  background: '#060a12',
-  card: '#0c1322',
-  surface: '#080d18',
-  surfaceElevated: '#111b2e',
-  modalOverlay: 'rgba(6, 10, 18, 0.88)',
+  // Backgrounds - Dark Charcoal Slate matching web #111318
+  background: '#111318',
+  card: '#181a20',
+  surface: '#16181f',
+  surfaceElevated: '#1f222a',
+  surfaceHighlight: '#262933',
+  modalOverlay: 'rgba(17, 19, 24, 0.94)',
 
-  // Neons & Highlights
-  cyan: '#00f0ff',
-  cyanMuted: 'rgba(0, 240, 255, 0.15)',
-  cyanBorder: 'rgba(0, 240, 255, 0.35)',
-  cyanGlow: 'rgba(0, 240, 255, 0.4)',
+  // Primary Sanctuary Colors - Warm Golden Amber
+  primary: '#f59e0b',
+  primaryLight: '#fbbf24',
+  primaryDark: '#d97706',
+  primaryMuted: 'rgba(245, 158, 11, 0.15)',
+  primaryBorder: 'rgba(245, 158, 11, 0.35)',
+  primaryGlow: 'rgba(245, 158, 11, 0.45)',
 
+  amber: '#f59e0b',
+  amberLight: '#fbbf24',
+  amberDark: '#d97706',
+  amberMuted: 'rgba(245, 158, 11, 0.15)',
+  amberBorder: 'rgba(245, 158, 11, 0.35)',
+  amberGlow: 'rgba(245, 158, 11, 0.45)',
+
+  // Aliased to Warm Amber to guarantee NO blue tint across legacy components
+  cyan: '#f59e0b',
+  cyanMuted: 'rgba(245, 158, 11, 0.15)',
+  cyanBorder: 'rgba(245, 158, 11, 0.35)',
+  cyanGlow: 'rgba(245, 158, 11, 0.45)',
+
+  // Calming Secondary Accents
   emerald: '#10b981',
   emeraldMuted: 'rgba(16, 185, 129, 0.15)',
-  emeraldBorder: 'rgba(16, 185, 129, 0.4)',
+  emeraldBorder: 'rgba(16, 185, 129, 0.35)',
 
   purple: '#a855f7',
   purpleMuted: 'rgba(168, 85, 247, 0.15)',
-  purpleBorder: 'rgba(168, 85, 247, 0.4)',
 
-  blue: '#3b82f6',
-  amber: '#f59e0b',
-  amberMuted: 'rgba(245, 158, 11, 0.15)',
+  blue: '#f59e0b', // remapped to amber
+  blueMuted: 'rgba(245, 158, 11, 0.15)',
+
   red: '#ef4444',
   redMuted: 'rgba(239, 68, 68, 0.15)',
 
   // Typography
-  textPrimary: '#f8fafc',
-  textSecondary: '#94a3b8',
-  textMuted: '#64748b',
-  textDark: '#334155',
+  textPrimary: '#ffffff',
+  textSecondary: '#e2e2e9',
+  textMuted: '#94a3b8',
+  textDark: '#64748b',
 
   // Borders
-  borderSubtle: '#1e293b',
-  borderStrong: '#334155',
+  borderSubtle: 'rgba(255, 255, 255, 0.08)',
+  borderStrong: 'rgba(255, 255, 255, 0.15)',
+  borderAmber: 'rgba(245, 158, 11, 0.35)',
 };
 
 export const Shadows = {
-  cyanGlow: {
-    shadowColor: Colors.cyan,
+  amberGlow: {
+    shadowColor: Colors.amber,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  cyanGlow: {
+    shadowColor: Colors.amber,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
   emeraldGlow: {
     shadowColor: Colors.emerald,
@@ -52,11 +79,11 @@ export const Shadows = {
     shadowRadius: 10,
     elevation: 6,
   },
-  purpleGlow: {
-    shadowColor: Colors.purple,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
+  cardShadow: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 14,
     elevation: 6,
   },
 };

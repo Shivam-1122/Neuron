@@ -1,56 +1,100 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { Colors } from '../theme/colors';
-import { Brain, Settings, Activity, Cpu, Menu } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { Colors, Shadows } from '../theme/colors';
+import { Brain, Settings, Volume2, VolumeX, Sparkles, User } from 'lucide-react-native';
+import sound from '../utils/soundEngine';
 
-export default function HeaderNav({ onOpenSettings, onOpenDrawer, currentScreen, onNavigate }) {
+export default function HeaderNav({
+  currentUser,
+  onOpenSettings,
+  currentScreen,
+  onNavigate,
+  isMuted,
+  onToggleSound,
+}) {
   return (
     <View style={styles.headerContainer}>
-      {/* Left Drawer Menu Toggle & Brand */}
-      <View style={styles.leftCluster}>
-        <TouchableOpacity
-          style={styles.drawerMenuBtn}
-          activeOpacity={0.7}
-          onPress={onOpenDrawer}
-        >
-          <Menu color={Colors.cyan} size={20} />
-        </TouchableOpacity>
-
-        {/* Brand Identity */}
-        <TouchableOpacity
-          style={styles.logoRow}
-          activeOpacity={0.7}
-          onPress={() => onNavigate('landing')}
-        >
-          <View style={styles.logoIconBox}>
-            <Brain color={Colors.cyan} size={18} />
-            <View style={styles.liveIndicator} />
+      {/* Brand Identity matching web SideNav */}
+      <TouchableOpacity
+        style={styles.logoRow}
+        activeOpacity={0.8}
+        onPress={() => onNavigate(currentUser ? 'patient' : 'landing')}
+      >
+        <View style={styles.logoIconBox}>
+          <Brain color={Colors.amber} size={18} />
+          <View style={styles.liveBeacon}>
+            <View style={styles.beaconPing} />
+            <View style={styles.beaconCore} />
           </View>
-          <View>
-            <View style={styles.titleRow}>
-              <Text style={styles.logoText}>NEURON</Text>
-              <View style={styles.versionBadge}>
-                <Text style={styles.versionBadgeText}>v2.6</Text>
-              </View>
-            </View>
-            <Text style={styles.subtitleText}>NEURAL PROTOCOL</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {/* Telemetry & Settings Button */}
-      <View style={styles.rightCluster}>
-        <View style={styles.telemetryPill}>
-          <Activity color={Colors.emerald} size={11} />
-          <Text style={styles.telemetryText}>ONLINE</Text>
         </View>
+        <View>
+          <View style={styles.titleRow}>
+            <Text style={styles.logoText}>NEURON</Text>
+            <View style={styles.sanctuaryBadge}>
+              <Text style={styles.sanctuaryBadgeText}>SANCTUARY</Text>
+            </View>
+          </View>
+          <Text style={styles.subtitleText}>Caring Memory Companion</Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* Right Controls: Sign In or Profile + Sound + Settings */}
+      <View style={styles.rightCluster}>
+        {/* Audio Mute/Unmute */}
         <TouchableOpacity
-          style={styles.settingsButton}
+          style={styles.iconButton}
           activeOpacity={0.7}
-          onPress={onOpenSettings}
+          onPress={onToggleSound}
+          accessibilityLabel="Toggle Sound"
         >
-          <Settings color={Colors.cyan} size={17} />
+          {isMuted ? (
+            <VolumeX color={Colors.textMuted} size={16} />
+          ) : (
+            <Volume2 color={Colors.amber} size={16} />
+          )}
         </TouchableOpacity>
+
+        {currentUser ? (
+          <>
+            {/* User Profile Pill */}
+            <TouchableOpacity
+              style={styles.profilePill}
+              activeOpacity={0.7}
+              onPress={() => onOpenSettings('profile')}
+            >
+              <View style={styles.profileAvatar}>
+                <Text style={styles.profileInitial}>
+                  {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.profileMeta}>
+                <Text style={styles.profileName} numberOfLines={1}>
+                  {(currentUser.displayName || 'Member').split(' ')[0]}
+                </Text>
+                <Text style={styles.profileRole}>
+                  {currentUser.role === 'caregiver' ? 'CAREGIVER' : 'SECURE'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Settings Gear */}
+            <TouchableOpacity
+              style={styles.iconButton}
+              activeOpacity={0.7}
+              onPress={() => onOpenSettings('settings')}
+            >
+              <Settings color={Colors.textMuted} size={16} />
+            </TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity
+            style={styles.signInButton}
+            activeOpacity={0.8}
+            onPress={() => onNavigate('login')}
+          >
+            <Text style={styles.signInText}>SIGN IN</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -59,29 +103,14 @@ export default function HeaderNav({ onOpenSettings, onOpenDrawer, currentScreen,
 const styles = StyleSheet.create({
   headerContainer: {
     height: 64,
-    backgroundColor: '#060a12ee',
+    backgroundColor: '#111318f2',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.cyanBorder,
+    borderBottomColor: Colors.borderSubtle,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     zIndex: 50,
-  },
-  leftCluster: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  drawerMenuBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: Colors.cyanBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   logoRow: {
     flexDirection: 'row',
@@ -89,24 +118,39 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   logoIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: Colors.amberMuted,
     borderWidth: 1,
-    borderColor: Colors.cyanBorder,
+    borderColor: Colors.amberBorder,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    ...Shadows.amberGlow,
   },
-  liveIndicator: {
+  liveBeacon: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.cyan,
+    top: -3,
+    right: -3,
+    width: 10,
+    height: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  beaconPing: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.amber,
+    opacity: 0.6,
+  },
+  beaconCore: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.amber,
   },
   titleRow: {
     flexDirection: 'row',
@@ -114,60 +158,96 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   logoText: {
-    color: Colors.textPrimary,
-    fontWeight: '900',
+    color: '#ffffff',
+    fontWeight: '800',
     fontSize: 16,
-    letterSpacing: 1.5,
+    letterSpacing: 1,
   },
-  versionBadge: {
-    backgroundColor: 'rgba(0, 240, 255, 0.12)',
-    paddingHorizontal: 5,
+  sanctuaryBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: Colors.cyanBorder,
+    borderColor: Colors.amberBorder,
   },
-  versionBadgeText: {
-    color: Colors.cyan,
-    fontSize: 9,
-    fontWeight: '700',
+  sanctuaryBadgeText: {
+    color: Colors.amber,
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   subtitleText: {
     color: Colors.textMuted,
-    fontSize: 8,
-    fontWeight: '600',
-    letterSpacing: 1,
+    fontSize: 9,
+    fontWeight: '500',
+    marginTop: 1,
   },
   rightCluster: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  telemetryPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: 1,
-    borderColor: Colors.emeraldBorder,
-    borderRadius: 12,
-  },
-  telemetryText: {
-    color: Colors.emerald,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  settingsButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 9,
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: Colors.card,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  signInButton: {
+    backgroundColor: Colors.amber,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    ...Shadows.amberGlow,
+  },
+  signInText: {
+    color: '#111318',
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 0.8,
+  },
+  profilePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: Colors.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  profileAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: Colors.amberMuted,
+    borderWidth: 1,
+    borderColor: Colors.amberBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileInitial: {
+    color: Colors.amber,
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  profileMeta: {
+    maxWidth: 70,
+  },
+  profileName: {
+    color: Colors.textPrimary,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  profileRole: {
+    color: Colors.emerald,
+    fontSize: 8,
+    fontWeight: '700',
   },
 });

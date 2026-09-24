@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     height: 170,
     borderRadius: 85,
     borderWidth: 1,
-    borderColor: 'rgba(0, 240, 255, 0.2)',
+    borderColor: 'rgba(245, 158, 11, 0.25)',
     borderStyle: 'dashed',
   },
   reticleRingOuter: {
@@ -195,13 +195,13 @@ const styles = StyleSheet.create({
     height: 190,
     borderRadius: 95,
     borderWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.15)',
   },
   cornerBracket: {
     position: 'absolute',
     width: 14,
     height: 14,
-    borderColor: Colors.cyan,
+    borderColor: Colors.amber,
   },
   topLeft: {
     top: 4,
@@ -262,12 +262,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.emeraldBorder,
   },
   badgeProcessing: {
-    backgroundColor: 'rgba(0, 240, 255, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     borderWidth: 1,
-    borderColor: Colors.cyanBorder,
+    borderColor: Colors.amberBorder,
   },
   badgeIdle: {
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    backgroundColor: Colors.card,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
   },
@@ -283,9 +283,9 @@ const styles = StyleSheet.create({
   },
   subtitleBox: {
     width: '100%',
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    backgroundColor: Colors.card,
     borderWidth: 1,
-    borderColor: Colors.cyanBorder,
+    borderColor: Colors.amberBorder,
     borderRadius: 10,
     padding: 10,
   },
