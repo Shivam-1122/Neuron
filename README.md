@@ -7,16 +7,16 @@
 [![Expo](https://img.shields.io/badge/Expo-SDK%2052-000020?logo=expo)](https://expo.dev/)
 [![Qdrant](https://img.shields.io/badge/Qdrant-Vector%20DB-DC3545)](https://qdrant.tech/)
 [![Firebase](https://img.shields.io/badge/Firebase-Auth-FFCA28?logo=firebase)](https://firebase.google.com/)
+[![Live Web App](https://img.shields.io/badge/Live%20Web%20App-neuron--a940a.web.app-00f0ff?logo=googlechrome)](https://neuron-a940a.web.app)
 [![Android APK](https://img.shields.io/badge/Android%20APK-Ready%20to%20Install-34A853?logo=android)](https://expo.dev/artifacts/eas/_GTGYBQM8CiuicIdr47wN04qYjq2zdX8wEeb2aKBMIU.apk)
 
 ---
 
-## 📱 Android App (APK Available)
+## 🌐 Live Web Application & Android APK
 
-The Android standalone APK is built and ready for sideloading onto any Android phone or tablet:
-
-- 📥 **Direct APK Download**: [Download Neuron APK (v1.0.0)](https://expo.dev/artifacts/eas/_GTGYBQM8CiuicIdr47wN04qYjq2zdX8wEeb2aKBMIU.apk)
-- 📋 **EAS Build Page**: [Expo EAS Build Logs & Details](https://expo.dev/accounts/shivam112205/projects/neuron/builds/a8ab329d-ed11-47c5-9a4a-21455b0f05a8)
+- 🌐 **Live Web Application (Firebase)**: **[https://neuron-a940a.web.app](https://neuron-a940a.web.app)**
+- 📥 **Direct APK Download**: **[Download Neuron APK (v1.0.0)](https://expo.dev/artifacts/eas/_GTGYBQM8CiuicIdr47wN04qYjq2zdX8wEeb2aKBMIU.apk)**
+- 📋 **EAS Build Page**: **[Expo EAS Build Logs & Details](https://expo.dev/accounts/shivam112205/projects/neuron/builds/a8ab329d-ed11-47c5-9a4a-21455b0f05a8)**
 
 ### How to Install:
 1. Download the `.apk` file directly on your Android device.

@@ -64,3 +64,7 @@ neuron-mobile/android/
 neuron-mobile/ios/
 neuron-mobile/node_modules/
 
+# Firebase Cache
+.firebase/
+frontend/.firebase/
+
