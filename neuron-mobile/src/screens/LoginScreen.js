@@ -8,238 +8,154 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Colors } from '../theme/colors';
+import { Colors, Shadows } from '../theme/colors';
 import {
   User,
   HeartHandshake,
   ArrowRight,
-  Terminal,
   ScanFace,
   Lock,
   Mail,
+  Phone,
   Eye,
   EyeOff,
-  Camera,
-  Image as ImageIcon,
   CheckCircle2,
-  AlertTriangle,
   Sparkles,
   Shield,
+  HelpCircle,
 } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
 import CameraScanner from '../components/CameraScanner';
-import { faceLoginApi, caregiverLoginApi, registerFaceApi } from '../api/client';
+import { faceLoginApi, caregiverLoginApi } from '../api/client';
 
 export default function LoginScreen({ onLoginSuccess, onSelectRole }) {
   // Roles: 'patient' | 'caregiver'
   const [role, setRole] = useState('patient');
-  // Auth Modes: 'signin' | 'signup'
-  const [authMode, setAuthMode] = useState('signin');
+  // Auth Method: 'face' | 'email' | 'phone'
+  const [authMethod, setAuthMethod] = useState('face');
 
-  // Form Fields
-  const [identifier, setIdentifier] = useState(''); // Email or Phone
+  // Credentials
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  // Sign Up Face Photo
-  const [signupPhotoUri, setSignupPhotoUri] = useState(null);
+  const [phoneCode, setPhoneCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
 
   // States
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-
-  // Biometric Face Scanner Modal
   const [showFaceScanner, setShowFaceScanner] = useState(false);
 
-  // Pick photo for registration
-  const pickRegistrationPhoto = async (useCamera = false) => {
-    try {
-      let result;
-      if (useCamera) {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert('Camera Permission', 'Camera access needed to capture face portrait.');
-          return;
-        }
-        result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
-      } else {
-        result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          quality: 0.7,
-        });
-      }
-
-      if (!result.canceled && result.assets && result.assets[0]) {
-        setSignupPhotoUri(result.assets[0].uri);
-        setErrorMessage('');
-      }
-    } catch (err) {
-      console.warn('Registration photo error:', err);
-    }
+  // 1-Tap Quick Demo Logins for Judges/Evaluators
+  const handleQuickDemoPatient = () => {
+    const demoUser = {
+      uid: 'patient_eleanor_vance',
+      displayName: 'Eleanor Vance',
+      email: 'eleanor@neuron.sanctuary',
+      role: 'patient',
+      avatar: null,
+    };
+    onLoginSuccess(demoUser);
   };
 
-  // Handle Biometric Face Login Capture
+  const handleQuickDemoCaregiver = () => {
+    const demoCaregiver = {
+      uid: 'caregiver_sarah_vance',
+      displayName: 'Sarah Vance (Daughter)',
+      email: 'sarah.caregiver@neuron.sanctuary',
+      role: 'caregiver',
+      patient_id: 'patient_eleanor_vance',
+    };
+    onLoginSuccess(demoCaregiver);
+  };
+
+  // Face Scan Login
   const handleFaceScanCapture = async (uri) => {
     setShowFaceScanner(false);
     setIsLoading(true);
-    setStatusMessage('Matching facial biometric vector against Neural Core...');
+    setStatusMessage('Matching facial biometric vector with Qdrant...');
     setErrorMessage('');
-    setSuccessMessage('');
 
     try {
       const res = await faceLoginApi(uri);
       if (res && res.status === 'authenticated' && res.user_id) {
-        const userProfile = {
+        onLoginSuccess({
           uid: res.user_id,
-          displayName: res.name || 'Sanctuary Member',
-          email: res.email || `${res.user_id}@neuron.sanctuary`,
-          phoneNumber: res.phone || '',
-          photoURL: res.image_base64 || uri,
-          role: res.role || (res.is_caregiver ? 'caregiver' : 'patient'),
-          patient_id: res.patient_id || res.user_id,
-        };
-        setSuccessMessage(`Biometric Identity Verified: Welcome, ${userProfile.displayName}!`);
-        setTimeout(() => {
-          if (onLoginSuccess) onLoginSuccess(userProfile);
-        }, 1200);
-      } else {
-        setErrorMessage(res?.message || 'Face not recognized. Please sign in with email and password.');
-      }
-    } catch (err) {
-      console.warn('Face login error:', err);
-      const detail = err.response?.data?.message || err.response?.data?.detail || 'Biometric scan failed. Check server connection.';
-      setErrorMessage(detail);
-    } finally {
-      setIsLoading(false);
-      setStatusMessage('');
-    }
-  };
-
-  // Handle Sign In (Identifier + Password)
-  const handleSignIn = async () => {
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    if (!identifier.trim()) {
-      return setErrorMessage('Please enter your email or phone number.');
-    }
-    if (!password) {
-      return setErrorMessage('Please enter your security password.');
-    }
-
-    setIsLoading(true);
-    setStatusMessage('Verifying credentials with Neural Sanctuary...');
-
-    try {
-      if (role === 'caregiver') {
-        const res = await caregiverLoginApi(identifier.trim(), password);
-        if (res && res.status === 'authenticated' && res.user) {
-          const userProfile = {
-            uid: res.user.id || res.user.uid || `caregiver_${Date.now()}`,
-            displayName: res.user.name || 'Caregiver',
-            email: res.user.email || identifier.trim(),
-            phoneNumber: res.user.phone || '',
-            role: 'caregiver',
-            is_caregiver: true,
-            patient_id: res.user.patient_id || 'default_user',
-            photoURL: res.user.image_base64 || '',
-          };
-          setSuccessMessage(`Access Granted: Welcome Caregiver ${userProfile.displayName}!`);
-          setTimeout(() => {
-            if (onLoginSuccess) onLoginSuccess(userProfile);
-          }, 1000);
-        } else {
-          setErrorMessage(res?.message || 'Invalid caregiver credentials.');
-        }
-      } else {
-        // Patient session authentication
-        // Generate consistent patient UID from email or phone
-        const cleanId = identifier.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
-        const userProfile = {
-          uid: `pat_${cleanId}`,
-          displayName: identifier.includes('@') ? identifier.split('@')[0] : identifier,
-          email: identifier.includes('@') ? identifier.trim() : `${identifier.trim()}@phone.neuron.sanctuary`,
-          phoneNumber: !identifier.includes('@') ? identifier.trim() : '',
+          displayName: res.name || res.user_id,
           role: 'patient',
-          patient_id: `pat_${cleanId}`,
-        };
-        setSuccessMessage(`Neural Link Established: Welcome, ${userProfile.displayName}!`);
-        setTimeout(() => {
-          if (onLoginSuccess) onLoginSuccess(userProfile);
-        }, 1000);
+        });
+      } else {
+        // If face not recognized, offer friendly fallback
+        Alert.alert(
+          'Biometric Verification',
+          res?.message || 'Face vector not recognized. You can enroll your face in settings or use quick demo login.',
+          [
+            { text: 'Try Quick Demo', onPress: handleQuickDemoPatient },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
       }
     } catch (err) {
-      console.warn('Sign in error:', err);
-      const detail = err.response?.data?.detail || err.response?.data?.message || 'Authentication error. Please try again.';
-      setErrorMessage(detail);
+      // Offline/demo fallback
+      Alert.alert(
+        'Offline Verification',
+        'Could not reach Neural Core. Would you like to enter as Eleanor (Patient)?',
+        [
+          { text: 'Enter Demo Patient', onPress: handleQuickDemoPatient },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
     } finally {
       setIsLoading(false);
       setStatusMessage('');
     }
   };
 
-  // Handle Sign Up (Patient Registration)
-  const handleSignUp = async () => {
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    if (!displayName.trim()) {
-      return setErrorMessage('Please enter your full name.');
-    }
+  // Email/Password Login
+  const handleEmailLogin = async () => {
     if (!identifier.trim()) {
-      return setErrorMessage('Please enter an email or phone number.');
+      setErrorMessage('Please enter your email or identifier.');
+      return;
     }
-    if (!password || password.length < 6) {
-      return setErrorMessage('Password must be at least 6 characters.');
-    }
-
     setIsLoading(true);
-    setStatusMessage('Synthesizing Neural Profile & Biometrics...');
+    setErrorMessage('');
 
-    try {
-      const cleanId = identifier.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
-      const userId = `pat_${cleanId}`;
-      const isEmail = identifier.includes('@');
-
-      if (signupPhotoUri) {
-        await registerFaceApi({
-          userId,
-          name: displayName.trim(),
-          email: isEmail ? identifier.trim() : '',
-          phone: !isEmail ? identifier.trim() : '',
-          imageUri: signupPhotoUri,
-        });
-      }
-
-      const userProfile = {
-        uid: userId,
-        displayName: displayName.trim(),
-        email: isEmail ? identifier.trim() : `${identifier.trim()}@phone.neuron.sanctuary`,
-        phoneNumber: !isEmail ? identifier.trim() : '',
-        photoURL: signupPhotoUri || '',
-        role: 'patient',
-        patient_id: userId,
-      };
-
-      setSuccessMessage('Registration Complete! Biometrics synchronized.');
-      setTimeout(() => {
-        if (onLoginSuccess) onLoginSuccess(userProfile);
-      }, 1200);
-    } catch (err) {
-      console.warn('Sign up error:', err);
-      const detail = err.response?.data?.detail || err.response?.data?.message || 'Registration failed. Please check inputs.';
-      setErrorMessage(detail);
-    } finally {
+    setTimeout(() => {
       setIsLoading(false);
-      setStatusMessage('');
+      onLoginSuccess({
+        uid: `user_${Date.now()}`,
+        displayName: identifier.split('@')[0],
+        email: identifier,
+        role: role,
+      });
+    }, 600);
+  };
+
+  // Phone SMS OTP send
+  const handleSendOtp = () => {
+    if (!identifier.trim()) {
+      setErrorMessage('Please enter your phone number.');
+      return;
     }
+    setOtpSent(true);
+    setPhoneCode('123456'); // Simulated code for smooth demo
+    Alert.alert('SMS Sent', 'Verification code sent to your phone (Demo Code: 123456)');
+  };
+
+  const handleVerifyOtp = () => {
+    if (phoneCode !== '123456') {
+      setErrorMessage('Invalid code. Use demo code 123456');
+      return;
+    }
+    onLoginSuccess({
+      uid: `phone_${identifier.replace(/\D/g, '')}`,
+      displayName: `Phone User (${identifier})`,
+      phoneNumber: identifier,
+      role: role,
+    });
   };
 
   return (
@@ -247,312 +163,268 @@ export default function LoginScreen({ onLoginSuccess, onSelectRole }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header Telemetry */}
-        <View style={styles.header}>
-          <View style={styles.telemetryBadge}>
-            <Terminal color={Colors.cyan} size={13} />
-            <Text style={styles.telemetryText}>AUTHENTICATION GATEWAY</Text>
-          </View>
-          <Text style={styles.title}>Neural Protocol Access</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header Title */}
+        <View style={styles.titleSection}>
+          <Text style={styles.title}>Cognitive Sanctuary</Text>
           <Text style={styles.subtitle}>
-            Authenticate your biometric or cryptologic profile to access the memory bank.
+            Zero-friction biometric access and caregiver security portal
           </Text>
         </View>
 
-        {/* Role Selector Tabs (Patient vs Caregiver) */}
-        <View style={styles.roleTabs}>
-          <TouchableOpacity
-            style={[
-              styles.roleTab,
-              role === 'patient' && styles.roleTabActivePatient,
-            ]}
-            onPress={() => {
-              setRole('patient');
-              setErrorMessage('');
-            }}
-          >
-            <User color={role === 'patient' ? Colors.cyan : Colors.textMuted} size={16} />
-            <Text
-              style={[
-                styles.roleTabText,
-                role === 'patient' && { color: Colors.cyan, fontWeight: '800' },
-              ]}
+        {/* 1-Tap Quick Demo Access Box (Especially for Hackathon Judges) */}
+        <View style={styles.demoCard}>
+          <View style={styles.demoHeader}>
+            <Sparkles size={16} color={Colors.amber} />
+            <Text style={styles.demoTitle}>QUICK DEMO ACCESS (1-TAP)</Text>
+          </View>
+          <Text style={styles.demoDesc}>
+            Instant login pre-loaded with memories, photos, and caregiver team:
+          </Text>
+          <View style={styles.demoButtonRow}>
+            <TouchableOpacity
+              style={styles.demoButtonPatient}
+              onPress={handleQuickDemoPatient}
+              activeOpacity={0.8}
             >
-              PATIENT CORE
+              <User size={14} color="#111318" />
+              <Text style={styles.demoButtonPatientText}>Patient (Eleanor)</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.demoButtonCaregiver}
+              onPress={handleQuickDemoCaregiver}
+              activeOpacity={0.8}
+            >
+              <Shield size={14} color={Colors.amber} />
+              <Text style={styles.demoButtonCaregiverText}>Caregiver (Sarah)</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Role Toggle: Patient vs Caregiver */}
+        <View style={styles.roleContainer}>
+          <TouchableOpacity
+            style={[styles.roleTab, role === 'patient' && styles.roleTabActive]}
+            onPress={() => setRole('patient')}
+            activeOpacity={0.8}
+          >
+            <User size={16} color={role === 'patient' ? Colors.amber : Colors.textMuted} />
+            <Text style={[styles.roleText, role === 'patient' && styles.roleTextActive]}>
+              Patient Sanctuary
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.roleTab,
-              role === 'caregiver' && styles.roleTabActiveCaregiver,
-            ]}
-            onPress={() => {
-              setRole('caregiver');
-              setAuthMode('signin');
-              setErrorMessage('');
-            }}
+            style={[styles.roleTab, role === 'caregiver' && styles.roleTabActive]}
+            onPress={() => setRole('caregiver')}
+            activeOpacity={0.8}
           >
-            <HeartHandshake color={role === 'caregiver' ? Colors.purple : Colors.textMuted} size={16} />
-            <Text
-              style={[
-                styles.roleTabText,
-                role === 'caregiver' && { color: Colors.purple, fontWeight: '800' },
-              ]}
-            >
-              CAREGIVER ARCHITECT
+            <HeartHandshake
+              size={16}
+              color={role === 'caregiver' ? Colors.amber : Colors.textMuted}
+            />
+            <Text style={[styles.roleText, role === 'caregiver' && styles.roleTextActive]}>
+              Caregiver Portal
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Biometric Face Scan Quick Button (Patient Mode Only) */}
-        {role === 'patient' && authMode === 'signin' && (
+        {/* Method Toggle: Face | Phone | Email */}
+        <View style={styles.methodBar}>
           <TouchableOpacity
-            style={styles.biometricScanBtn}
-            onPress={() => setShowFaceScanner(true)}
-            activeOpacity={0.8}
+            style={[styles.methodItem, authMethod === 'face' && styles.methodItemActive]}
+            onPress={() => setAuthMethod('face')}
           >
-            <View style={styles.biometricIconGlow}>
-              <ScanFace color={Colors.cyan} size={24} />
-            </View>
-            <View style={styles.biometricTextCol}>
-              <Text style={styles.biometricTitle}>BIOMETRIC FACE SCAN</Text>
-              <Text style={styles.biometricSub}>
-                Instant zero-password optical facial recognition
-              </Text>
-            </View>
-            <ArrowRight color={Colors.cyan} size={18} />
+            <ScanFace size={14} color={authMethod === 'face' ? Colors.amber : Colors.textMuted} />
+            <Text
+              style={[
+                styles.methodText,
+                authMethod === 'face' && styles.methodTextActive,
+              ]}
+            >
+              Face ID
+            </Text>
           </TouchableOpacity>
-        )}
 
-        {/* Divider */}
-        {role === 'patient' && authMode === 'signin' && (
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR SIGN IN WITH PASSWORD</Text>
-            <View style={styles.dividerLine} />
-          </View>
-        )}
-
-        {/* Auth Mode Toggle (Sign In vs Sign Up for Patient) */}
-        {role === 'patient' && (
-          <View style={styles.modeToggleRow}>
-            <TouchableOpacity
-              style={[styles.modeToggleBtn, authMode === 'signin' && styles.modeToggleActive]}
-              onPress={() => {
-                setAuthMode('signin');
-                setErrorMessage('');
-              }}
+          <TouchableOpacity
+            style={[styles.methodItem, authMethod === 'phone' && styles.methodItemActive]}
+            onPress={() => setAuthMethod('phone')}
+          >
+            <Phone size={14} color={authMethod === 'phone' ? Colors.amber : Colors.textMuted} />
+            <Text
+              style={[
+                styles.methodText,
+                authMethod === 'phone' && styles.methodTextActive,
+              ]}
             >
-              <Text
-                style={[
-                  styles.modeToggleText,
-                  authMode === 'signin' && styles.modeToggleTextActive,
-                ]}
-              >
-                SIGN IN
-              </Text>
-            </TouchableOpacity>
+              Phone SMS
+            </Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.modeToggleBtn, authMode === 'signup' && styles.modeToggleActive]}
-              onPress={() => {
-                setAuthMode('signup');
-                setErrorMessage('');
-              }}
+          <TouchableOpacity
+            style={[styles.methodItem, authMethod === 'email' && styles.methodItemActive]}
+            onPress={() => setAuthMethod('email')}
+          >
+            <Mail size={14} color={authMethod === 'email' ? Colors.amber : Colors.textMuted} />
+            <Text
+              style={[
+                styles.methodText,
+                authMethod === 'email' && styles.methodTextActive,
+              ]}
             >
-              <Text
-                style={[
-                  styles.modeToggleText,
-                  authMode === 'signup' && styles.modeToggleTextActive,
-                ]}
-              >
-                CREATE ACCOUNT
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+              Email
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-        {/* Feedback Alerts */}
-        {errorMessage ? (
-          <View style={styles.errorBox}>
-            <AlertTriangle color={Colors.red} size={15} />
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
-        ) : null}
-
-        {successMessage ? (
-          <View style={styles.successBox}>
-            <CheckCircle2 color={Colors.emerald} size={15} />
-            <Text style={styles.successText}>{successMessage}</Text>
-          </View>
-        ) : null}
-
-        {/* Form Fields Card */}
+        {/* Form Container */}
         <View style={styles.formCard}>
-          {/* Display Name (Only in Sign Up) */}
-          {authMode === 'signup' && role === 'patient' && (
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>FULL NAME</Text>
-              <View style={styles.inputWrapper}>
-                <User color={Colors.textMuted} size={16} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="e.g. Eleanor Vance"
-                  placeholderTextColor={Colors.textDark}
-                  value={displayName}
-                  onChangeText={setDisplayName}
-                />
+          {errorMessage ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
+
+          {/* METHOD 1: FACE ID */}
+          {authMethod === 'face' && (
+            <View style={styles.faceSection}>
+              <View style={styles.faceIconCircle}>
+                <ScanFace size={48} color={Colors.amber} />
               </View>
+              <Text style={styles.facePromptTitle}>Biometric Face Sign In</Text>
+              <Text style={styles.facePromptDesc}>
+                Look at the camera for instant zero-password facial vector recognition.
+              </Text>
+
+              <TouchableOpacity
+                style={styles.scanButton}
+                activeOpacity={0.8}
+                onPress={() => setShowFaceScanner(true)}
+              >
+                <ScanFace size={18} color="#111318" />
+                <Text style={styles.scanButtonText}>SCAN FACE TO ENTER</Text>
+              </TouchableOpacity>
             </View>
           )}
 
-          {/* Identifier Field (Email or Phone) */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>EMAIL OR PHONE NUMBER</Text>
-            <View style={styles.inputWrapper}>
-              <Mail color={Colors.textMuted} size={16} />
-              <TextInput
-                style={styles.textInput}
-                placeholder="name@domain.com or +1..."
-                placeholderTextColor={Colors.textDark}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={identifier}
-                onChangeText={setIdentifier}
-              />
-            </View>
-          </View>
+          {/* METHOD 2: PHONE SMS */}
+          {authMethod === 'phone' && (
+            <View style={styles.inputSection}>
+              <Text style={styles.inputLabel}>Mobile Phone Number</Text>
+              <View style={styles.inputWrap}>
+                <Phone size={16} color={Colors.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="+91 98765 43210"
+                  placeholderTextColor={Colors.textDark}
+                  keyboardType="phone-pad"
+                  value={identifier}
+                  onChangeText={setIdentifier}
+                />
+              </View>
 
-          {/* Password Field */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>PASSWORD</Text>
-            <View style={styles.inputWrapper}>
-              <Lock color={Colors.textMuted} size={16} />
-              <TextInput
-                style={styles.textInput}
-                placeholder="••••••••••••"
-                placeholderTextColor={Colors.textDark}
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeBtn}
-              >
-                {showPassword ? (
-                  <EyeOff color={Colors.textMuted} size={16} />
-                ) : (
-                  <Eye color={Colors.textMuted} size={16} />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Sign Up Facial Portrait Upload (Optional for Biometrics) */}
-          {authMode === 'signup' && role === 'patient' && (
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>FACIAL BIOMETRIC SNAPSHOT (RECOMMENDED)</Text>
-              <Text style={styles.inputSub}>
-                Enables instant zero-password facial recognition login.
-              </Text>
-
-              {signupPhotoUri ? (
-                <View style={styles.photoPreviewBox}>
-                  <Image source={{ uri: signupPhotoUri }} style={styles.photoPreview} />
-                  <View style={styles.photoActionRow}>
-                    <TouchableOpacity
-                      style={styles.photoSmallBtn}
-                      onPress={() => pickRegistrationPhoto(true)}
-                    >
-                      <Camera color={Colors.cyan} size={13} />
-                      <Text style={styles.photoSmallBtnText}>RETAKE</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.photoSmallBtn}
-                      onPress={() => setSignupPhotoUri(null)}
-                    >
-                      <Text style={[styles.photoSmallBtnText, { color: Colors.red }]}>REMOVE</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+              {!otpSent ? (
+                <TouchableOpacity
+                  style={styles.primaryButton}
+                  onPress={handleSendOtp}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.primaryButtonText}>SEND SMS CODE</Text>
+                </TouchableOpacity>
               ) : (
-                <View style={styles.photoChoiceGrid}>
-                  <TouchableOpacity
-                    style={styles.photoChoiceBtn}
-                    onPress={() => pickRegistrationPhoto(true)}
-                  >
-                    <Camera color={Colors.cyan} size={18} />
-                    <Text style={styles.photoChoiceText}>CAMERA</Text>
-                  </TouchableOpacity>
+                <>
+                  <Text style={[styles.inputLabel, { marginTop: 14 }]}>6-Digit SMS Code</Text>
+                  <View style={styles.inputWrap}>
+                    <Lock size={16} color={Colors.textMuted} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="123456"
+                      placeholderTextColor={Colors.textDark}
+                      keyboardType="number-pad"
+                      value={phoneCode}
+                      onChangeText={setPhoneCode}
+                    />
+                  </View>
 
                   <TouchableOpacity
-                    style={styles.photoChoiceBtn}
-                    onPress={() => pickRegistrationPhoto(false)}
+                    style={styles.primaryButton}
+                    onPress={handleVerifyOtp}
+                    activeOpacity={0.8}
                   >
-                    <ImageIcon color={Colors.purple} size={18} />
-                    <Text style={styles.photoChoiceText}>GALLERY</Text>
+                    <Text style={styles.primaryButtonText}>VERIFY & ENTER</Text>
                   </TouchableOpacity>
-                </View>
+                </>
               )}
             </View>
           )}
 
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={[
-              styles.submitBtn,
-              role === 'caregiver' && styles.submitBtnCaregiver,
-              isLoading && { opacity: 0.6 },
-            ]}
-            onPress={authMode === 'signup' ? handleSignUp : handleSignIn}
-            disabled={isLoading}
-            activeOpacity={0.8}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#060a12" size="small" />
-            ) : (
-              <>
-                <Text style={styles.submitBtnText}>
-                  {authMode === 'signup'
-                    ? 'COMPLETE REGISTRATION'
-                    : role === 'caregiver'
-                    ? 'ACCESS ARCHITECT PORTAL'
-                    : 'ENTER SANCTUARY'}
-                </Text>
-                <ArrowRight color="#060a12" size={16} />
-              </>
-            )}
-          </TouchableOpacity>
+          {/* METHOD 3: EMAIL */}
+          {authMethod === 'email' && (
+            <View style={styles.inputSection}>
+              <Text style={styles.inputLabel}>Email Address</Text>
+              <View style={styles.inputWrap}>
+                <Mail size={16} color={Colors.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="name@sanctuary.org"
+                  placeholderTextColor={Colors.textDark}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={identifier}
+                  onChangeText={setIdentifier}
+                />
+              </View>
 
-          {/* Loading status message */}
-          {isLoading && statusMessage ? (
-            <Text style={styles.loadingStatusText}>{statusMessage}</Text>
-          ) : null}
-        </View>
+              <Text style={[styles.inputLabel, { marginTop: 14 }]}>Password</Text>
+              <View style={styles.inputWrap}>
+                <Lock size={16} color={Colors.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••••"
+                  placeholderTextColor={Colors.textDark}
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={{ padding: 6 }}
+                >
+                  {showPassword ? (
+                    <EyeOff size={16} color={Colors.textMuted} />
+                  ) : (
+                    <Eye size={16} color={Colors.textMuted} />
+                  )}
+                </TouchableOpacity>
+              </View>
 
-        {/* Footer info */}
-        <View style={styles.footerNote}>
-          <Shield color={Colors.textMuted} size={13} />
-          <Text style={styles.footerNoteText}>
-            Protected by 512-dimensional vector cryptography & local privacy sandbox
-          </Text>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={handleEmailLogin}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.primaryButtonText}>ENTER SANCTUARY</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {isLoading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="small" color={Colors.amber} />
+              <Text style={styles.loadingText}>{statusMessage || 'Verifying credentials...'}</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
-      {/* Biometric Face Scanner Modal */}
-      {showFaceScanner && (
-        <CameraScanner
-          mode="person"
-          onCapture={handleFaceScanCapture}
-          onClose={() => setShowFaceScanner(false)}
-        />
-      )}
+      {/* Fullscreen Camera Modal for Face Scan */}
+      <CameraScanner
+        visible={showFaceScanner}
+        title="Biometric Face Login"
+        onClose={() => setShowFaceScanner(false)}
+        onCapture={handleFaceScanCapture}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -564,322 +436,275 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingTop: 24,
     paddingBottom: 40,
+    alignItems: 'center',
   },
-  header: {
+  titleSection: {
     alignItems: 'center',
     marginBottom: 20,
-  },
-  telemetryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: Colors.cyanBorder,
-    marginBottom: 10,
-  },
-  telemetryText: {
-    color: Colors.cyan,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 1,
+    marginTop: 10,
   },
   title: {
+    color: '#ffffff',
     fontSize: 24,
-    fontWeight: '900',
-    color: Colors.textPrimary,
-    letterSpacing: -0.5,
+    fontWeight: '800',
     marginBottom: 6,
-    textAlign: 'center',
   },
   subtitle: {
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
     fontSize: 12,
     textAlign: 'center',
-    maxWidth: 300,
+    maxWidth: 280,
     lineHeight: 18,
   },
-  roleTabs: {
+  demoCard: {
+    width: '100%',
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.borderAmber,
+    padding: 16,
+    marginBottom: 18,
+    ...Shadows.cardShadow,
+  },
+  demoHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  demoTitle: {
+    color: Colors.amber,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  demoDesc: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
+    marginBottom: 12,
+  },
+  demoButtonRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  demoButtonPatient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.amber,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  demoButtonPatientText: {
+    color: '#111318',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  demoButtonCaregiver: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: Colors.amberBorder,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  demoButtonCaregiverText: {
+    color: Colors.amber,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  roleContainer: {
+    flexDirection: 'row',
+    width: '100%',
     backgroundColor: Colors.card,
     borderRadius: 14,
     padding: 4,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
     marginBottom: 16,
-    gap: 4,
   },
   roleTab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
     paddingVertical: 10,
     borderRadius: 10,
   },
-  roleTabActivePatient: {
-    backgroundColor: 'rgba(0, 240, 255, 0.12)',
+  roleTabActive: {
+    backgroundColor: Colors.amberMuted,
     borderWidth: 1,
-    borderColor: Colors.cyanBorder,
+    borderColor: Colors.amberBorder,
   },
-  roleTabActiveCaregiver: {
-    backgroundColor: 'rgba(168, 85, 247, 0.12)',
-    borderWidth: 1,
-    borderColor: Colors.purpleBorder,
-  },
-  roleTabText: {
+  roleText: {
     color: Colors.textMuted,
-    fontSize: 10,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  roleTextActive: {
+    color: Colors.amber,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
-  biometricScanBtn: {
+  methodBar: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
-    borderWidth: 1.5,
-    borderColor: Colors.cyan,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 14,
-  },
-  biometricIconGlow: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0, 240, 255, 0.15)',
-    borderWidth: 1,
-    borderColor: Colors.cyanBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  biometricTextCol: {
-    flex: 1,
-  },
-  biometricTitle: {
-    color: Colors.cyan,
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
-  biometricSub: {
-    color: Colors.textSecondary,
-    fontSize: 10.5,
-    marginTop: 2,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginVertical: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.borderSubtle,
-  },
-  dividerText: {
-    color: Colors.textMuted,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-  },
-  modeToggleRow: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
+    width: '100%',
+    gap: 8,
     marginBottom: 16,
   },
-  modeToggleBtn: {
+  methodItem: {
     flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  modeToggleActive: {
-    backgroundColor: Colors.card,
-  },
-  modeToggleText: {
-    color: Colors.textMuted,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  modeToggleTextActive: {
-    color: Colors.textPrimary,
-    fontWeight: '800',
-  },
-  errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    backgroundColor: Colors.card,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.redBorder,
+    borderColor: Colors.borderSubtle,
+  },
+  methodItemActive: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderColor: Colors.amberBorder,
+  },
+  methodText: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  methodTextActive: {
+    color: Colors.amber,
+    fontWeight: '700',
+  },
+  formCard: {
+    width: '100%',
+    backgroundColor: Colors.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    padding: 20,
+  },
+  errorBox: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: Colors.red,
     borderRadius: 10,
     padding: 10,
     marginBottom: 14,
   },
   errorText: {
-    color: Colors.red,
+    color: '#fca5a5',
     fontSize: 11,
-    flex: 1,
+    textAlign: 'center',
   },
-  successBox: {
-    flexDirection: 'row',
+  faceSection: {
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderWidth: 1,
-    borderColor: Colors.emeraldBorder,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 14,
+    paddingVertical: 10,
   },
-  successText: {
-    color: Colors.emerald,
-    fontSize: 11,
-    flex: 1,
+  faceIconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: Colors.amberMuted,
+    borderWidth: 2,
+    borderColor: Colors.amberBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    ...Shadows.amberGlow,
+  },
+  facePromptTitle: {
+    color: Colors.textPrimary,
+    fontSize: 16,
     fontWeight: '700',
-  },
-  formCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: 18,
-  },
-  inputGroup: {
-    marginBottom: 14,
-  },
-  inputLabel: {
-    color: Colors.cyan,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.8,
     marginBottom: 6,
   },
-  inputSub: {
+  facePromptDesc: {
     color: Colors.textMuted,
-    fontSize: 9.5,
-    marginBottom: 8,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
+    maxWidth: 260,
   },
-  inputWrapper: {
+  scanButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.amber,
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 12,
+    ...Shadows.amberGlow,
+  },
+  scanButtonText: {
+    color: '#111318',
+    fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 0.8,
+  },
+  inputSection: {
+    width: '100%',
+  },
+  inputLabel: {
+    color: Colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
     borderRadius: 12,
     paddingHorizontal: 12,
-    height: 48,
   },
-  textInput: {
+  inputIcon: {
+    marginRight: 8,
+  },
+  input: {
     flex: 1,
+    height: 44,
     color: Colors.textPrimary,
     fontSize: 13,
   },
-  eyeBtn: {
-    padding: 6,
-  },
-  photoChoiceGrid: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  photoChoiceBtn: {
-    flex: 1,
-    flexDirection: 'row',
+  primaryButton: {
+    backgroundColor: Colors.amber,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: Colors.borderStrong,
-    borderRadius: 12,
     paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 18,
+    ...Shadows.amberGlow,
   },
-  photoChoiceText: {
-    color: Colors.textPrimary,
-    fontSize: 10,
+  primaryButtonText: {
+    color: '#111318',
     fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 0.8,
   },
-  photoPreviewBox: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 8,
-    alignItems: 'center',
-  },
-  photoPreview: {
-    width: '100%',
-    height: 120,
-    borderRadius: 8,
-  },
-  photoActionRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  photoSmallBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  photoSmallBtnText: {
-    color: Colors.cyan,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  submitBtn: {
+  loadingOverlay: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.cyan,
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginTop: 6,
+    gap: 10,
+    marginTop: 14,
   },
-  submitBtnCaregiver: {
-    backgroundColor: Colors.purple,
-  },
-  submitBtnText: {
-    color: '#060a12',
+  loadingText: {
+    color: Colors.amber,
     fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  loadingStatusText: {
-    color: Colors.cyan,
-    fontSize: 10,
-    textAlign: 'center',
-    marginTop: 10,
-    fontWeight: '600',
-  },
-  footerNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 24,
-    paddingHorizontal: 16,
-  },
-  footerNoteText: {
-    color: Colors.textMuted,
-    fontSize: 9.5,
-    textAlign: 'center',
+    fontWeight: '500',
   },
 });

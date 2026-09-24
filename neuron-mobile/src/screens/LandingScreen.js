@@ -1,146 +1,185 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Colors } from '../theme/colors';
-import { ArrowRight, Eye, Database, Cpu, Brain, Activity, ShieldCheck } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { Colors, Shadows } from '../theme/colors';
+import {
+  ArrowRight,
+  Eye,
+  Database,
+  Cpu,
+  Brain,
+  Sparkles,
+  Gamepad2,
+  Users,
+  ShieldCheck,
+  HeartHandshake,
+} from 'lucide-react-native';
 
-export default function LandingScreen({ onGetStarted }) {
+export default function LandingScreen({ onGetStarted, onPlayGame }) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Hero Badge */}
       <View style={styles.heroBadge}>
         <View style={styles.pingDot} />
-        <Text style={styles.heroBadgeText}>NEXT-GEN AI MEMORY AUGMENTATION</Text>
+        <Text style={styles.heroBadgeText}>AI MEMORY COMPANION & COGNITIVE SANCTUARY</Text>
       </View>
 
       {/* Hero Title */}
       <Text style={styles.heroTitle}>
-        Your External{'\n'}
-        <Text style={styles.heroTitleGradient}>Neural Cortex</Text>
+        Your Caring{'\n'}
+        <Text style={styles.heroTitleGradient}>Memory Companion</Text>
       </Text>
 
       {/* Hero Description */}
       <Text style={styles.heroDesc}>
-        Neuron acts as an intelligent sensory extension for Alzheimer's & Dementia patients — identifying faces, tracking misplaced objects, and conversing with context-aware memory recall.
+        Neuron helps Alzheimer's and Dementia patients recognize loved ones, locate everyday items, and exercise cognitive health in a calm, stress-free environment.
       </Text>
 
-      {/* CTA Button */}
-      <TouchableOpacity
-        style={styles.ctaButton}
-        activeOpacity={0.8}
-        onPress={onGetStarted}
-      >
-        <Text style={styles.ctaButtonText}>INITIALIZE CORTEX</Text>
-        <ArrowRight color="#060a12" size={18} />
-      </TouchableOpacity>
+      {/* Primary CTAs */}
+      <View style={styles.ctaRow}>
+        <TouchableOpacity
+          style={styles.ctaPrimary}
+          activeOpacity={0.8}
+          onPress={onGetStarted}
+        >
+          <Text style={styles.ctaPrimaryText}>LAUNCH ASSISTANT</Text>
+          <ArrowRight color="#111318" size={16} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.ctaSecondary}
+          activeOpacity={0.8}
+          onPress={onPlayGame}
+        >
+          <Gamepad2 color={Colors.amber} size={16} />
+          <Text style={styles.ctaSecondaryText}>MEMORY GYM</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Operational Status Pill */}
       <View style={styles.statusPill}>
         <View style={[styles.pingDot, { backgroundColor: Colors.emerald }]} />
-        <Text style={styles.statusPillText}>STATUS: LIVE & OPERATIONAL</Text>
+        <Text style={styles.statusPillText}>STATUS: READY & SERENE</Text>
       </View>
 
-      {/* Terminal Simulation Card */}
-      <View style={styles.terminalCard}>
-        <View style={styles.terminalHeader}>
-          <View style={styles.terminalDots}>
-            <View style={[styles.terminalDot, { backgroundColor: '#ef4444' }]} />
-            <View style={[styles.terminalDot, { backgroundColor: '#f59e0b' }]} />
-            <View style={[styles.terminalDot, { backgroundColor: '#10b981' }]} />
-            <Text style={styles.terminalTitle}>NEURON_KERNEL // v2.6</Text>
+      {/* Companion Simulation Card */}
+      <View style={styles.simulationCard}>
+        <View style={styles.simHeader}>
+          <View style={styles.simDots}>
+            <View style={[styles.simDot, { backgroundColor: Colors.amber }]} />
+            <Text style={styles.simTitle}>Neuron Companion</Text>
           </View>
-          <Text style={styles.terminalStatus}>QDRANT_ONLINE</Text>
+          <Text style={styles.simStatus}>CALM PRESENCE</Text>
         </View>
 
+        {/* Live Assistant Visual */}
+        <View style={styles.avatarCard}>
+          <View style={styles.avatarIconBox}>
+            <Brain size={20} color={Colors.amber} />
+          </View>
+          <View>
+            <Text style={styles.avatarTitle}>Caring Memory Companion</Text>
+            <View style={styles.avatarStatusRow}>
+              <View style={[styles.pingDot, { backgroundColor: Colors.amber }]} />
+              <Text style={styles.avatarStatusText}>Gentle Voice & Vision Ready</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Dialogue Bubbles */}
         <View style={styles.dialogueList}>
           <View style={styles.dialogueBot}>
-            <Text style={styles.dialogueTag}>[NEURAL RECALL]</Text>
+            <Text style={styles.dialogueTag}>[NEURON]</Text>
             <Text style={styles.dialogueText}>
-              "I identified Dr. Miller entering the room. He is your neurologist scheduled for 3:00 PM."
+              "Good day! Here is your gentle reminder for today's routine and peaceful moments."
             </Text>
           </View>
           <View style={styles.dialogueUser}>
-            <Text style={[styles.dialogueTag, { color: Colors.purple }]}>[USER QUERY]</Text>
+            <Text style={[styles.dialogueTag, { color: Colors.amber }]}>[YOU]</Text>
             <Text style={styles.dialogueText}>
-              "Where did I put my prescription glasses?"
+              "Where did I leave my reading glasses?"
             </Text>
           </View>
           <View style={styles.dialogueBot}>
-            <Text style={styles.dialogueTag}>[SPATIAL MEMORY]</Text>
+            <Text style={styles.dialogueTag}>[NEURON]</Text>
             <Text style={styles.dialogueText}>
-              "Your glasses were detected on the nightstand beside your book 45 minutes ago."
+              "Your glasses are safely resting on the bedside table next to your favorite book."
             </Text>
           </View>
         </View>
       </View>
 
-      {/* Architecture Specs Metrics */}
+      {/* Specs Metrics */}
       <View style={styles.specsGrid}>
         <View style={styles.specBox}>
-          <Text style={[styles.specNumber, { color: Colors.cyan }]}>512-D</Text>
+          <Text style={[styles.specNumber, { color: Colors.amber }]}>512-D</Text>
           <Text style={styles.specLabel}>Facial Vectors</Text>
         </View>
         <View style={styles.specBox}>
-          <Text style={[styles.specNumber, { color: Colors.emerald }]}>384-D</Text>
-          <Text style={styles.specLabel}>Semantic Embedding</Text>
+          <Text style={[styles.specNumber, { color: Colors.emerald }]}>4 Games</Text>
+          <Text style={styles.specLabel}>Memory Gym</Text>
         </View>
         <View style={styles.specBox}>
-          <Text style={[styles.specNumber, { color: Colors.purple }]}>&lt; 50ms</Text>
-          <Text style={styles.specLabel}>Vector Latency</Text>
+          <Text style={[styles.specNumber, { color: Colors.amber }]}>&lt; 50ms</Text>
+          <Text style={styles.specLabel}>Vector Recall</Text>
         </View>
         <View style={styles.specBox}>
-          <Text style={[styles.specNumber, { color: Colors.blue }]}>100%</Text>
-          <Text style={styles.specLabel}>Private Bank</Text>
+          <Text style={[styles.specNumber, { color: Colors.emerald }]}>100%</Text>
+          <Text style={styles.specLabel}>Private Vault</Text>
         </View>
       </View>
 
-      {/* Feature Cards */}
+      {/* 4 Core Pillars */}
       <View style={styles.featuresContainer}>
-        <Text style={styles.featuresHeading}>Engineered for High-Reliability Memory</Text>
+        <Text style={styles.featuresHeading}>Designed for Calming Cognitive Support</Text>
 
         <View style={styles.featureCard}>
-          <View style={styles.featureCardHeader}>
-            <View style={styles.featureIconBox}>
-              <Eye color={Colors.cyan} size={20} />
-            </View>
-            <Text style={styles.featureTag}>VISION CORE</Text>
+          <View style={styles.featureIcon}>
+            <Eye size={20} color={Colors.amber} />
           </View>
-          <Text style={styles.featureTitle}>Optical Biometrics</Text>
-          <Text style={styles.featureDesc}>
-            Instant facial recognition and object localization using deep metric vector embeddings.
-          </Text>
+          <View style={styles.featureBody}>
+            <Text style={styles.featureTitle}>Biometric Face Recognition</Text>
+            <Text style={styles.featureDesc}>
+              Identifies familiar family members and caregivers instantly from camera scans without passwords.
+            </Text>
+          </View>
         </View>
 
         <View style={styles.featureCard}>
-          <View style={styles.featureCardHeader}>
-            <View style={styles.featureIconBox}>
-              <Database color={Colors.emerald} size={20} />
-            </View>
-            <Text style={styles.featureTag}>QDRANT ENGINE</Text>
+          <View style={styles.featureIcon}>
+            <Gamepad2 size={20} color={Colors.emerald} />
           </View>
-          <Text style={styles.featureTitle}>Vector Memory DB</Text>
-          <Text style={styles.featureDesc}>
-            Sub-millisecond semantic search and recall across recognized faces, contacts, and personal items.
-          </Text>
+          <View style={styles.featureBody}>
+            <Text style={styles.featureTitle}>Cognitive Memory Gym</Text>
+            <Text style={styles.featureDesc}>
+              4 therapeutic games with soothing audio chimes: Cortex Match, Sequence Chimes, Daily Routine, and Number Sort.
+            </Text>
+          </View>
         </View>
 
         <View style={styles.featureCard}>
-          <View style={styles.featureCardHeader}>
-            <View style={styles.featureIconBox}>
-              <Cpu color={Colors.purple} size={20} />
-            </View>
-            <Text style={styles.featureTag}>REMOTE LINK</Text>
+          <View style={styles.featureIcon}>
+            <Brain size={20} color={Colors.amber} />
           </View>
-          <Text style={styles.featureTitle}>Caregiver Sync</Text>
-          <Text style={styles.featureDesc}>
-            Caregivers can remotely enroll family identities, link voice signatures, and manage health context.
-          </Text>
+          <View style={styles.featureBody}>
+            <Text style={styles.featureTitle}>Context-Aware Voice Recall</Text>
+            <Text style={styles.featureDesc}>
+              Hold-to-talk speech with OpenAI Whisper and dual-engine intelligence answering daily queries gently.
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.featureCard}>
+          <View style={styles.featureIcon}>
+            <ShieldCheck size={20} color={Colors.emerald} />
+          </View>
+          <View style={styles.featureBody}>
+            <Text style={styles.featureTitle}>Caregiver Sanctuary Portal</Text>
+            <Text style={styles.featureDesc}>
+              Real-time distress notifications, memory protocol enrollment, and multi-caregiver coordination.
+            </Text>
+          </View>
         </View>
       </View>
-
-      {/* Footer */}
-      <Text style={styles.footerText}>
-        © 2026 NEURON PROJECT // MULTIMODAL NEURAL ASSISTANT
-      </Text>
     </ScrollView>
   );
 }
@@ -153,158 +192,219 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 40,
+    alignItems: 'center',
   },
   heroBadge: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    backgroundColor: Colors.amberMuted,
+    borderWidth: 1,
+    borderColor: Colors.amberBorder,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: Colors.cyanBorder,
     marginBottom: 16,
   },
   pingDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.cyan,
+    backgroundColor: Colors.amber,
   },
   heroBadgeText: {
-    color: Colors.cyan,
+    color: Colors.amber,
     fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   heroTitle: {
-    fontSize: 34,
-    fontWeight: '900',
     color: Colors.textPrimary,
-    lineHeight: 40,
-    letterSpacing: -0.5,
+    fontSize: 30,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 38,
     marginBottom: 12,
   },
   heroTitleGradient: {
-    color: Colors.cyan,
+    color: Colors.amber,
   },
   heroDesc: {
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
     fontSize: 13,
+    textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
+    maxWidth: 320,
   },
-  ctaButton: {
+  ctaRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  ctaPrimary: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: Colors.cyan,
-    borderRadius: 14,
-    paddingVertical: 14,
-    marginBottom: 12,
+    gap: 8,
+    backgroundColor: Colors.amber,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 12,
+    ...Shadows.amberGlow,
   },
-  ctaButtonText: {
-    color: '#060a12',
+  ctaPrimaryText: {
+    color: '#111318',
+    fontWeight: '800',
     fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1.5,
+    letterSpacing: 0.5,
+  },
+  ctaSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.amberBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  ctaSecondaryText: {
+    color: Colors.amber,
+    fontWeight: '700',
+    fontSize: 12,
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
+    paddingVertical: 6,
     backgroundColor: Colors.card,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
-    alignSelf: 'flex-start',
+    borderRadius: 16,
     marginBottom: 24,
   },
   statusPillText: {
     color: Colors.textSecondary,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
-  terminalCard: {
+  simulationCard: {
+    width: '100%',
     backgroundColor: Colors.card,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.cyanBorder,
+    borderColor: Colors.borderAmber,
     padding: 16,
     marginBottom: 24,
+    ...Shadows.cardShadow,
   },
-  terminalHeader: {
+  simHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 240, 255, 0.15)',
+    borderBottomColor: Colors.borderSubtle,
+    paddingBottom: 10,
     marginBottom: 12,
   },
-  terminalDots: {
+  simDots: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
   },
-  terminalDot: {
+  simDot: {
     width: 7,
     height: 7,
     borderRadius: 3.5,
   },
-  terminalTitle: {
-    color: Colors.textMuted,
-    fontSize: 9,
-    fontWeight: '800',
-    marginLeft: 6,
+  simTitle: {
+    color: Colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '700',
   },
-  terminalStatus: {
-    color: Colors.cyan,
+  simStatus: {
+    color: Colors.amber,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  avatarCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.surface,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    marginBottom: 14,
+  },
+  avatarIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: Colors.amberMuted,
+    borderWidth: 1,
+    borderColor: Colors.amberBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarTitle: {
+    color: Colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  avatarStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  avatarStatusText: {
+    color: Colors.amber,
+    fontSize: 10,
+    fontWeight: '500',
   },
   dialogueList: {
     gap: 10,
   },
   dialogueBot: {
-    backgroundColor: 'rgba(0, 240, 255, 0.06)',
+    backgroundColor: Colors.surfaceElevated,
+    padding: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0, 240, 255, 0.2)',
-    borderRadius: 10,
-    padding: 10,
+    borderColor: Colors.borderSubtle,
   },
   dialogueUser: {
-    backgroundColor: 'rgba(168, 85, 247, 0.08)',
+    backgroundColor: Colors.amberMuted,
+    padding: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.25)',
-    borderRadius: 10,
-    padding: 10,
+    borderColor: Colors.amberBorder,
     alignSelf: 'flex-end',
-    maxWidth: '90%',
+    maxWidth: '85%',
   },
   dialogueTag: {
-    color: Colors.cyan,
-    fontSize: 8,
-    fontWeight: '900',
+    color: Colors.textMuted,
+    fontSize: 9,
+    fontWeight: '700',
     marginBottom: 4,
-    letterSpacing: 0.5,
   },
   dialogueText: {
-    color: Colors.textPrimary,
-    fontSize: 11,
-    lineHeight: 16,
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
   },
   specsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginBottom: 28,
+    width: '100%',
+    marginBottom: 24,
   },
   specBox: {
     flex: 1,
@@ -317,69 +417,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   specNumber: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
-    letterSpacing: 0.5,
+    marginBottom: 2,
   },
   specLabel: {
     color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '600',
-    marginTop: 2,
   },
   featuresContainer: {
+    width: '100%',
     gap: 12,
-    marginBottom: 24,
   },
   featuresHeading: {
     color: Colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 6,
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+    textAlign: 'center',
   },
   featureCard: {
+    flexDirection: 'row',
+    gap: 14,
     backgroundColor: Colors.card,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
   },
-  featureCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  featureIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: Colors.surface,
+  featureIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: Colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featureTag: {
-    color: Colors.textMuted,
-    fontSize: 8,
-    fontWeight: '800',
-    letterSpacing: 1,
+  featureBody: {
+    flex: 1,
   },
   featureTitle: {
     color: Colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '700',
     marginBottom: 4,
   },
   featureDesc: {
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
     fontSize: 11,
     lineHeight: 16,
-  },
-  footerText: {
-    color: Colors.textDark,
-    fontSize: 9,
-    fontWeight: '700',
-    textAlign: 'center',
-    letterSpacing: 0.5,
   },
 });

@@ -522,7 +522,7 @@ export default function PatientCortexScreen({
           onPressIn={startVoiceRecording}
           onPressOut={stopVoiceRecording}
         >
-          <Mic color={isRecordingVoice ? '#fff' : Colors.cyan} size={18} />
+          <Mic color={isRecordingVoice ? '#fff' : Colors.amber} size={18} />
         </TouchableOpacity>
 
         <TextInput
@@ -540,9 +540,9 @@ export default function PatientCortexScreen({
           disabled={!inputText.trim() || isProcessing}
         >
           {isProcessing ? (
-            <ActivityIndicator color="#060a12" size="small" />
+            <ActivityIndicator color="#111318" size="small" />
           ) : (
-            <Send color="#060a12" size={16} />
+            <Send color="#111318" size={16} />
           )}
         </TouchableOpacity>
       </View>
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   avatarHeaderWrapper: {
-    backgroundColor: '#0c1322',
+    backgroundColor: '#16181f',
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderSubtle,
   },
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     paddingVertical: 5,
-    backgroundColor: 'rgba(0, 240, 255, 0.04)',
+    backgroundColor: 'rgba(245, 158, 11, 0.05)',
     borderTopWidth: 1,
     borderTopColor: Colors.borderSubtle,
   },
@@ -604,7 +604,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.cyan,
+    backgroundColor: Colors.amber,
   },
   collapsedTitle: {
     color: Colors.textPrimary,
@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   expandPromptText: {
-    color: Colors.cyan,
+    color: Colors.amber,
     fontSize: 8.5,
     fontWeight: '800',
     letterSpacing: 0.6,
@@ -646,9 +646,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   msgBubbleUser: {
-    backgroundColor: '#0e1f38',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     borderWidth: 1,
-    borderColor: Colors.cyanBorder,
+    borderColor: Colors.amberBorder,
   },
   msgBubbleBot: {
     backgroundColor: Colors.card,
@@ -678,12 +678,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: 'rgba(0, 240, 255, 0.1)',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
   audioSampleText: {
-    color: Colors.cyan,
+    color: Colors.amber,
     fontSize: 10,
     fontWeight: '700',
   },
@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: '#0c1322',
+    backgroundColor: '#16181f',
     borderTopWidth: 1,
     borderTopColor: Colors.borderSubtle,
   },
@@ -744,9 +744,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
     borderWidth: 1,
-    borderColor: Colors.cyanBorder,
+    borderColor: Colors.amberBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -769,7 +769,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.cyan,
+    backgroundColor: Colors.amber,
     alignItems: 'center',
     justifyContent: 'center',
   },

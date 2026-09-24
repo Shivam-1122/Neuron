@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, StatusBar, SafeAreaView, Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Colors } from './src/theme/colors';
-import { Home, Users, Sparkles, Cpu, Gamepad2, Shield } from 'lucide-react-native';
+import { Users, Sparkles, Cpu, Gamepad2 } from 'lucide-react-native';
 
 // Components & Modals
 import HeaderNav from './src/components/HeaderNav';
-import NavigationDrawer from './src/components/NavigationDrawer';
 import SettingsModal from './src/components/SettingsModal';
 import EnrollmentModal from './src/components/EnrollmentModal';
 
@@ -19,13 +18,16 @@ import TaskGuideScreen from './src/screens/TaskGuideScreen';
 import CaregiverScreen from './src/screens/CaregiverScreen';
 
 import { setLLMProviderApi, sendCaregiverAlertApi } from './src/api/client';
+import sound from './src/utils/soundEngine';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Drawer & Modals state
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  // Sound Mute State
+  const [isMuted, setIsMuted] = useState(false);
+
+  // Modals state
   const [showSettings, setShowSettings] = useState(false);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrollType, setEnrollType] = useState('person');
@@ -33,6 +35,12 @@ export default function App() {
   // Global settings state
   const [llmProvider, setLlmProvider] = useState('groq'); // 'groq' | 'gemini'
   const [speechEnabled, setSpeechEnabled] = useState(true);
+
+  // Toggle Sound
+  const handleToggleSound = () => {
+    const muted = sound.toggleMute();
+    setIsMuted(muted);
+  };
 
   // Toggle LLM Provider
   const handleToggleLLM = async () => {
@@ -42,22 +50,6 @@ export default function App() {
       await setLLMProviderApi(next);
     } catch (e) {
       console.warn('Backend LLM toggle note:', e);
-    }
-  };
-
-  // Toggle Speech Guidance
-  const handleToggleSpeech = () => {
-    setSpeechEnabled((prev) => !prev);
-  };
-
-  // Emergency Alert trigger
-  const handleEmergencyAlert = async () => {
-    const userId = currentUser?.patient_id || currentUser?.uid || 'default_user';
-    try {
-      await sendCaregiverAlertApi(userId, 'distress', 'Emergency alert dispatched from Neuron Mobile');
-      Alert.alert('🚨 Emergency Alert Sent', 'Distress telemetry dispatched to all registered caregivers.');
-    } catch (e) {
-      Alert.alert('Alert Recorded', 'Distress telemetry logged in memory cortex.');
     }
   };
 
@@ -97,7 +89,7 @@ export default function App() {
       );
       break;
     case 'game':
-      screenContent = <MemoryGamesScreen onBack={() => setCurrentView('patient')} />;
+      screenContent = <MemoryGamesScreen onBack={() => setCurrentView(currentUser ? 'patient' : 'landing')} />;
       break;
     case 'task_guide':
       screenContent = <TaskGuideScreen onBack={() => setCurrentView('patient')} />;
@@ -118,151 +110,85 @@ export default function App() {
           currentUser={currentUser}
           llmProvider={llmProvider}
           onToggleLLM={handleToggleLLM}
+          onPlayGame={() => setCurrentView('game')}
+          onOpenEnrollment={(type) => {
+            setEnrollType(type || 'person');
+            setShowEnrollModal(true);
+          }}
         />
       );
       break;
   }
 
+  // Primary 4 tabs matching Web Application SideNav.jsx
+  const navTabs = [
+    { id: 'patient', label: 'Assistant', icon: Users },
+    { id: 'game', label: 'Memory Gym', icon: Gamepad2 },
+    { id: 'task_guide', label: 'Task Coach', icon: Sparkles },
+    { id: 'caregiver', label: 'Caregiver', icon: Cpu },
+  ];
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#060a12" />
+        <StatusBar barStyle="light-content" backgroundColor="#111318" />
 
-        {/* Global Holographic Header with Drawer Toggle */}
+        {/* Global Warm Amber Header matching Web SideNav */}
         <HeaderNav
           currentScreen={currentView}
           onNavigate={setCurrentView}
-          onOpenDrawer={() => setIsDrawerOpen(true)}
+          currentUser={currentUser}
           onOpenSettings={() => setShowSettings(true)}
+          isMuted={isMuted}
+          onToggleSound={handleToggleSound}
         />
 
-        {/* Main Stage View */}
+        {/* Main Content Area */}
         <View style={styles.mainStage}>{screenContent}</View>
 
-        {/* High-Tech Bottom Navigation Bar (5 Core Protocol Hubs) */}
+        {/* 4 Core Navigation Tabs matching Web App */}
         <View style={styles.bottomNav}>
-          <TouchableOpacity
-            style={[styles.navTab, currentView === 'landing' && styles.navTabActiveOverview]}
-            onPress={() => setCurrentView('landing')}
-          >
-            <Home
-              color={currentView === 'landing' ? Colors.cyan : Colors.textMuted}
-              size={17}
-            />
-            <Text
-              style={[
-                styles.navTabText,
-                currentView === 'landing' && { color: Colors.cyan, fontWeight: '800' },
-              ]}
-            >
-              HOME
-            </Text>
-          </TouchableOpacity>
+          {navTabs.map((tab) => {
+            const IconComp = tab.icon;
+            const isActive = currentView === tab.id;
 
-          <TouchableOpacity
-            style={[styles.navTab, currentView === 'patient' && styles.navTabActivePatient]}
-            onPress={() => setCurrentView('patient')}
-          >
-            <Users
-              color={currentView === 'patient' ? Colors.emerald : Colors.textMuted}
-              size={17}
-            />
-            <Text
-              style={[
-                styles.navTabText,
-                currentView === 'patient' && { color: Colors.emerald, fontWeight: '800' },
-              ]}
-            >
-              PATIENT
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.navTab, currentView === 'game' && styles.navTabActiveGame]}
-            onPress={() => setCurrentView('game')}
-          >
-            <Gamepad2
-              color={currentView === 'game' ? Colors.amber : Colors.textMuted}
-              size={17}
-            />
-            <Text
-              style={[
-                styles.navTabText,
-                currentView === 'game' && { color: Colors.amber, fontWeight: '800' },
-              ]}
-            >
-              GAMES
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.navTab, currentView === 'task_guide' && styles.navTabActiveTask]}
-            onPress={() => setCurrentView('task_guide')}
-          >
-            <Sparkles
-              color={currentView === 'task_guide' ? Colors.cyan : Colors.textMuted}
-              size={17}
-            />
-            <Text
-              style={[
-                styles.navTabText,
-                currentView === 'task_guide' && { color: Colors.cyan, fontWeight: '800' },
-              ]}
-            >
-              GUIDE
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.navTab, currentView === 'caregiver' && styles.navTabActiveCaregiver]}
-            onPress={() => setCurrentView('caregiver')}
-          >
-            <Shield
-              color={currentView === 'caregiver' ? Colors.purple : Colors.textMuted}
-              size={17}
-            />
-            <Text
-              style={[
-                styles.navTabText,
-                currentView === 'caregiver' && { color: Colors.purple, fontWeight: '800' },
-              ]}
-            >
-              TEAM
-            </Text>
-          </TouchableOpacity>
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                style={[styles.navTab, isActive && styles.navTabActive]}
+                activeOpacity={0.7}
+                onPress={() => {
+                  if (tab.id === 'patient' && !currentUser && currentView !== 'patient') {
+                    // Let user visit assistant or login
+                    setCurrentView('patient');
+                  } else {
+                    setCurrentView(tab.id);
+                  }
+                }}
+              >
+                <View style={[styles.tabIconWrap, isActive && styles.tabIconWrapActive]}>
+                  <IconComp
+                    color={isActive ? Colors.amber : Colors.textMuted}
+                    size={17}
+                  />
+                </View>
+                <Text style={[styles.navTabText, isActive && styles.navTabTextActive]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
-        {/* Holographic Slide-Out Navigation Drawer */}
-        <NavigationDrawer
-          visible={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
-          currentScreen={currentView}
-          onNavigate={setCurrentView}
-          currentUser={currentUser}
-          onLogout={handleLogout}
-          llmProvider={llmProvider}
-          onToggleLLM={handleToggleLLM}
-          speechEnabled={speechEnabled}
-          onToggleSpeech={handleToggleSpeech}
-          onQuickEnrollPerson={() => {
-            setEnrollType('person');
-            setShowEnrollModal(true);
-          }}
-          onQuickEnrollObject={() => {
-            setEnrollType('object');
-            setShowEnrollModal(true);
-          }}
-          onTriggerAlert={handleEmergencyAlert}
-          onOpenSettings={() => setShowSettings(true)}
-        />
-
-        {/* Global Settings & Telemetry Modal */}
+        {/* Settings Modal */}
         <SettingsModal
           visible={showSettings}
           onClose={() => setShowSettings(false)}
+          currentUser={currentUser}
+          onLogout={handleLogout}
         />
 
-        {/* Global Quick Enrollment Modal */}
+        {/* Quick Enrollment Modal */}
         <EnrollmentModal
           visible={showEnrollModal}
           initialType={enrollType}
@@ -279,48 +205,50 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#060a12',
+    backgroundColor: '#111318',
   },
   mainStage: {
     flex: 1,
+    backgroundColor: '#111318',
   },
   bottomNav: {
-    height: 60,
+    height: 62,
     flexDirection: 'row',
-    backgroundColor: '#0c1322',
+    backgroundColor: '#16181f',
     borderTopWidth: 1,
-    borderTopColor: Colors.cyanBorder,
-    paddingHorizontal: 6,
+    borderTopColor: Colors.borderSubtle,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'space-around',
   },
   navTab: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    gap: 3,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
-  navTabActiveOverview: {
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
-  },
-  navTabActivePatient: {
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-  },
-  navTabActiveGame: {
+  navTabActive: {
     backgroundColor: 'rgba(245, 158, 11, 0.08)',
   },
-  navTabActiveTask: {
-    backgroundColor: 'rgba(0, 240, 255, 0.12)',
+  tabIconWrap: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 7,
   },
-  navTabActiveCaregiver: {
-    backgroundColor: 'rgba(168, 85, 247, 0.08)',
+  tabIconWrapActive: {
+    backgroundColor: Colors.amberMuted,
   },
   navTabText: {
     color: Colors.textMuted,
-    fontSize: 8.5,
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  navTabTextActive: {
+    color: Colors.amber,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
 });
