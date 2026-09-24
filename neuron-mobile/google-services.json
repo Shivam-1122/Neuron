@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "623658417185",
+    "project_id": "neuron-a940a",
+    "storage_bucket": "neuron-a940a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:623658417185:android:a60391f58b10e2ad8f3760",
+        "android_client_info": {
+          "package_name": "com.neuron.assistant"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQslcrh3wy92jFpV7lUN46TUcf_WZa_yQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

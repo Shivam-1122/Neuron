@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Neuron",
+    "slug": "neuron",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#060a12"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Neuron uses the camera to recognize faces and identify misplaced objects.",
+        "NSMicrophoneUsageDescription": "Neuron uses the microphone to record audio signatures and voice prompts.",
+        "NSPhotoLibraryUsageDescription": "Neuron accesses photo library to enroll faces and objects."
+      }
+    },
+    "android": {
+      "package": "com.neuron.assistant",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#060a12"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Neuron to access your camera to scan faces and items."
+        }
+      ],
+      "expo-asset",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "827326a3-339c-4a2c-b31e-5747eea94fe2"
+      }
+    },
+    "owner": "shivam112205"
+  }
+}
