@@ -55,37 +55,25 @@ export default function HeaderNav({
         </TouchableOpacity>
 
         {currentUser ? (
-          <>
-            {/* User Profile Pill */}
-            <TouchableOpacity
-              style={styles.profilePill}
-              activeOpacity={0.7}
-              onPress={() => onOpenSettings('profile')}
-            >
-              <View style={styles.profileAvatar}>
-                <Text style={styles.profileInitial}>
-                  {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
-                </Text>
-              </View>
-              <View style={styles.profileMeta}>
-                <Text style={styles.profileName} numberOfLines={1}>
-                  {(currentUser.displayName || 'Member').split(' ')[0]}
-                </Text>
-                <Text style={styles.profileRole}>
-                  {currentUser.role === 'caregiver' ? 'CAREGIVER' : 'SECURE'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Settings Gear */}
-            <TouchableOpacity
-              style={styles.iconButton}
-              activeOpacity={0.7}
-              onPress={() => onOpenSettings('settings')}
-            >
-              <Settings color={Colors.textMuted} size={16} />
-            </TouchableOpacity>
-          </>
+          <TouchableOpacity
+            style={styles.profilePill}
+            activeOpacity={0.7}
+            onPress={() => onOpenSettings('profile')}
+          >
+            <View style={styles.profileAvatar}>
+              <Text style={styles.profileInitial}>
+                {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.profileMeta}>
+              <Text style={styles.profileName} numberOfLines={1}>
+                {(currentUser.displayName || 'Member').split(' ')[0]}
+              </Text>
+              <Text style={styles.profileRole}>
+                {currentUser.role === 'caregiver' ? 'CAREGIVER' : 'SECURE'}
+              </Text>
+            </View>
+          </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={styles.signInButton}
@@ -95,6 +83,16 @@ export default function HeaderNav({
             <Text style={styles.signInText}>SIGN IN</Text>
           </TouchableOpacity>
         )}
+
+        {/* Settings Gear - ALWAYS VISIBLE TO CONFIGURE BACKEND URL */}
+        <TouchableOpacity
+          style={styles.iconButton}
+          activeOpacity={0.7}
+          onPress={() => onOpenSettings('settings')}
+          accessibilityLabel="Configure Backend URL"
+        >
+          <Settings color={Colors.amber} size={16} />
+        </TouchableOpacity>
       </View>
     </View>
   );
