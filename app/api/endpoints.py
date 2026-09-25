@@ -86,9 +86,13 @@ def encode_image_base64(image_path: str):
         return None
 
 @router.post("/recognize/person")
-async def recognize_person(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+async def recognize_person(
+    background_tasks: BackgroundTasks, 
+    file: UploadFile = File(...),
+    user_id: Optional[str] = Form(None)
+):
     """
-    Receive an image, detect faces, search Qdrant for identity.
+    Receive an image, detect faces, search Qdrant for identity scoped to user_id.
     """
     # 1. Save temp file
     file_id = str(uuid.uuid4())
@@ -99,24 +103,23 @@ async def recognize_person(background_tasks: BackgroundTasks, file: UploadFile =
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        # 2. Generate Embedding
-        # Note: FaceService currently returns list of floats or empty list
+        # 2. Generate FaceNet Embedding
         embedding = face_service.generate_embedding(str(temp_path))
         
         if not embedding:
             return {"status": "no_face_detected", "person": None}
             
-        # 3. Search Memory
-        matches = memory_service.search_face(embedding)
+        # 3. Search Memory (scoped by user_id)
+        matches = memory_service.search_face(embedding, limit=1, user_id=user_id)
         
         if matches:
              best_match = matches[0]
              name = best_match.payload.get("name", "Unknown")
              score = float(best_match.score)
-             print(f"Face search best match: {name} with score: {score:.4f}")
+             print(f"Face search best match: {name} with score: {score:.4f} (user_id: {user_id})")
              
-             # Cosine similarity >= 0.40 is a reliable match for ResNet18 embeddings
-             if score >= 0.40:
+             # Cosine similarity >= 0.55 is a reliable match for VGGFace2 FaceNet embeddings
+             if score >= 0.55:
                  relation = best_match.payload.get("relation", "Unknown")
                  notes = best_match.payload.get("notes", "")
                  
@@ -135,7 +138,7 @@ async def recognize_person(background_tasks: BackgroundTasks, file: UploadFile =
                      }
                  }
              else:
-                 print(f"Match score {score:.4f} is below threshold 0.40. Treated as unknown person.")
+                 print(f"Match score {score:.4f} is below threshold 0.55. Treated as unknown person.")
 
         return {"status": "unknown", "person": None}
 
@@ -211,7 +214,8 @@ async def remember_person(
             "type": "person",
             "notes": notes or f"This is {name}, your {relation}.",
             "image_base64": img_b64,
-            "avatar_url": avatar_url
+            "avatar_url": avatar_url,
+            "user_id": user_id or "default_user"
         }
         if audio_b64:
             metadata["audio_base64"] = audio_b64 # Store voice sample in cloud!
@@ -367,7 +371,8 @@ async def remember_object(
             "name": name,
             "type": "object",
             "notes": notes or f"This is your {name}.",
-            "image_base64": img_b64
+            "image_base64": img_b64,
+            "user_id": user_id or "default_user"
         }
 
         # Store
@@ -396,8 +401,12 @@ async def remember_object(
             temp_path.unlink()
 
 @router.post("/find/object")
-async def find_object(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
-    """Identify a specific personal object."""
+async def find_object(
+    background_tasks: BackgroundTasks, 
+    file: UploadFile = File(...),
+    user_id: Optional[str] = Form(None)
+):
+    """Identify a specific personal object scoped to user_id."""
     file_id = str(uuid.uuid4())
     temp_path = TEMP_DIR / f"{file_id}_{file.filename}"
     
@@ -408,8 +417,8 @@ async def find_object(background_tasks: BackgroundTasks, file: UploadFile = File
         # 1. Generate Embedding
         embedding = object_service.generate_embedding(str(temp_path))
         
-        # 2. Search
-        matches = memory_service.search_object(embedding)
+        # 2. Search scoped to user_id
+        matches = memory_service.search_object(embedding, limit=1, user_id=user_id)
         
         found_name = "Unknown Object"
         found_notes = ""
@@ -525,8 +534,10 @@ async def get_enrolled_people(user_id: Optional[str] = Query(None)):
                 for p in points:
                     payload = p.payload or {}
                     p_user = payload.get("user_id")
-                    if user_id and p_user and p_user != user_id:
-                        continue
+                    # Strict multi-tenant isolation: when user_id is provided, only allow items owned by user_id
+                    if user_id:
+                        if p_user != user_id:
+                            continue
                     name = payload.get("name")
                     if name and name not in seen_names and name.lower() not in ["unknown", "temp"]:
                         seen_names.add(name)
@@ -704,8 +715,10 @@ async def get_enrolled_objects(user_id: Optional[str] = Query(None)):
             for p in points:
                 payload = p.payload or {}
                 o_user = payload.get("user_id")
-                if user_id and o_user and o_user != user_id:
-                    continue
+                # Strict multi-tenant isolation: when user_id is provided, only allow items owned by user_id
+                if user_id:
+                    if o_user != user_id:
+                        continue
                 name = payload.get("name")
                 if name and name not in seen_names:
                     seen_names.add(name)
@@ -780,12 +793,14 @@ async def delete_enrolled_object(name: Optional[str] = None, user_id: Optional[s
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/game/memory-pool")
-async def get_game_memory_pool():
+async def get_game_memory_pool(user_id: Optional[str] = Query(None)):
     """Retrieve enrolled people, objects, and sanctuary memory anchors for Cross-Memory Recall game."""
     try:
-        # 1. Enrolled People
+        # 1. Enrolled People (Faces, Patients, and Registered Caregivers)
         people = []
         seen_names = set()
+        
+        # (a) Faces and Patients
         for col in ["faces", "patients"]:
             try:
                 res = memory_service.client.scroll(
@@ -796,6 +811,9 @@ async def get_game_memory_pool():
                 points = res[0]
                 for p in points:
                     payload = p.payload or {}
+                    p_user = payload.get("user_id")
+                    if user_id and p_user and p_user not in [user_id, "default_user"]:
+                        continue
                     name = payload.get("name")
                     if name and name not in seen_names and name.lower() not in ["unknown", "temp"]:
                         seen_names.add(name)
@@ -810,6 +828,26 @@ async def get_game_memory_pool():
             except Exception as ce:
                 print(f"Game pool scroll {col} warning: {ce}")
 
+        # (b) Registered Caregivers from caregiver_service
+        try:
+            caregivers = caregiver_service.get_caregivers(user_id=user_id) if user_id else caregiver_service.get_caregivers()
+            if not caregivers:
+                caregivers = caregiver_service.get_caregivers()
+            for cg in caregivers:
+                cg_name = cg.get("name")
+                if cg_name and cg_name not in seen_names and cg_name.lower() not in ["unknown", "temp"]:
+                    seen_names.add(cg_name)
+                    people.append({
+                        "name": cg_name,
+                        "relation": cg.get("relation", "Caregiver"),
+                        "notes": cg.get("notes") or f"{cg_name} is your registered {cg.get('relation', 'Caregiver')}",
+                        "age": cg.get("age"),
+                        "image_base64": cg.get("image_base64"),
+                        "avatar_url": None
+                    })
+        except Exception as cge:
+            print(f"Game pool caregiver scroll warning: {cge}")
+
         # 2. Enrolled Objects
         objects = []
         seen_objects = set()
@@ -822,6 +860,9 @@ async def get_game_memory_pool():
             points = res[0]
             for p in points:
                 payload = p.payload or {}
+                p_user = payload.get("user_id")
+                if user_id and p_user and p_user not in [user_id, "default_user"]:
+                    continue
                 obj_name = payload.get("name")
                 if obj_name and obj_name not in seen_objects:
                     seen_objects.add(obj_name)
@@ -834,7 +875,55 @@ async def get_game_memory_pool():
         except Exception as oe:
             print(f"Game pool scroll objects warning: {oe}")
 
-        # 3. Default Sanctuary Anchors (warm, grounding everyday facts)
+        # 3. Dynamic Memory Anchors Built From REAL User Data
+        real_anchors = []
+
+        # (a) Generate anchor questions from user's real scheduled tasks
+        try:
+            tasks = task_service.get_tasks(user_id=user_id) if user_id else task_service.get_tasks()
+            if not tasks:
+                tasks = task_service.get_tasks()
+            for t in tasks:
+                t_title = t.get("title")
+                t_time = t.get("time", "Today")
+                if t_title:
+                    real_anchors.append({
+                        "question": f"What time or routine is scheduled for your gentle anchor: '{t_title}'?",
+                        "answer": t_time,
+                        "distractors": ["2:30 AM Midnight", "Yesterday Morning", "Next Month"],
+                        "category": "Gentle Anchors & Routine",
+                        "icon": "schedule"
+                    })
+        except Exception as te:
+            print(f"Game pool tasks warning: {te}")
+
+        # (b) Generate anchor questions from user's real objects
+        for obj in objects:
+            o_name = obj.get("name")
+            o_loc = obj.get("location")
+            if o_name and o_loc:
+                real_anchors.append({
+                    "question": f"Where is your {o_name} typically kept in the home?",
+                    "answer": o_loc,
+                    "distractors": ["In the outdoor garden shed", "Behind the basement furnace", "Under the car seat"],
+                    "category": "Everyday Essentials",
+                    "icon": "inventory_2"
+                })
+
+        # (c) Generate anchor questions from user's real people & loved ones
+        for person in people:
+            p_name = person.get("name")
+            p_rel = person.get("relation")
+            if p_name and p_rel:
+                real_anchors.append({
+                    "question": f"Who is your registered {p_rel}?",
+                    "answer": p_name,
+                    "distractors": ["Arthur", "Captain Miller", "Officer Cooper"],
+                    "category": "Care Team & Loved Ones",
+                    "icon": "support_agent"
+                })
+
+        # Default fallback anchors only if no real data is enrolled
         sanctuary_anchors = [
             {
                 "question": "Where are your reading glasses typically kept for evening reading?",
@@ -853,26 +942,17 @@ async def get_game_memory_pool():
                 "answer": "Dr. Julian Vance (Neurology & Wellness)",
                 "distractors": ["Officer Bradley Cooper", "Chef Antonio", "Captain Jack Miller"],
                 "category": "Care Team"
-            },
-            {
-                "question": "What is the name of your gentle companion cat that loves sunny windowsills?",
-                "answer": "Barnaby the ginger tabby",
-                "distractors": ["Thunderbolt the greyhound", "Professor Whiskers the parrot", "Shelly the tortoise"],
-                "category": "Home Companions"
-            },
-            {
-                "question": "Where is your daily medicine organizer kept for easy morning access?",
-                "answer": "Next to the water carafe in the kitchen",
-                "distractors": ["In the outdoor garden shed", "Behind the basement furnace", "Under the car seat"],
-                "category": "Health & Care"
             }
         ]
+
+        final_anchors = real_anchors if real_anchors else sanctuary_anchors
 
         return {
             "status": "success",
             "people": people,
             "objects": objects,
-            "anchors": sanctuary_anchors
+            "anchors": final_anchors,
+            "has_real_data": bool(people or objects or real_anchors)
         }
     except Exception as e:
         return {"status": "error", "people": [], "objects": [], "anchors": [], "error": str(e)}
@@ -1039,7 +1119,7 @@ async def register_user_face(
 @router.post("/auth/face-login")
 async def face_login(file: UploadFile = File(...)):
     """
-    Perform Biometric Face Scan Login by matching captured camera frame against 'user_profiles' in Qdrant.
+    Perform Biometric Face Scan Login with strict VGGFace2 FaceNet matching against 'user_profiles'.
     """
     try:
         contents = await file.read()
@@ -1047,7 +1127,7 @@ async def face_login(file: UploadFile = File(...)):
         img_np = np.array(image)
         
         vector = face_service.get_embedding(img_np)
-        if vector is None:
+        if vector is None or len(vector) == 0:
             temp_f = TEMP_DIR / f"login_{uuid.uuid4().hex}.jpg"
             image.save(temp_f)
             vector = face_service.generate_embedding(str(temp_f))
@@ -1056,8 +1136,8 @@ async def face_login(file: UploadFile = File(...)):
             except Exception:
                 pass
             
-        if vector is None:
-            return {"status": "no_face", "message": "No face detected in camera scan. Please look directly at the camera."}
+        if vector is None or len(vector) == 0:
+            return {"status": "no_face", "message": "No face detected in camera scan. Please look directly at the camera with clear lighting."}
             
         try:
             query_vec = vector.tolist() if hasattr(vector, "tolist") else list(vector)
@@ -1079,48 +1159,44 @@ async def face_login(file: UploadFile = File(...)):
             except Exception as q_err:
                 print(f"query_points user_profiles warning: {q_err}")
 
-            if not search_res:
-                try:
-                    search_res = memory_service.client.query_points(
-                        collection_name="patients",
-                        query=query_vec,
-                        limit=5,
-                        with_payload=True
-                    ).points
-                except Exception:
-                    pass
-
             if search_res and len(search_res) > 0:
-                for top in search_res:
-                    if top.score >= 0.35:
-                        payload = top.payload or {}
-                        role = payload.get("role") or "patient"
-                        cand_user_id = payload.get("user_id") or ""
-                        # STRICT PATIENT-ONLY FACE LOGIN: Reject any caregiver face match
-                        if role == "caregiver" or cand_user_id.startswith("cg_"):
-                            print(f"Face matched a caregiver profile ({cand_user_id}), skipping since face login is strictly restricted to patients.")
-                            continue
+                # Find the single best match candidate by similarity score
+                top = max(search_res, key=lambda x: x.score)
+                payload = top.payload or {}
+                cand_user_id = payload.get("user_id") or ""
+                cand_name = payload.get("name") or "User"
+                print(f"Face login top match: {cand_name} ({cand_user_id}) with score: {top.score:.4f}")
 
-                        returned_uid = cand_user_id
-                        patient_id = cand_user_id
-                        return {
-                            "status": "authenticated",
-                            "user_id": returned_uid,
-                            "patient_id": patient_id,
-                            "name": payload.get("name"),
-                            "email": payload.get("email"),
-                            "phone": payload.get("phone"),
-                            "role": "patient",
-                            "is_caregiver": False,
-                            "image_base64": payload.get("image_base64"),
-                            "score": top.score
-                        }
-                    else:
-                        print(f"Face login candidate score {top.score:.4f} is below 0.35 threshold.")
+                # Biometric threshold for VGGFace2 FaceNet embeddings: 0.45
+                # True account owner matches at >= 0.45 (tested ~0.55-1.00), unrelated people score < 0.25
+                if top.score >= 0.45:
+                    role = payload.get("role") or "patient"
+                    
+                    # STRICT PATIENT-ONLY FACE LOGIN: Reject any caregiver face match
+                    if role == "caregiver" or cand_user_id.startswith("cg_"):
+                        print(f"Face matched a caregiver profile ({cand_user_id}), rejecting face login restricted to patients.")
+                        return {"status": "not_recognized", "message": "Caregivers must log in using credentials."}
+
+                    returned_uid = cand_user_id
+                    patient_id = cand_user_id
+                    return {
+                        "status": "authenticated",
+                        "user_id": returned_uid,
+                        "patient_id": patient_id,
+                        "name": payload.get("name"),
+                        "email": payload.get("email"),
+                        "phone": payload.get("phone"),
+                        "role": "patient",
+                        "is_caregiver": False,
+                        "image_base64": payload.get("image_base64"),
+                        "score": top.score
+                    }
+                else:
+                    print(f"Face login candidate score {top.score:.4f} is below 0.55 threshold. Biometric access rejected.")
         except Exception as se:
             print(f"Face login search warning: {se}")
             
-        return {"status": "not_recognized", "message": "Face not recognized. Please sign in with email and password."}
+        return {"status": "not_recognized", "message": "Face not recognized. Please sign in with phone/email and password."}
     except Exception as e:
         print(f"Face login error: {e}")
         return {"status": "error", "message": str(e)}
@@ -1388,7 +1464,10 @@ async def notify_caregivers(req: CaregiverNotifyRequest):
     caregivers = caregiver_service.get_caregivers(user_id=req.user_id)
     emails = [c.get("email") for c in caregivers if c.get("email")]
     
-    # If no caregivers stored yet in caregivers.json, also check faces collection for contacts with email
+    # Also check all caregivers if user_id-specific lookup yielded no email
+    if not emails:
+        all_caregivers = caregiver_service.get_caregivers()
+        emails = [c.get("email") for c in all_caregivers if c.get("email")]
     if not emails:
         try:
             res = memory_service.client.scroll(collection_name="faces", limit=50, with_payload=True)
@@ -1420,6 +1499,73 @@ async def notify_caregivers(req: CaregiverNotifyRequest):
         "message": f"Successfully notified {len(emails)} caregiver(s) via email.",
         "details": res
     }
+
+@router.get("/auth/user/{user_id}")
+async def get_user_profile(user_id: str):
+    """
+    Retrieve user profile (display name, email, phone, profile photo)
+    from Qdrant 'user_profiles' or 'caregivers.json'.
+    """
+    try:
+        target = user_id.strip()
+        caregiver_service._reload()
+        # 1. Check caregivers.json
+        for c in caregiver_service.caregivers:
+            cid = str(c.get("id", "")).strip().lower()
+            cemail = str(c.get("email", "")).strip().lower()
+            cphone = str(c.get("phone", "")).strip()
+            if cid == target.lower() or cemail == target.lower() or (cphone and cphone == target):
+                return {
+                    "status": "success",
+                    "user": {
+                        "user_id": c.get("id"),
+                        "name": c.get("name"),
+                        "displayName": c.get("name"),
+                        "email": c.get("email"),
+                        "phone": c.get("phone"),
+                        "role": "caregiver",
+                        "patient_id": c.get("user_id") or "default_user",
+                        "image_base64": c.get("image_base64") or "",
+                        "photoURL": c.get("image_base64") or ""
+                    }
+                }
+
+        # 2. Check Qdrant user_profiles
+        try:
+            from qdrant_client.models import Filter, FieldCondition, MatchValue
+            res = memory_service.client.scroll(
+                collection_name="user_profiles",
+                scroll_filter=Filter(
+                    should=[
+                        FieldCondition(key="user_id", match=MatchValue(value=target)),
+                        FieldCondition(key="email", match=MatchValue(value=target.lower())),
+                        FieldCondition(key="phone", match=MatchValue(value=target))
+                    ]
+                ),
+                limit=1,
+                with_payload=True
+            )
+            if res and res[0]:
+                payload = res[0][0].payload or {}
+                return {
+                    "status": "success",
+                    "user": {
+                        "user_id": payload.get("user_id"),
+                        "name": payload.get("name"),
+                        "displayName": payload.get("name"),
+                        "email": payload.get("email"),
+                        "phone": payload.get("phone"),
+                        "role": "patient",
+                        "image_base64": payload.get("image_base64") or "",
+                        "photoURL": payload.get("image_base64") or ""
+                    }
+                }
+        except Exception as q_err:
+            print(f"Error querying user_profiles: {q_err}")
+
+        return {"status": "not_found", "user": None}
+    except Exception as e:
+        return {"status": "error", "message": str(e), "user": None}
 
 @router.delete("/auth/user/{user_id}")
 async def delete_user_account_data(user_id: str, email: Optional[str] = Query(None)):

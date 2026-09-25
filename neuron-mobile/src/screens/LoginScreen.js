@@ -10,8 +10,9 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
-import { Colors, Shadows } from '../theme/colors';
+import { Colors } from '../theme/colors';
 import {
   User,
   HeartHandshake,
@@ -25,46 +26,51 @@ import {
   CheckCircle2,
   Sparkles,
   Shield,
-  HelpCircle,
+  Camera,
+  RotateCcw,
 } from 'lucide-react-native';
 import CameraScanner from '../components/CameraScanner';
-import { faceLoginApi, caregiverLoginApi } from '../api/client';
+import { faceLoginApi, registerFaceApi } from '../api/client';
+import sound from '../utils/soundEngine';
 
 export default function LoginScreen({ onLoginSuccess, onSelectRole }) {
+  // Modes: 'signin' | 'signup' | 'face'
+  const [mode, setMode] = useState('signin');
   // Roles: 'patient' | 'caregiver'
   const [role, setRole] = useState('patient');
-  // Auth Method: 'face' | 'email' | 'phone'
-  const [authMethod, setAuthMethod] = useState('face');
 
-  // Credentials
+  // Fields
+  const [displayName, setDisplayName] = useState('');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [phoneCode, setPhoneCode] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+  const [signupPhoto, setSignupPhoto] = useState(null);
 
   // States
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [showFaceScanner, setShowFaceScanner] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraPurpose, setCameraPurpose] = useState('face_login'); // 'face_login' | 'signup_portrait'
 
-  // 1-Tap Quick Demo Logins for Judges/Evaluators
+  // Quick 1-Tap Demo Logins
   const handleQuickDemoPatient = () => {
+    sound.playHarmonicChord();
     const demoUser = {
       uid: 'patient_eleanor_vance',
       displayName: 'Eleanor Vance',
       email: 'eleanor@neuron.sanctuary',
       role: 'patient',
-      avatar: null,
     };
     onLoginSuccess(demoUser);
   };
 
   const handleQuickDemoCaregiver = () => {
+    sound.playHarmonicChord();
     const demoCaregiver = {
       uid: 'caregiver_sarah_vance',
-      displayName: 'Sarah Vance (Daughter)',
+      displayName: 'Sarah Vance',
       email: 'sarah.caregiver@neuron.sanctuary',
       role: 'caregiver',
       patient_id: 'patient_eleanor_vance',
@@ -72,26 +78,132 @@ export default function LoginScreen({ onLoginSuccess, onSelectRole }) {
     onLoginSuccess(demoCaregiver);
   };
 
-  // Face Scan Login
-  const handleFaceScanCapture = async (uri) => {
-    setShowFaceScanner(false);
+  // Sign In handler (Email or Phone + Password, NO OTP)
+  const handleSignIn = async () => {
+    if (!identifier.trim()) {
+      setErrorMessage('Please enter your email or phone number.');
+      return;
+    }
+    if (!password) {
+      setErrorMessage('Please enter your password.');
+      return;
+    }
+
     setIsLoading(true);
-    setStatusMessage('Matching facial biometric vector with Qdrant...');
+    setErrorMessage('');
+    sound.playCardFlip();
+
+    try {
+      setTimeout(() => {
+        setIsLoading(false);
+        sound.playMatchSuccess();
+        const isPhone = !identifier.includes('@');
+        onLoginSuccess({
+          uid: `user_${identifier.replace(/[^a-zA-Z0-9]/g, '_')}`,
+          displayName: isPhone ? `Member (${identifier})` : identifier.split('@')[0],
+          email: !isPhone ? identifier : '',
+          phoneNumber: isPhone ? identifier : '',
+          role,
+        });
+      }, 500);
+    } catch (e) {
+      setIsLoading(false);
+      setErrorMessage('Could not complete sign in.');
+    }
+  };
+
+  // Sign Up handler
+  const handleSignUp = async () => {
+    if (!displayName.trim()) {
+      setErrorMessage('Please enter your full name.');
+      return;
+    }
+    if (!identifier.trim()) {
+      setErrorMessage('Please enter your email or phone number.');
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErrorMessage('Passwords do not match.');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage('');
+    sound.playCardFlip();
+
+    try {
+      const uid = `user_${Date.now()}`;
+      const isPhone = !identifier.includes('@');
+
+      if (signupPhoto) {
+        setStatusMessage('Registering biometric face vector in Qdrant...');
+        try {
+          await registerFaceApi({
+            userId: uid,
+            name: displayName.trim(),
+            email: !isPhone ? identifier.trim() : undefined,
+            phone: isPhone ? identifier.trim() : undefined,
+            imageUri: signupPhoto,
+          });
+        } catch (faceErr) {
+          console.warn('Face embedding note:', faceErr);
+        }
+      }
+
+      setIsLoading(false);
+      sound.playVictory();
+      Alert.alert('Account Created', `Welcome to Neuron, ${displayName}!`, [
+        {
+          text: 'Enter Sanctuary',
+          onPress: () => {
+            onLoginSuccess({
+              uid,
+              displayName: displayName.trim(),
+              email: !isPhone ? identifier.trim() : '',
+              phoneNumber: isPhone ? identifier.trim() : '',
+              role,
+              photoUri: signupPhoto,
+            });
+          },
+        },
+      ]);
+    } catch (err) {
+      setIsLoading(false);
+      setErrorMessage('Account creation failed.');
+    }
+  };
+
+  // Face Scan Login
+  const handleCameraCapture = async (uri) => {
+    setShowCamera(false);
+
+    if (cameraPurpose === 'signup_portrait') {
+      setSignupPhoto(uri);
+      return;
+    }
+
+    setIsLoading(true);
+    setStatusMessage('Matching facial biometric vector with Neural Core...');
     setErrorMessage('');
 
     try {
       const res = await faceLoginApi(uri);
       if (res && res.status === 'authenticated' && res.user_id) {
+        sound.playMatchSuccess();
         onLoginSuccess({
           uid: res.user_id,
           displayName: res.name || res.user_id,
           role: 'patient',
         });
       } else {
-        // If face not recognized, offer friendly fallback
+        sound.playTryAgain();
         Alert.alert(
           'Biometric Verification',
-          res?.message || 'Face vector not recognized. You can enroll your face in settings or use quick demo login.',
+          res?.message || 'Face not recognized in memory core. You can sign in with password or use quick demo.',
           [
             { text: 'Try Quick Demo', onPress: handleQuickDemoPatient },
             { text: 'OK', style: 'cancel' },
@@ -99,63 +211,15 @@ export default function LoginScreen({ onLoginSuccess, onSelectRole }) {
         );
       }
     } catch (err) {
-      // Offline/demo fallback
-      Alert.alert(
-        'Offline Verification',
-        'Could not reach Neural Core. Would you like to enter as Eleanor (Patient)?',
-        [
-          { text: 'Enter Demo Patient', onPress: handleQuickDemoPatient },
-          { text: 'Cancel', style: 'cancel' },
-        ]
-      );
+      sound.playTryAgain();
+      Alert.alert('Verification Note', 'Cortex unreachable or face not found. Enter demo patient?', [
+        { text: 'Enter Demo', onPress: handleQuickDemoPatient },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
     } finally {
       setIsLoading(false);
       setStatusMessage('');
     }
-  };
-
-  // Email/Password Login
-  const handleEmailLogin = async () => {
-    if (!identifier.trim()) {
-      setErrorMessage('Please enter your email or identifier.');
-      return;
-    }
-    setIsLoading(true);
-    setErrorMessage('');
-
-    setTimeout(() => {
-      setIsLoading(false);
-      onLoginSuccess({
-        uid: `user_${Date.now()}`,
-        displayName: identifier.split('@')[0],
-        email: identifier,
-        role: role,
-      });
-    }, 600);
-  };
-
-  // Phone SMS OTP send
-  const handleSendOtp = () => {
-    if (!identifier.trim()) {
-      setErrorMessage('Please enter your phone number.');
-      return;
-    }
-    setOtpSent(true);
-    setPhoneCode('123456'); // Simulated code for smooth demo
-    Alert.alert('SMS Sent', 'Verification code sent to your phone (Demo Code: 123456)');
-  };
-
-  const handleVerifyOtp = () => {
-    if (phoneCode !== '123456') {
-      setErrorMessage('Invalid code. Use demo code 123456');
-      return;
-    }
-    onLoginSuccess({
-      uid: `phone_${identifier.replace(/\D/g, '')}`,
-      displayName: `Phone User (${identifier})`,
-      phoneNumber: identifier,
-      role: role,
-    });
   };
 
   return (
@@ -163,41 +227,41 @@ export default function LoginScreen({ onLoginSuccess, onSelectRole }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header Title */}
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        {/* Title Header */}
         <View style={styles.titleSection}>
           <Text style={styles.title}>Cognitive Sanctuary</Text>
           <Text style={styles.subtitle}>
-            Zero-friction biometric access and caregiver security portal
+            Secure biometric access and caregiver support core
           </Text>
         </View>
 
-        {/* 1-Tap Quick Demo Access Box (Especially for Hackathon Judges) */}
+        {/* 1-Tap Quick Demo Box */}
         <View style={styles.demoCard}>
           <View style={styles.demoHeader}>
-            <Sparkles size={16} color={Colors.amber} />
+            <Sparkles size={12} color={Colors.amber} />
             <Text style={styles.demoTitle}>QUICK DEMO ACCESS (1-TAP)</Text>
           </View>
           <Text style={styles.demoDesc}>
             Instant login pre-loaded with memories, photos, and caregiver team:
           </Text>
-          <View style={styles.demoButtonRow}>
+          <View style={styles.demoBtnRow}>
             <TouchableOpacity
-              style={styles.demoButtonPatient}
+              style={styles.demoBtnPatient}
               onPress={handleQuickDemoPatient}
               activeOpacity={0.8}
             >
-              <User size={14} color="#111318" />
-              <Text style={styles.demoButtonPatientText}>Patient (Eleanor)</Text>
+              <User size={11} color="#000" />
+              <Text style={styles.demoBtnPatientText}>Patient (Eleanor)</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.demoButtonCaregiver}
+              style={styles.demoBtnCaregiver}
               onPress={handleQuickDemoCaregiver}
               activeOpacity={0.8}
             >
-              <Shield size={14} color={Colors.amber} />
-              <Text style={styles.demoButtonCaregiverText}>Caregiver (Sarah)</Text>
+              <Shield size={11} color={Colors.amber} />
+              <Text style={styles.demoBtnCaregiverText}>Caregiver (Sarah)</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -209,7 +273,7 @@ export default function LoginScreen({ onLoginSuccess, onSelectRole }) {
             onPress={() => setRole('patient')}
             activeOpacity={0.8}
           >
-            <User size={16} color={role === 'patient' ? Colors.amber : Colors.textMuted} />
+            <User size={12} color={role === 'patient' ? Colors.amber : Colors.textMuted} />
             <Text style={[styles.roleText, role === 'patient' && styles.roleTextActive]}>
               Patient Sanctuary
             </Text>
@@ -221,210 +285,264 @@ export default function LoginScreen({ onLoginSuccess, onSelectRole }) {
             activeOpacity={0.8}
           >
             <HeartHandshake
-              size={16}
-              color={role === 'caregiver' ? Colors.amber : Colors.textMuted}
+              size={12}
+              color={role === 'caregiver' ? Colors.purple : Colors.textMuted}
             />
-            <Text style={[styles.roleText, role === 'caregiver' && styles.roleTextActive]}>
+            <Text style={[styles.roleText, role === 'caregiver' && { color: Colors.purple, fontWeight: '800' }]}>
               Caregiver Portal
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Method Toggle: Face | Phone | Email */}
-        <View style={styles.methodBar}>
+        {/* Mode Toggle: Sign In vs Sign Up vs Face ID */}
+        <View style={styles.modeTabs}>
           <TouchableOpacity
-            style={[styles.methodItem, authMethod === 'face' && styles.methodItemActive]}
-            onPress={() => setAuthMethod('face')}
+            style={[styles.modeTab, mode === 'signin' && styles.modeTabActive]}
+            onPress={() => {
+              setMode('signin');
+              setErrorMessage('');
+            }}
           >
-            <ScanFace size={14} color={authMethod === 'face' ? Colors.amber : Colors.textMuted} />
-            <Text
-              style={[
-                styles.methodText,
-                authMethod === 'face' && styles.methodTextActive,
-              ]}
-            >
-              Face ID
+            <Text style={[styles.modeTabText, mode === 'signin' && styles.modeTabTextActive]}>
+              SIGN IN
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.methodItem, authMethod === 'phone' && styles.methodItemActive]}
-            onPress={() => setAuthMethod('phone')}
+            style={[styles.modeTab, mode === 'signup' && styles.modeTabActive]}
+            onPress={() => {
+              setMode('signup');
+              setErrorMessage('');
+            }}
           >
-            <Phone size={14} color={authMethod === 'phone' ? Colors.amber : Colors.textMuted} />
-            <Text
-              style={[
-                styles.methodText,
-                authMethod === 'phone' && styles.methodTextActive,
-              ]}
-            >
-              Phone SMS
+            <Text style={[styles.modeTabText, mode === 'signup' && styles.modeTabTextActive]}>
+              SIGN UP
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.methodItem, authMethod === 'email' && styles.methodItemActive]}
-            onPress={() => setAuthMethod('email')}
+            style={[styles.modeTab, mode === 'face' && styles.modeTabActive]}
+            onPress={() => {
+              setCameraPurpose('face_login');
+              setShowCamera(true);
+            }}
           >
-            <Mail size={14} color={authMethod === 'email' ? Colors.amber : Colors.textMuted} />
-            <Text
-              style={[
-                styles.methodText,
-                authMethod === 'email' && styles.methodTextActive,
-              ]}
-            >
-              Email
+            <ScanFace size={11} color={Colors.cyan} />
+            <Text style={[styles.modeTabText, { color: Colors.cyan, marginLeft: 3 }]}>
+              FACE ID
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Form Container */}
-        <View style={styles.formCard}>
-          {errorMessage ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
-          ) : null}
+        {/* Error / Status Messages */}
+        {errorMessage ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
 
-          {/* METHOD 1: FACE ID */}
-          {authMethod === 'face' && (
-            <View style={styles.faceSection}>
-              <View style={styles.faceIconCircle}>
-                <ScanFace size={48} color={Colors.amber} />
-              </View>
-              <Text style={styles.facePromptTitle}>Biometric Face Sign In</Text>
-              <Text style={styles.facePromptDesc}>
-                Look at the camera for instant zero-password facial vector recognition.
-              </Text>
+        {statusMessage ? (
+          <View style={styles.statusBox}>
+            <ActivityIndicator size="small" color={Colors.cyan} />
+            <Text style={styles.statusText}>{statusMessage}</Text>
+          </View>
+        ) : null}
 
-              <TouchableOpacity
-                style={styles.scanButton}
-                activeOpacity={0.8}
-                onPress={() => setShowFaceScanner(true)}
-              >
-                <ScanFace size={18} color="#111318" />
-                <Text style={styles.scanButtonText}>SCAN FACE TO ENTER</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* METHOD 2: PHONE SMS */}
-          {authMethod === 'phone' && (
-            <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>Mobile Phone Number</Text>
-              <View style={styles.inputWrap}>
-                <Phone size={16} color={Colors.textMuted} style={styles.inputIcon} />
+        {/* ========================================== */}
+        {/* SIGN IN FORM                               */}
+        {/* ========================================== */}
+        {mode === 'signin' && (
+          <View style={styles.formCard}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>EMAIL OR PHONE NUMBER</Text>
+              <View style={styles.inputRow}>
+                <Mail size={13} color={Colors.textMuted} />
                 <TextInput
-                  style={styles.input}
-                  placeholder="+91 98765 43210"
-                  placeholderTextColor={Colors.textDark}
-                  keyboardType="phone-pad"
+                  style={styles.textInput}
                   value={identifier}
                   onChangeText={setIdentifier}
-                />
-              </View>
-
-              {!otpSent ? (
-                <TouchableOpacity
-                  style={styles.primaryButton}
-                  onPress={handleSendOtp}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.primaryButtonText}>SEND SMS CODE</Text>
-                </TouchableOpacity>
-              ) : (
-                <>
-                  <Text style={[styles.inputLabel, { marginTop: 14 }]}>6-Digit SMS Code</Text>
-                  <View style={styles.inputWrap}>
-                    <Lock size={16} color={Colors.textMuted} style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="123456"
-                      placeholderTextColor={Colors.textDark}
-                      keyboardType="number-pad"
-                      value={phoneCode}
-                      onChangeText={setPhoneCode}
-                    />
-                  </View>
-
-                  <TouchableOpacity
-                    style={styles.primaryButton}
-                    onPress={handleVerifyOtp}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.primaryButtonText}>VERIFY & ENTER</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          )}
-
-          {/* METHOD 3: EMAIL */}
-          {authMethod === 'email' && (
-            <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>Email Address</Text>
-              <View style={styles.inputWrap}>
-                <Mail size={16} color={Colors.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="name@sanctuary.org"
+                  placeholder="name@example.com or phone"
                   placeholderTextColor={Colors.textDark}
                   autoCapitalize="none"
-                  keyboardType="email-address"
-                  value={identifier}
-                  onChangeText={setIdentifier}
+                  autoCorrect={false}
                 />
               </View>
+            </View>
 
-              <Text style={[styles.inputLabel, { marginTop: 14 }]}>Password</Text>
-              <View style={styles.inputWrap}>
-                <Lock size={16} color={Colors.textMuted} style={styles.inputIcon} />
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>PASSWORD</Text>
+              <View style={styles.inputRow}>
+                <Lock size={13} color={Colors.textMuted} />
                 <TextInput
-                  style={styles.input}
-                  placeholder="••••••••"
-                  placeholderTextColor={Colors.textDark}
-                  secureTextEntry={!showPassword}
+                  style={styles.textInput}
                   value={password}
                   onChangeText={setPassword}
+                  placeholder="Enter password"
+                  placeholderTextColor={Colors.textDark}
+                  secureTextEntry={!showPassword}
                 />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={{ padding: 6 }}
-                >
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                   {showPassword ? (
-                    <EyeOff size={16} color={Colors.textMuted} />
+                    <EyeOff size={13} color={Colors.textMuted} />
                   ) : (
-                    <Eye size={16} color={Colors.textMuted} />
+                    <Eye size={13} color={Colors.textMuted} />
                   )}
                 </TouchableOpacity>
               </View>
-
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={handleEmailLogin}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.primaryButtonText}>ENTER SANCTUARY</Text>
-              </TouchableOpacity>
             </View>
-          )}
 
-          {isLoading && (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="small" color={Colors.amber} />
-              <Text style={styles.loadingText}>{statusMessage || 'Verifying credentials...'}</Text>
+            <TouchableOpacity
+              style={[styles.submitBtn, isLoading && { opacity: 0.6 }]}
+              onPress={handleSignIn}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#000" />
+              ) : (
+                <>
+                  <Text style={styles.submitBtnText}>SIGN IN TO SANCTUARY</Text>
+                  <ArrowRight size={13} color="#000" />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ========================================== */}
+        {/* SIGN UP FORM                               */}
+        {/* ========================================== */}
+        {mode === 'signup' && (
+          <View style={styles.formCard}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>YOUR FULL NAME</Text>
+              <View style={styles.inputRow}>
+                <User size={13} color={Colors.textMuted} />
+                <TextInput
+                  style={styles.textInput}
+                  value={displayName}
+                  onChangeText={setDisplayName}
+                  placeholder="e.g. Eleanor Vance"
+                  placeholderTextColor={Colors.textDark}
+                />
+              </View>
             </View>
-          )}
-        </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>EMAIL OR PHONE NUMBER</Text>
+              <View style={styles.inputRow}>
+                <Mail size={13} color={Colors.textMuted} />
+                <TextInput
+                  style={styles.textInput}
+                  value={identifier}
+                  onChangeText={setIdentifier}
+                  placeholder="name@example.com or phone"
+                  placeholderTextColor={Colors.textDark}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>CREATE PASSWORD (MIN 6 CHARS)</Text>
+              <View style={styles.inputRow}>
+                <Lock size={13} color={Colors.textMuted} />
+                <TextInput
+                  style={styles.textInput}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Create secure password"
+                  placeholderTextColor={Colors.textDark}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  {showPassword ? (
+                    <EyeOff size={13} color={Colors.textMuted} />
+                  ) : (
+                    <Eye size={13} color={Colors.textMuted} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>CONFIRM PASSWORD</Text>
+              <View style={styles.inputRow}>
+                <Lock size={13} color={Colors.textMuted} />
+                <TextInput
+                  style={styles.textInput}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  placeholder="Re-enter password"
+                  placeholderTextColor={Colors.textDark}
+                  secureTextEntry={!showPassword}
+                />
+              </View>
+            </View>
+
+            {/* Optional Face Enrollment Snapshot */}
+            <View style={styles.photoCaptureRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.inputLabel}>BIOMETRIC FACE SNAPSHOT (OPTIONAL)</Text>
+                <Text style={styles.photoCaptureDesc}>
+                  Allows instant 1-tap Face ID biometric login
+                </Text>
+              </View>
+              {signupPhoto ? (
+                <View style={styles.signupPhotoThumb}>
+                  <Image source={{ uri: signupPhoto }} style={styles.thumbImg} />
+                  <TouchableOpacity
+                    style={styles.retakeIcon}
+                    onPress={() => {
+                      setCameraPurpose('signup_portrait');
+                      setShowCamera(true);
+                    }}
+                  >
+                    <RotateCcw size={10} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.snapPhotoBtn}
+                  onPress={() => {
+                    setCameraPurpose('signup_portrait');
+                    setShowCamera(true);
+                  }}
+                >
+                  <Camera size={13} color={Colors.cyan} />
+                  <Text style={styles.snapPhotoBtnText}>TAKE SNAP</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.submitBtn, isLoading && { opacity: 0.6 }]}
+              onPress={handleSignUp}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#000" />
+              ) : (
+                <>
+                  <Text style={styles.submitBtnText}>CREATE SANCTUARY ACCOUNT</Text>
+                  <ArrowRight size={13} color="#000" />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Camera Modal */}
+        {showCamera && (
+          <CameraScanner
+            mode="person"
+            onCapture={handleCameraCapture}
+            onClose={() => setShowCamera(false)}
+          />
+        )}
       </ScrollView>
-
-      {/* Fullscreen Camera Modal for Face Scan */}
-      <CameraScanner
-        visible={showFaceScanner}
-        title="Biometric Face Login"
-        onClose={() => setShowFaceScanner(false)}
-        onCapture={handleFaceScanCapture}
-      />
     </KeyboardAvoidingView>
   );
 }
@@ -432,279 +550,273 @@ export default function LoginScreen({ onLoginSuccess, onSelectRole }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#111318',
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-    alignItems: 'center',
+    padding: 14,
+    paddingBottom: 28,
   },
   titleSection: {
     alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 10,
+    marginBottom: 12,
   },
   title: {
-    color: '#ffffff',
-    fontSize: 24,
+    color: Colors.textPrimary,
+    fontSize: 16,
     fontWeight: '800',
-    marginBottom: 6,
+    letterSpacing: 0.5,
   },
   subtitle: {
     color: Colors.textMuted,
-    fontSize: 12,
+    fontSize: 9.5,
+    marginTop: 2,
     textAlign: 'center',
-    maxWidth: 280,
-    lineHeight: 18,
   },
   demoCard: {
-    width: '100%',
-    backgroundColor: Colors.card,
-    borderRadius: 16,
+    backgroundColor: '#16181f',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.borderAmber,
-    padding: 16,
-    marginBottom: 18,
-    ...Shadows.cardShadow,
+    borderColor: Colors.borderSubtle,
+    padding: 10,
+    marginBottom: 12,
   },
   demoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
+    gap: 5,
+    marginBottom: 3,
   },
   demoTitle: {
     color: Colors.amber,
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 8.5,
+    fontWeight: '900',
     letterSpacing: 0.8,
   },
   demoDesc: {
     color: Colors.textMuted,
-    fontSize: 11,
-    lineHeight: 16,
-    marginBottom: 12,
+    fontSize: 8.5,
+    lineHeight: 12,
+    marginBottom: 8,
   },
-  demoButtonRow: {
+  demoBtnRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
-  demoButtonPatient: {
+  demoBtnPatient: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: Colors.amber,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: 7,
+    borderRadius: 6,
   },
-  demoButtonPatientText: {
-    color: '#111318',
-    fontWeight: '700',
-    fontSize: 12,
+  demoBtnPatientText: {
+    color: '#000',
+    fontSize: 9,
+    fontWeight: '800',
   },
-  demoButtonCaregiver: {
+  demoBtnCaregiver: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: Colors.surfaceElevated,
+    gap: 5,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
     borderWidth: 1,
     borderColor: Colors.amberBorder,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: 7,
+    borderRadius: 6,
   },
-  demoButtonCaregiverText: {
+  demoBtnCaregiverText: {
     color: Colors.amber,
-    fontWeight: '700',
-    fontSize: 12,
+    fontSize: 9,
+    fontWeight: '800',
   },
   roleContainer: {
     flexDirection: 'row',
-    width: '100%',
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 4,
+    backgroundColor: '#0c0e14',
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
-    marginBottom: 16,
+    padding: 3,
+    marginBottom: 10,
   },
   roleTab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    borderRadius: 10,
+    gap: 5,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   roleTabActive: {
-    backgroundColor: Colors.amberMuted,
-    borderWidth: 1,
-    borderColor: Colors.amberBorder,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
   },
   roleText: {
     color: Colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 9.5,
+    fontWeight: '700',
   },
   roleTextActive: {
     color: Colors.amber,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  methodBar: {
+  modeTabs: {
     flexDirection: 'row',
-    width: '100%',
-    gap: 8,
-    marginBottom: 16,
+    backgroundColor: '#16181f',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    padding: 2,
+    marginBottom: 10,
   },
-  methodItem: {
+  modeTab: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  modeTabActive: {
+    backgroundColor: '#262933',
+  },
+  modeTabText: {
+    color: Colors.textMuted,
+    fontSize: 8.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  modeTabTextActive: {
+    color: Colors.textPrimary,
+  },
+  formCard: {
+    backgroundColor: '#16181f',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    padding: 12,
+    gap: 9,
+  },
+  inputGroup: {
+    gap: 4,
+  },
+  inputLabel: {
+    color: Colors.textMuted,
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0c0e14',
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    paddingHorizontal: 9,
+    height: 38,
+    gap: 8,
+  },
+  textInput: {
+    flex: 1,
+    color: Colors.textPrimary,
+    fontSize: 10.5,
+  },
+  photoCaptureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  photoCaptureDesc: {
+    color: Colors.textDark,
+    fontSize: 8,
+    marginTop: 1,
+  },
+  snapPhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+    borderWidth: 1,
+    borderColor: Colors.cyanBorder,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  snapPhotoBtnText: {
+    color: Colors.cyan,
+    fontSize: 8.5,
+    fontWeight: '800',
+  },
+  signupPhotoThumb: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    position: 'relative',
+  },
+  thumbImg: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+  },
+  retakeIcon: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#000',
+    borderRadius: 6,
+    padding: 2,
+  },
+  submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 8,
-    backgroundColor: Colors.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.amber,
+    height: 38,
+    borderRadius: 8,
+    marginTop: 4,
   },
-  methodItemActive: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderColor: Colors.amberBorder,
-  },
-  methodText: {
-    color: Colors.textMuted,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  methodTextActive: {
-    color: Colors.amber,
-    fontWeight: '700',
-  },
-  formCard: {
-    width: '100%',
-    backgroundColor: Colors.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: 20,
+  submitBtnText: {
+    color: '#000',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   errorBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderWidth: 1,
-    borderColor: Colors.red,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 14,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 6,
+    padding: 7,
+    marginBottom: 8,
   },
   errorText: {
-    color: '#fca5a5',
-    fontSize: 11,
-    textAlign: 'center',
-  },
-  faceSection: {
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  faceIconCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: Colors.amberMuted,
-    borderWidth: 2,
-    borderColor: Colors.amberBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    ...Shadows.amberGlow,
-  },
-  facePromptTitle: {
-    color: Colors.textPrimary,
-    fontSize: 16,
+    color: Colors.red,
+    fontSize: 9,
     fontWeight: '700',
-    marginBottom: 6,
-  },
-  facePromptDesc: {
-    color: Colors.textMuted,
-    fontSize: 12,
     textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
-    maxWidth: 260,
   },
-  scanButton: {
+  statusBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.amber,
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 12,
-    ...Shadows.amberGlow,
+    gap: 6,
+    backgroundColor: 'rgba(6, 182, 212, 0.08)',
+    borderRadius: 6,
+    padding: 7,
+    marginBottom: 8,
   },
-  scanButtonText: {
-    color: '#111318',
-    fontWeight: '800',
-    fontSize: 12,
-    letterSpacing: 0.8,
-  },
-  inputSection: {
-    width: '100%',
-  },
-  inputLabel: {
-    color: Colors.textSecondary,
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-  },
-  inputIcon: {
-    marginRight: 8,
-  },
-  input: {
-    flex: 1,
-    height: 44,
-    color: Colors.textPrimary,
-    fontSize: 13,
-  },
-  primaryButton: {
-    backgroundColor: Colors.amber,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 18,
-    ...Shadows.amberGlow,
-  },
-  primaryButtonText: {
-    color: '#111318',
-    fontWeight: '800',
-    fontSize: 12,
-    letterSpacing: 0.8,
-  },
-  loadingOverlay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 14,
-  },
-  loadingText: {
-    color: Colors.amber,
-    fontSize: 11,
-    fontWeight: '500',
+  statusText: {
+    color: Colors.cyan,
+    fontSize: 9,
+    fontWeight: '700',
   },
 });

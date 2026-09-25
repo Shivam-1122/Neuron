@@ -2,15 +2,23 @@
 // Generates low-latency therapeutic chimes using expo-av and base64 PCM WAV synthesis
 import { Audio } from 'expo-av';
 
-// Helper to convert array buffer to base64 string
+// Pure JS Base64 encoder compatible with React Native / Hermes (no btoa required)
+const B64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 function arrayBufferToBase64(buffer) {
-  let binary = '';
   const bytes = new Uint8Array(buffer);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  const len = bytes.length;
+  let base64 = '';
+  for (let i = 0; i < len; i += 3) {
+    const b0 = bytes[i];
+    const b1 = i + 1 < len ? bytes[i + 1] : 0;
+    const b2 = i + 2 < len ? bytes[i + 2] : 0;
+
+    base64 += B64_CHARS[b0 >> 2];
+    base64 += B64_CHARS[((b0 & 3) << 4) | (b1 >> 4)];
+    base64 += i + 1 < len ? B64_CHARS[((b1 & 15) << 2) | (b2 >> 6)] : '=';
+    base64 += i + 2 < len ? B64_CHARS[b2 & 63] : '=';
   }
-  return btoa(binary);
+  return base64;
 }
 
 // Generates a valid 8-bit mono PCM WAV data URI
@@ -38,13 +46,18 @@ function generateToneWav(frequency, durationSec = 0.25, volume = 0.5, fadeOut = 
 
   // "data" chunk
   view.setUint32(36, 0x64617461, false);
-  view.setUint32(40, dataSize, true);
+  view.setUint40 ? view.setUint32(40, dataSize, true) : view.setUint32(40, dataSize, true);
 
   for (let i = 0; i < numSamples; i++) {
     const t = i / sampleRate;
     const progress = i / numSamples;
     const env = fadeOut ? Math.max(0, 1 - progress) : 1;
-    const sampleVal = Math.sin(2 * Math.PI * frequency * t);
+    // Harmonic richness (fundamental + subtle 2nd & 3rd harmonic for warm soothing timbre)
+    const fundamental = Math.sin(2 * Math.PI * frequency * t);
+    const harmonic2 = 0.25 * Math.sin(2 * Math.PI * (frequency * 2) * t);
+    const harmonic3 = 0.1 * Math.sin(2 * Math.PI * (frequency * 3) * t);
+    const sampleVal = (fundamental + harmonic2 + harmonic3) / 1.35;
+
     // Convert -1..1 to 0..255 (8-bit PCM centered at 128)
     const byteVal = Math.floor(128 + sampleVal * 127 * volume * env);
     view.setUint8(44 + i, Math.max(0, Math.min(255, byteVal)));
@@ -148,6 +161,48 @@ class SoundEngine {
   // Number Sort tile slide click
   playTileSlide() {
     this.playTone(440, 0.09, 0.3); // A4
+  }
+
+  // Harmonic chord resonance
+  playHarmonicChord() {
+    if (this.isMuted) return;
+    const chord = [261.63, 329.63, 392.0, 523.25]; // C major 7th chord
+    chord.forEach((freq, idx) => {
+      setTimeout(() => {
+        this.playTone(freq, 0.5, 0.25);
+      }, idx * 60);
+    });
+  }
+
+  // Ambient therapeutic background music generator
+  startBackgroundMusic() {
+    if (this.isMuted || this.bgTimer) return;
+    const progression = [
+      [261.63, 329.63, 392.0],  // C
+      [220.0, 261.63, 329.63],  // Am
+      [174.61, 220.0, 261.63],  // F
+      [196.0, 246.94, 293.66],  // G
+    ];
+    let step = 0;
+    const playNextBar = () => {
+      if (this.isMuted) return;
+      const chord = progression[step % progression.length];
+      chord.forEach((f, i) => {
+        setTimeout(() => {
+          this.playTone(f, 1.2, 0.15, true);
+        }, i * 140);
+      });
+      step++;
+    };
+    playNextBar();
+    this.bgTimer = setInterval(playNextBar, 3200);
+  }
+
+  stopBackgroundMusic() {
+    if (this.bgTimer) {
+      clearInterval(this.bgTimer);
+      this.bgTimer = null;
+    }
   }
 }
 

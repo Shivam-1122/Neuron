@@ -5,6 +5,7 @@ import {
     Mic, MicOff, Camera, Eye, Clock, ShieldAlert, Check, Flame,
     ArrowRight, Activity, Zap, RefreshCw, CheckCircle, XCircle, Send, Radio, MessageSquare
 } from 'lucide-react';
+import { getApiBase } from '../utils/apiConfig';
 
 const PRESET_TASKS = [
     {
@@ -41,7 +42,7 @@ const PRESET_TASKS = [
     }
 ];
 
-export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1", onBackToPatient }) {
+export default function TaskGuideView({ apiBase = getApiBase(), onBackToPatient }) {
     const [activeSession, setActiveSession] = useState(null);
     const [customQuery, setCustomQuery] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -589,27 +590,27 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
 
             {/* Active Session Status Bar (NO duplicate top navbar) */}
             {activeSession && (
-                <div className="px-6 py-2.5 bg-[#181a20] border-b border-amber-500/20 flex items-center justify-between z-20">
-                    <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+                <div className="px-3 sm:px-6 py-2 sm:py-2.5 bg-[#181a20] border-b border-amber-500/20 flex flex-wrap items-center justify-between gap-2 z-20">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
                             <Sparkles size={15} className="text-amber-400" />
                         </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h2 className="font-serif text-sm font-semibold text-white">
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                <h2 className="font-serif text-xs sm:text-sm font-semibold text-white truncate">
                                     {activeSession.task_title || "Task Coach"}
                                 </h2>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30 shrink-0">
                                     STEP {(activeSession.current_step_index || 0) + 1} OF {activeSession.total_steps || 1}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-1.5 sm:gap-2.5">
                         <button
                             onClick={handleToggleMic}
-                            className={`px-3 py-1 rounded-lg border text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
+                            className={`px-2.5 sm:px-3 py-1 rounded-lg border text-[11px] sm:text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
                                 isSpeakingTTS
                                     ? 'bg-amber-500/20 border-amber-400 text-amber-200 animate-pulse'
                                     : isListening
@@ -618,20 +619,20 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
                             }`}
                         >
                             {isSpeakingTTS ? (
-                                <Volume2 size={14} className="text-amber-400" />
+                                <Volume2 size={13} className="text-amber-400" />
                             ) : isListening ? (
-                                <Mic size={14} className="text-amber-400 animate-pulse" />
+                                <Mic size={13} className="text-amber-400 animate-pulse" />
                             ) : (
-                                <MicOff size={14} className="text-slate-400" />
+                                <MicOff size={13} className="text-slate-400" />
                             )}
-                            <span className="text-[11px]">
-                                {isSpeakingTTS ? 'COACH SPEAKING' : isListening ? 'LISTENING' : 'MIC PAUSED'}
+                            <span className="text-[10px] sm:text-[11px]">
+                                {isSpeakingTTS ? 'SPEAKING' : isListening ? 'LISTENING' : 'MUTED'}
                             </span>
                         </button>
 
                         <button
                             onClick={handleEndSession}
-                            className="px-3 py-1 rounded-lg border border-red-500/40 bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs font-sans font-semibold transition-all cursor-pointer"
+                            className="px-2.5 sm:px-3 py-1 rounded-lg border border-red-500/40 bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs font-sans font-semibold transition-all cursor-pointer"
                         >
                             End Task
                         </button>
@@ -640,7 +641,7 @@ export default function TaskGuideView({ apiBase = "http://localhost:8000/api/v1"
             )}
 
             {/* MAIN CONTENT AREA */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
                 {!activeSession ? (
                     /* TASK LAUNCHER SCREEN */
                     <div className="max-w-4xl mx-auto space-y-6">

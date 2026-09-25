@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, StatusBar, SafeAreaView, Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Speech from 'expo-speech';
 import { Colors } from './src/theme/colors';
-import { Users, Sparkles, Cpu, Gamepad2 } from 'lucide-react-native';
+import { Users, Sparkles, Cpu, Gamepad2, Settings } from 'lucide-react-native';
 
 // Components & Modals
 import HeaderNav from './src/components/HeaderNav';
@@ -17,12 +19,12 @@ import MemoryGamesScreen from './src/screens/MemoryGamesScreen';
 import TaskGuideScreen from './src/screens/TaskGuideScreen';
 import CaregiverScreen from './src/screens/CaregiverScreen';
 
-import { setLLMProviderApi, sendCaregiverAlertApi } from './src/api/client';
+import { setLLMProviderApi } from './src/api/client';
 import sound from './src/utils/soundEngine';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState('landing');
   const [currentUser, setCurrentUser] = useState(null);
+  const [currentView, setCurrentView] = useState('login'); // Require auth by default
 
   // Sound Mute State
   const [isMuted, setIsMuted] = useState(false);
@@ -33,8 +35,43 @@ export default function App() {
   const [enrollType, setEnrollType] = useState('person');
 
   // Global settings state
-  const [llmProvider, setLlmProvider] = useState('groq'); // 'groq' | 'gemini'
-  const [speechEnabled, setSpeechEnabled] = useState(true);
+  const [llmProvider, setLlmProvider] = useState('groq');
+
+  // Load saved session on boot
+  useEffect(() => {
+    AsyncStorage.getItem('neuron_session_user')
+      .then((saved) => {
+        if (saved) {
+          const user = JSON.parse(saved);
+          setCurrentUser(user);
+          setCurrentView(user.role === 'caregiver' ? 'caregiver' : 'patient');
+        } else {
+          setCurrentView('login');
+        }
+      })
+      .catch(() => {
+        setCurrentView('login');
+      });
+  }, []);
+
+  // Safe navigation helper that stops speech on screen switch
+  const navigateTo = (viewName) => {
+    Speech.stop();
+
+    // Strict Gatekeeping: Unauthenticated users are sent to login
+    if (!currentUser && viewName !== 'login' && viewName !== 'landing') {
+      setCurrentView('login');
+      return;
+    }
+
+    if (viewName === 'game') {
+      sound.startBackgroundMusic();
+    } else {
+      sound.stopBackgroundMusic();
+    }
+
+    setCurrentView(viewName);
+  };
 
   // Toggle Sound
   const handleToggleSound = () => {
@@ -53,9 +90,30 @@ export default function App() {
     }
   };
 
+  // Login handler
+  const handleLoginSuccess = async (user) => {
+    Speech.stop();
+    setCurrentUser(user);
+    try {
+      await AsyncStorage.setItem('neuron_session_user', JSON.stringify(user));
+    } catch (e) {
+      console.warn('Could not save session to storage:', e);
+    }
+    if (user?.role === 'caregiver') {
+      setCurrentView('caregiver');
+    } else {
+      setCurrentView('patient');
+    }
+  };
+
   // Logout handler
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    Speech.stop();
+    sound.stopBackgroundMusic();
     setCurrentUser(null);
+    try {
+      await AsyncStorage.removeItem('neuron_session_user');
+    } catch (e) {}
     setCurrentView('login');
   };
 
@@ -65,39 +123,32 @@ export default function App() {
     case 'landing':
       screenContent = (
         <LandingScreen
-          onGetStarted={() => setCurrentView(currentUser ? 'patient' : 'login')}
-          onPlayGame={() => setCurrentView('game')}
+          onGetStarted={() => navigateTo(currentUser ? 'patient' : 'login')}
+          onPlayGame={() => navigateTo('game')}
         />
       );
       break;
     case 'login':
       screenContent = (
         <LoginScreen
-          onLoginSuccess={(user) => {
-            setCurrentUser(user);
-            if (user?.role === 'caregiver') {
-              setCurrentView('caregiver');
-            } else {
-              setCurrentView('patient');
-            }
-          }}
+          onLoginSuccess={handleLoginSuccess}
           onSelectRole={(role) => {
-            if (role === 'caregiver') setCurrentView('caregiver');
-            else setCurrentView('patient');
+            if (role === 'caregiver') navigateTo('caregiver');
+            else navigateTo('patient');
           }}
         />
       );
       break;
     case 'game':
-      screenContent = <MemoryGamesScreen onBack={() => setCurrentView(currentUser ? 'patient' : 'landing')} />;
+      screenContent = <MemoryGamesScreen onBack={() => navigateTo(currentUser ? 'patient' : 'login')} />;
       break;
     case 'task_guide':
-      screenContent = <TaskGuideScreen onBack={() => setCurrentView('patient')} />;
+      screenContent = <TaskGuideScreen onBack={() => navigateTo('patient')} />;
       break;
     case 'caregiver':
       screenContent = (
         <CaregiverScreen
-          onBack={() => setCurrentView('patient')}
+          onBack={() => navigateTo('patient')}
           currentUser={currentUser}
         />
       );
@@ -106,11 +157,11 @@ export default function App() {
     default:
       screenContent = (
         <PatientCortexScreen
-          onNavigate={setCurrentView}
+          onNavigate={navigateTo}
           currentUser={currentUser}
           llmProvider={llmProvider}
           onToggleLLM={handleToggleLLM}
-          onPlayGame={() => setCurrentView('game')}
+          onPlayGame={() => navigateTo('game')}
           onOpenEnrollment={(type) => {
             setEnrollType(type || 'person');
             setShowEnrollModal(true);
@@ -120,23 +171,27 @@ export default function App() {
       break;
   }
 
-  // Primary 4 tabs matching Web Application SideNav.jsx
+  // 5 bottom tabs
   const navTabs = [
     { id: 'patient', label: 'Assistant', icon: Users },
-    { id: 'game', label: 'Memory Gym', icon: Gamepad2 },
-    { id: 'task_guide', label: 'Task Coach', icon: Sparkles },
+    { id: 'game', label: 'Gym', icon: Gamepad2 },
+    { id: 'task_guide', label: 'Guide', icon: Sparkles },
     { id: 'caregiver', label: 'Caregiver', icon: Cpu },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
+  // Only show bottom navigation when user is authenticated
+  const isAuthView = currentView === 'login' || currentView === 'landing';
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="light-content" backgroundColor="#111318" />
 
-        {/* Global Warm Amber Header matching Web SideNav */}
+        {/* Global Compact Header with Brand Logo */}
         <HeaderNav
           currentScreen={currentView}
-          onNavigate={setCurrentView}
+          onNavigate={navigateTo}
           currentUser={currentUser}
           onOpenSettings={() => setShowSettings(true)}
           isMuted={isMuted}
@@ -146,39 +201,40 @@ export default function App() {
         {/* Main Content Area */}
         <View style={styles.mainStage}>{screenContent}</View>
 
-        {/* 4 Core Navigation Tabs matching Web App */}
-        <View style={styles.bottomNav}>
-          {navTabs.map((tab) => {
-            const IconComp = tab.icon;
-            const isActive = currentView === tab.id;
+        {/* Core Bottom Navigation Tabs (Shown when logged in) */}
+        {!isAuthView && currentUser ? (
+          <View style={styles.bottomNav}>
+            {navTabs.map((tab) => {
+              const IconComp = tab.icon;
+              const isActive = currentView === tab.id;
 
-            return (
-              <TouchableOpacity
-                key={tab.id}
-                style={[styles.navTab, isActive && styles.navTabActive]}
-                activeOpacity={0.7}
-                onPress={() => {
-                  if (tab.id === 'patient' && !currentUser && currentView !== 'patient') {
-                    // Let user visit assistant or login
-                    setCurrentView('patient');
-                  } else {
-                    setCurrentView(tab.id);
-                  }
-                }}
-              >
-                <View style={[styles.tabIconWrap, isActive && styles.tabIconWrapActive]}>
-                  <IconComp
-                    color={isActive ? Colors.amber : Colors.textMuted}
-                    size={17}
-                  />
-                </View>
-                <Text style={[styles.navTabText, isActive && styles.navTabTextActive]}>
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  style={[styles.navTab, isActive && styles.navTabActive]}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (tab.id === 'settings') {
+                      setShowSettings(true);
+                      return;
+                    }
+                    navigateTo(tab.id);
+                  }}
+                >
+                  <View style={[styles.tabIconWrap, isActive && styles.tabIconWrapActive]}>
+                    <IconComp
+                      color={isActive ? Colors.amber : Colors.textMuted}
+                      size={15}
+                    />
+                  </View>
+                  <Text style={[styles.navTabText, isActive && styles.navTabTextActive]}>
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : null}
 
         {/* Settings Modal */}
         <SettingsModal
@@ -186,6 +242,10 @@ export default function App() {
           onClose={() => setShowSettings(false)}
           currentUser={currentUser}
           onLogout={handleLogout}
+          llmProvider={llmProvider}
+          onToggleLLM={handleToggleLLM}
+          isMuted={isMuted}
+          onToggleSound={handleToggleSound}
         />
 
         {/* Quick Enrollment Modal */}
@@ -194,7 +254,7 @@ export default function App() {
           initialType={enrollType}
           onClose={() => setShowEnrollModal(false)}
           onEnrollSuccess={(res) => {
-            Alert.alert('Memory Indexed', `Successfully enrolled ${res.name} into memory core.`);
+            Alert.alert('Memory Indexed', `Successfully enrolled ${res?.name || 'entry'} into memory core.`);
           }}
         />
       </SafeAreaView>
@@ -212,12 +272,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#111318',
   },
   bottomNav: {
-    height: 62,
+    height: 48,
     flexDirection: 'row',
     backgroundColor: '#16181f',
     borderTopWidth: 1,
     borderTopColor: Colors.borderSubtle,
-    paddingHorizontal: 8,
+    paddingHorizontal: 2,
     alignItems: 'center',
     justifyContent: 'space-around',
   },
@@ -225,30 +285,30 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 5,
-    borderRadius: 10,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   navTabActive: {
     backgroundColor: 'rgba(245, 158, 11, 0.08)',
   },
   tabIconWrap: {
-    width: 28,
-    height: 28,
+    width: 22,
+    height: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 7,
+    borderRadius: 5,
   },
   tabIconWrapActive: {
     backgroundColor: Colors.amberMuted,
   },
   navTabText: {
     color: Colors.textMuted,
-    fontSize: 10,
-    fontWeight: '600',
-    marginTop: 2,
+    fontSize: 8,
+    fontWeight: '700',
+    marginTop: 1,
   },
   navTabTextActive: {
     color: Colors.amber,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });

@@ -1,9 +1,8 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 
-// Default host based on platform:
-// Android emulator uses 10.0.2.2, iOS/Web uses localhost
-const DEFAULT_HOST = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
+// Default host: Permanent Ngrok domain
+const DEFAULT_HOST = 'https://sampling-shield-capillary.ngrok-free.dev';
 let currentApiBase = `${DEFAULT_HOST}/api/v1`;
 
 export const getApiBase = () => currentApiBase;

@@ -34,6 +34,16 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(chat_endpoint.router, prefix=settings.API_V1_STR)
 app.include_router(task_endpoint.router, prefix=settings.API_V1_STR)
 
+@app.get("/health")
+@app.get(f"{settings.API_V1_STR}/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "Neuron Core Neural Cortex API",
+        "version": "1.0.0",
+        "biometrics": "VGGFace2 FaceNet Active"
+    }
+
 # --- Frontend Serving (Deployment) ---
 # Check if frontend build exists (Render/Production)
 if os.path.exists("frontend/dist"):

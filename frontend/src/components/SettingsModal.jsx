@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { formatImageSrc } from '../utils/imageUtils';
+import { getApiBase, setApiBase, formatApiUrl } from '../utils/apiConfig';
 
 export default function SettingsModal({
     isOpen,
@@ -82,7 +83,7 @@ export default function SettingsModal({
     const loadStoredData = async () => {
         setLoadingData(true);
         try {
-            const apiBase = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
+            const apiBase = getApiBase();
             const uid = currentUser?.uid;
             const [pRes, oRes] = await Promise.all([
                 axios.get(`${apiBase}/people`, { params: uid ? { user_id: uid } : {} }),
@@ -126,7 +127,7 @@ export default function SettingsModal({
         if (!deleteConfirmTarget || isDeleting) return;
         setIsDeleting(true);
         const { type, name } = deleteConfirmTarget;
-        const apiBase = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
+        const apiBase = getApiBase();
         try {
             const endpoint = type === 'person' ? `${apiBase}/people` : `${apiBase}/objects`;
             const res = await axios.delete(endpoint, { 
@@ -153,7 +154,7 @@ export default function SettingsModal({
     const handleSaveEdit = async () => {
         if (!editingItem || isSaving) return;
         setIsSaving(true);
-        const apiBase = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
+        const apiBase = getApiBase();
         try {
             const endpoint = editingItem.type === 'person' ? `${apiBase}/people` : `${apiBase}/objects`;
             const payload = editingItem.type === 'person' ? {
@@ -218,66 +219,66 @@ export default function SettingsModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-fadeIn select-none">
             <div 
-                className="relative w-full max-w-xl rounded-2xl bg-[#16181e] border border-amber-500/25 shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[90vh]"
+                className="relative w-full max-w-xl rounded-2xl bg-[#16181e] border border-amber-500/25 shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[92dvh]"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-[#111318]/80">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-300">
-                            <Sparkles size={17} />
+                <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/[0.08] bg-[#111318]/80">
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-300 shrink-0">
+                            <Sparkles size={16} />
                         </div>
-                        <div>
-                            <h2 className="text-base font-semibold text-white font-serif tracking-tight">Sanctuary Control Center</h2>
-                            <p className="text-xs text-slate-400 font-sans">Settings, User Profile &amp; Memory Vault</p>
+                        <div className="min-w-0">
+                            <h2 className="text-sm sm:text-base font-semibold text-white font-serif tracking-tight truncate">Sanctuary Control Center</h2>
+                            <p className="text-[10px] sm:text-xs text-slate-400 font-sans truncate">Settings, User Profile &amp; Memory Vault</p>
                         </div>
                     </div>
                     <button 
                         onClick={onClose}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer shrink-0 ml-2"
                         title="Close Settings"
                     >
                         <X size={18} />
                     </button>
                 </div>
 
-                {/* Top Section Nav Tabs */}
-                <div className="flex border-b border-white/[0.08] bg-[#14161b] px-6">
+                {/* Top Section Nav Tabs (Scrollable on small viewports) */}
+                <div className="flex border-b border-white/[0.08] bg-[#14161b] px-2 sm:px-6 overflow-x-auto scrollbar-none whitespace-nowrap">
                     <button
                         onClick={() => { setActiveSection('profile'); setEditingItem(null); }}
-                        className={`py-3 px-3 sm:px-4 text-xs font-mono font-semibold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+                        className={`py-2.5 sm:py-3 px-3 sm:px-4 text-[11px] sm:text-xs font-mono font-semibold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 sm:gap-2 shrink-0 ${
                             activeSection === 'profile'
                                 ? 'border-amber-400 text-amber-300'
                                 : 'border-transparent text-slate-400 hover:text-white'
                         }`}
                     >
-                        <User size={14} />
+                        <User size={13} />
                         <span>Profile &amp; Security</span>
                     </button>
 
                     <button
                         onClick={() => { setActiveSection('settings'); setEditingItem(null); }}
-                        className={`py-3 px-3 sm:px-4 text-xs font-mono font-semibold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+                        className={`py-2.5 sm:py-3 px-3 sm:px-4 text-[11px] sm:text-xs font-mono font-semibold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 sm:gap-2 shrink-0 ${
                             activeSection === 'settings'
                                 ? 'border-amber-400 text-amber-300'
                                 : 'border-transparent text-slate-400 hover:text-white'
                         }`}
                     >
-                        <Cpu size={14} />
+                        <Cpu size={13} />
                         <span>Preferences &amp; Audio</span>
                     </button>
 
                     <button
                         onClick={() => { setActiveSection('data'); setEditingItem(null); }}
-                        className={`py-3 px-3 sm:px-4 text-xs font-mono font-semibold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+                        className={`py-2.5 sm:py-3 px-3 sm:px-4 text-[11px] sm:text-xs font-mono font-semibold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 sm:gap-2 shrink-0 ${
                             activeSection === 'data'
                                 ? 'border-amber-400 text-amber-300'
                                 : 'border-transparent text-slate-400 hover:text-white'
                         }`}
                     >
-                        <Database size={14} />
+                        <Database size={13} />
                         <span>Vault ({storedPeople.length + storedObjects.length})</span>
                     </button>
                 </div>

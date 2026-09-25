@@ -11,6 +11,7 @@ import {
     deleteUserAccount,
     isFirebaseConfigured
 } from '../firebase';
+import { getApiBase } from '../utils/apiConfig';
 
 const AuthContext = createContext(null);
 
@@ -34,7 +35,7 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const apiBase = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
+    const apiBase = getApiBase();
 
     const saveSessionUser = (userObj) => {
         setCurrentUser(userObj);

@@ -22,8 +22,13 @@ import {
   Camera,
   Flame,
   ArrowLeft,
+  X,
+  Crosshair,
+  Volume2,
+  VolumeX,
 } from 'lucide-react-native';
 import { startTaskApi, sendTaskLiveFrameApi, setTaskStepApi, endTaskApi } from '../api/client';
+import sound from '../utils/soundEngine';
 
 const PRESET_TASKS = [
   {
@@ -68,19 +73,28 @@ export default function TaskGuideScreen({ onBack }) {
 
   // Live Multimodal state
   const [warningAlert, setWarningAlert] = useState(null);
-  const [feedbackBadge, setFeedbackBadge] = useState('Cortex Synchronizing...');
+  const [feedbackBadge, setFeedbackBadge] = useState('Standby');
   const [detectedObjects, setDetectedObjects] = useState([]);
   const [ingredientStatus, setIngredientStatus] = useState(null); // 'yes' | 'no'
   const [ingredientName, setIngredientName] = useState('');
   const [isProcessingFrame, setIsProcessingFrame] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [showCameraView, setShowCameraView] = useState(true);
 
   // Camera & Loop
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
-  const frameTimerRef = useRef(null);
   const elapsedTimerRef = useRef(null);
   const lastSpokenRef = useRef('');
+
+  // Silence speech on mount and unmount
+  useEffect(() => {
+    Speech.stop();
+    return () => {
+      Speech.stop();
+      if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+    };
+  }, []);
 
   // Voice narration helper
   const speakText = (text) => {
@@ -98,19 +112,22 @@ export default function TaskGuideScreen({ onBack }) {
     const query = (queryText || customQuery).trim();
     if (!query) return;
 
+    Speech.stop();
     setIsLoading(true);
     setErrorMessage(null);
     setWarningAlert(null);
     setElapsedSeconds(0);
+    sound.playCardFlip();
 
     try {
       const res = await startTaskApi(query);
       if (res && res.session) {
         setActiveSession(res.session);
+        sound.playMatchSuccess();
 
         const firstStep = res.session.steps && res.session.steps[0];
         const initialNarration = firstStep
-          ? firstStep.narration || firstStep.verify_prompt || `First, please show me your ${firstStep.expected_item}.`
+          ? firstStep.narration || firstStep.verify_prompt || `First step: ${firstStep.instruction}`
           : `Starting ${res.session.task_title}.`;
 
         speakText(initialNarration);
@@ -118,37 +135,38 @@ export default function TaskGuideScreen({ onBack }) {
     } catch (err) {
       console.warn('Start task error:', err);
       setErrorMessage('Could not initialize multimodal task session.');
+      sound.playTryAgain();
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Frame analyzer loop (captures every 3.5s)
+  // Elapsed timer
   useEffect(() => {
     if (activeSession && activeSession.status === 'in_progress') {
       elapsedTimerRef.current = setInterval(() => {
         setElapsedSeconds((prev) => prev + 1);
       }, 1000);
-
-      frameTimerRef.current = setInterval(() => {
-        captureAndAnalyzeFrame();
-      }, 3500);
+    } else {
+      if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
     }
 
     return () => {
       if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
-      if (frameTimerRef.current) clearInterval(frameTimerRef.current);
     };
-  }, [activeSession, isProcessingFrame]);
+  }, [activeSession]);
 
-  // Capture frame & send to backend
+  // Capture frame on-demand (avoids camera blinking)
   const captureAndAnalyzeFrame = async () => {
     if (!cameraRef.current || isProcessingFrame || !activeSession) return;
     try {
       setIsProcessingFrame(true);
+      sound.playCardFlip();
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.5,
         base64: true,
+        shutterSound: false,
+        skipProcessing: true,
       });
 
       if (photo && photo.base64) {
@@ -185,6 +203,7 @@ export default function TaskGuideScreen({ onBack }) {
 
           // Advance step
           if (data.current_step_index !== activeSession.current_step_index) {
+            sound.playMatchSuccess();
             setActiveSession((prev) => ({
               ...prev,
               current_step_index: data.current_step_index,
@@ -205,6 +224,7 @@ export default function TaskGuideScreen({ onBack }) {
   const handleStepChange = async (newIndex) => {
     if (!activeSession || newIndex < 0 || newIndex >= activeSession.steps.length) return;
     try {
+      sound.playStepPlace();
       await setTaskStepApi(activeSession.session_id, newIndex);
       setActiveSession((prev) => ({ ...prev, current_step_index: newIndex }));
       setElapsedSeconds(0);
@@ -220,33 +240,36 @@ export default function TaskGuideScreen({ onBack }) {
 
   const handleEndTask = async () => {
     if (!activeSession) return;
+    Speech.stop();
     try {
       await endTaskApi(activeSession.session_id);
     } catch (e) {}
     setActiveSession(null);
-    Speech.stop();
   };
 
-  // IF NO ACTIVE SESSION -> SHOW LAUNCHER PRESETS
+  // ==========================================
+  // LAUNCHER VIEW (WHEN NO ACTIVE SESSION)
+  // ==========================================
   if (!activeSession) {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.launcherContent}>
+        {/* Header */}
         <View style={styles.launcherHeader}>
           <View style={styles.headerTitleRow}>
-            <Sparkles color={Colors.cyan} size={20} />
+            <Sparkles color={Colors.cyan} size={15} />
             <Text style={styles.screenTitle}>MULTIMODAL TASK GUIDE</Text>
           </View>
           <Text style={styles.screenSubtitle}>
-            AI camera guidance with safety watchdog monitoring each step in real time.
+            Step-by-step visual guidance with AI safety verification.
           </Text>
         </View>
 
-        {errorMessage && (
+        {errorMessage ? (
           <View style={styles.errorBox}>
-            <AlertTriangle color={Colors.red} size={16} />
+            <AlertTriangle color={Colors.red} size={13} />
             <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
-        )}
+        ) : null}
 
         {/* Custom Task Input */}
         <View style={styles.customInputBox}>
@@ -265,36 +288,37 @@ export default function TaskGuideScreen({ onBack }) {
               disabled={!customQuery.trim() || isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color="#060a12" size="small" />
+                <ActivityIndicator color="#000" size="small" />
               ) : (
-                <Text style={styles.customStartBtnText}>START</Text>
+                <ChevronRight color="#000" size={15} />
               )}
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Presets List */}
-        <Text style={styles.presetsHeading}>PRESET DEMENTIA-SAFE ROUTINES</Text>
-        <View style={styles.presetList}>
+        <Text style={styles.sectionHeader}>RECOMMENDED DAILY PROTOCOLS</Text>
+        <View style={styles.presetsGrid}>
           {PRESET_TASKS.map((task) => (
             <TouchableOpacity
               key={task.id}
               style={styles.presetCard}
-              activeOpacity={0.8}
               onPress={() => handleStartTask(task.query)}
               disabled={isLoading}
+              activeOpacity={0.8}
             >
-              <View style={styles.presetIconBox}>
-                <Text style={{ fontSize: 24 }}>{task.icon}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={styles.presetTitleRow}>
-                  <Text style={styles.presetTitle}>{task.title}</Text>
-                  <Text style={styles.presetBadge}>{task.badge}</Text>
+              <View style={styles.presetTopRow}>
+                <Text style={styles.presetIcon}>{task.icon}</Text>
+                <View style={styles.presetBadge}>
+                  <Text style={styles.presetBadgeText}>{task.badge}</Text>
                 </View>
-                <Text style={styles.presetDesc}>{task.desc}</Text>
               </View>
-              <ChevronRight color={Colors.cyan} size={18} />
+              <Text style={styles.presetTitle}>{task.title}</Text>
+              <Text style={styles.presetDesc}>{task.desc}</Text>
+              <View style={styles.presetFooter}>
+                <Text style={styles.startGuidanceText}>START PROTOCOL</Text>
+                <ChevronRight color={Colors.cyan} size={12} />
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -302,101 +326,131 @@ export default function TaskGuideScreen({ onBack }) {
     );
   }
 
+  // ==========================================
   // ACTIVE TASK GUIDANCE SESSION VIEW
+  // ==========================================
   const currentStepIndex = activeSession.current_step_index || 0;
-  const currentStep = activeSession.steps && activeSession.steps[currentStepIndex];
   const totalSteps = activeSession.steps ? activeSession.steps.length : 0;
+  const currentStep = activeSession.steps ? activeSession.steps[currentStepIndex] : null;
 
   return (
-    <View style={styles.sessionContainer}>
-      {/* Top Session HUD Header */}
+    <View style={styles.container}>
+      {/* Session Header */}
       <View style={styles.sessionHeader}>
-        <TouchableOpacity style={styles.backBtn} onPress={handleEndTask}>
-          <ArrowLeft color="#fff" size={16} />
+        <TouchableOpacity style={styles.endBtn} onPress={handleEndTask} activeOpacity={0.7}>
+          <X color="#fff" size={14} />
+          <Text style={styles.endBtnText}>END</Text>
         </TouchableOpacity>
-        <View style={{ flex: 1, marginHorizontal: 8 }}>
+
+        <View style={styles.sessionInfo}>
           <Text style={styles.sessionTaskTitle} numberOfLines={1}>
-            {activeSession.task_title}
+            {activeSession.task_title || 'Multimodal Protocol'}
           </Text>
           <Text style={styles.sessionStepCount}>
             STEP {currentStepIndex + 1} OF {totalSteps} • {elapsedSeconds}s
           </Text>
         </View>
-        <View style={styles.feedbackPill}>
-          <Text style={styles.feedbackPillText}>{feedbackBadge}</Text>
-        </View>
+
+        <TouchableOpacity
+          style={styles.camToggleBtn}
+          onPress={() => setShowCameraView(!showCameraView)}
+        >
+          <Camera size={13} color={showCameraView ? Colors.cyan : Colors.textMuted} />
+        </TouchableOpacity>
       </View>
 
       {/* Safety Alert Watchdog Banner */}
       {warningAlert && (
         <View style={styles.safetyAlertBanner}>
-          <Flame color="#fff" size={18} />
+          <Flame color="#fff" size={15} />
           <Text style={styles.safetyAlertText}>HAZARD DETECTED: {warningAlert}</Text>
         </View>
       )}
 
-      {/* Live Camera Viewport */}
-      <View style={styles.cameraBox}>
-        {permission && permission.granted ? (
-          <CameraView style={styles.camera} ref={cameraRef} facing="back">
-            <View style={styles.cameraOverlay}>
-              <View style={styles.cameraReticle} />
-              {isProcessingFrame && (
-                <View style={styles.analyzingBadge}>
-                  <ActivityIndicator color={Colors.cyan} size="small" />
-                  <Text style={styles.analyzingText}>AI WATCHDOG INSPECTING</Text>
+      {/* Live Compact Camera Viewport (140px, non-blinking) */}
+      {showCameraView && (
+        <View style={styles.cameraBox}>
+          {permission && permission.granted ? (
+            <CameraView style={styles.camera} ref={cameraRef} facing="back">
+              <View style={styles.cameraOverlay}>
+                <View style={styles.squareReticle}>
+                  <Crosshair size={22} color="rgba(6, 182, 212, 0.6)" />
                 </View>
-              )}
-            </View>
-          </CameraView>
-        ) : (
-          <View style={styles.noCameraBox}>
-            <Eye color={Colors.cyan} size={32} />
-            <Text style={styles.noCameraText}>Grant camera access for live assistance</Text>
-            <TouchableOpacity style={styles.grantCameraBtn} onPress={requestPermission}>
-              <Text style={styles.grantCameraBtnText}>ENABLE CAMERA</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
 
-      {/* Current Step Instruction Card */}
+                {/* On-Demand Scan & Verify Button */}
+                <TouchableOpacity
+                  style={[styles.verifyButton, isProcessingFrame && { opacity: 0.6 }]}
+                  onPress={captureAndAnalyzeFrame}
+                  disabled={isProcessingFrame}
+                  activeOpacity={0.8}
+                >
+                  {isProcessingFrame ? (
+                    <ActivityIndicator color="#000" size="small" />
+                  ) : (
+                    <>
+                      <Crosshair size={11} color="#000" />
+                      <Text style={styles.verifyButtonText}>VERIFY SENSOR</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </CameraView>
+          ) : (
+            <View style={styles.noCameraBox}>
+              <Eye color={Colors.cyan} size={22} />
+              <Text style={styles.noCameraText}>Grant camera access for live assistance</Text>
+              <TouchableOpacity style={styles.grantCameraBtn} onPress={requestPermission}>
+                <Text style={styles.grantCameraBtnText}>ENABLE CAMERA</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Current Step Instruction Card (PROMINENT & VISIBLE) */}
       <ScrollView style={styles.stepDetailsCard} showsVerticalScrollIndicator={false}>
         {currentStep && (
-          <>
+          <View style={styles.stepCardContent}>
+            {/* Step Header */}
             <View style={styles.stepTitleRow}>
               <View style={styles.stepNumberBadge}>
                 <Text style={styles.stepNumberText}>{currentStepIndex + 1}</Text>
               </View>
-              <Text style={styles.stepTitleText}>{currentStep.step_title || currentStep.instruction}</Text>
+              <Text style={styles.stepTitleText}>
+                {currentStep.step_title || currentStep.instruction}
+              </Text>
             </View>
 
+            {/* Instruction Body */}
             <Text style={styles.stepDetailInstruction}>{currentStep.instruction}</Text>
 
             {/* Expected Item verification status */}
-            {currentStep.expected_item && (
+            {currentStep.expected_item ? (
               <View style={styles.itemVerifyRow}>
                 <Text style={styles.itemVerifyLabel}>EXPECTED ITEM:</Text>
                 <Text style={styles.itemVerifyValue}>{currentStep.expected_item}</Text>
                 {ingredientStatus === 'yes' ? (
                   <View style={styles.verifiedPill}>
-                    <CheckCircle2 color={Colors.emerald} size={14} />
-                    <Text style={styles.verifiedPillText}>VERIFIED</Text>
+                    <CheckCircle2 color={Colors.emerald} size={11} />
+                    <Text style={styles.verifiedPillText}>CONFIRMED</Text>
                   </View>
                 ) : null}
               </View>
-            )}
+            ) : null}
 
-            {/* Step Checklist */}
+            {/* Steps Checklist Overview */}
+            <Text style={styles.checklistTitle}>ALL PROTOCOL STEPS:</Text>
             <View style={styles.stepsListProgress}>
               {activeSession.steps.map((s, idx) => (
-                <View
+                <TouchableOpacity
                   key={idx}
                   style={[
                     styles.miniStepItem,
                     idx === currentStepIndex && styles.miniStepItemActive,
                     idx < currentStepIndex && styles.miniStepItemDone,
                   ]}
+                  onPress={() => handleStepChange(idx)}
+                  activeOpacity={0.7}
                 >
                   <Text
                     style={[
@@ -407,22 +461,22 @@ export default function TaskGuideScreen({ onBack }) {
                   >
                     {idx + 1}. {s.step_title || s.instruction}
                   </Text>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
-          </>
+          </View>
         )}
       </ScrollView>
 
       {/* Bottom Step Navigation Controls */}
       <View style={styles.stepControlsRow}>
         <TouchableOpacity
-          style={[styles.stepNavBtn, currentStepIndex === 0 && { opacity: 0.4 }]}
+          style={[styles.stepNavBtn, currentStepIndex === 0 && { opacity: 0.3 }]}
           onPress={() => handleStepChange(currentStepIndex - 1)}
           disabled={currentStepIndex === 0}
         >
-          <ChevronLeft color="#fff" size={18} />
-          <Text style={styles.stepNavBtnText}>PREV STEP</Text>
+          <ChevronLeft color="#fff" size={14} />
+          <Text style={styles.stepNavBtnText}>PREV</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -431,7 +485,7 @@ export default function TaskGuideScreen({ onBack }) {
           disabled={currentStepIndex >= totalSteps - 1}
         >
           <Text style={styles.stepNavBtnNextText}>NEXT STEP</Text>
-          <ChevronRight color="#060a12" size={18} />
+          <ChevronRight color="#000" size={14} />
         </TouchableOpacity>
       </View>
     </View>
@@ -441,205 +495,221 @@ export default function TaskGuideScreen({ onBack }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#111318',
   },
   launcherContent: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: 14,
+    paddingBottom: 28,
   },
   launcherHeader: {
-    marginBottom: 20,
+    marginBottom: 12,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
+    gap: 6,
+    marginBottom: 3,
   },
   screenTitle: {
-    color: Colors.cyan,
-    fontSize: 13,
+    color: Colors.textPrimary,
+    fontSize: 12,
     fontWeight: '900',
-    letterSpacing: 1.5,
+    letterSpacing: 0.8,
   },
   screenSubtitle: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
+    color: Colors.textMuted,
+    fontSize: 9.5,
+    lineHeight: 14,
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: Colors.red,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
   },
   errorText: {
     color: Colors.red,
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '700',
   },
   customInputBox: {
-    backgroundColor: Colors.card,
-    borderRadius: 16,
+    backgroundColor: '#16181f',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.cyanBorder,
-    padding: 16,
-    marginBottom: 24,
+    borderColor: Colors.borderSubtle,
+    padding: 10,
+    marginBottom: 12,
   },
   inputLabel: {
-    color: Colors.cyan,
-    fontSize: 9,
+    color: Colors.textMuted,
+    fontSize: 8,
     fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 8,
+    letterSpacing: 0.6,
+    marginBottom: 6,
   },
   customInputRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 6,
   },
   customInput: {
     flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
+    height: 36,
+    backgroundColor: '#0c0e14',
+    borderRadius: 7,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
     color: Colors.textPrimary,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
+    fontSize: 10.5,
+    paddingHorizontal: 10,
   },
   customStartBtn: {
-    backgroundColor: Colors.cyan,
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    justifyContent: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 7,
+    backgroundColor: Colors.amber,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  customStartBtnText: {
-    color: '#060a12',
-    fontWeight: '900',
-    fontSize: 11,
-    letterSpacing: 1,
-  },
-  presetsHeading: {
+  sectionHeader: {
     color: Colors.textMuted,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 12,
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+    marginBottom: 8,
   },
-  presetList: {
-    gap: 12,
+  presetsGrid: {
+    gap: 8,
   },
   presetCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.card,
-    borderRadius: 16,
+    backgroundColor: '#16181f',
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
-    padding: 14,
-    gap: 12,
+    padding: 11,
+    gap: 4,
   },
-  presetIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  presetTitleRow: {
+  presetTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+  },
+  presetIcon: {
+    fontSize: 18,
+  },
+  presetBadge: {
+    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: Colors.cyanBorder,
+  },
+  presetBadgeText: {
+    color: Colors.cyan,
+    fontSize: 8,
+    fontWeight: '800',
   },
   presetTitle: {
     color: Colors.textPrimary,
-    fontSize: 13,
+    fontSize: 11.5,
     fontWeight: '800',
-  },
-  presetBadge: {
-    color: Colors.cyan,
-    fontSize: 8,
-    fontWeight: '700',
+    marginTop: 2,
   },
   presetDesc: {
-    color: Colors.textSecondary,
-    fontSize: 10,
-    lineHeight: 14,
+    color: Colors.textMuted,
+    fontSize: 9,
+    lineHeight: 13,
   },
-  sessionContainer: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  sessionHeader: {
+  presetFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: Colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.cyanBorder,
+    justifyContent: 'flex-end',
+    gap: 3,
+    marginTop: 4,
   },
-  backBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: Colors.surface,
+  startGuidanceText: {
+    color: Colors.cyan,
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  sessionHeader: {
+    height: 44,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    backgroundColor: '#16181f',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderSubtle,
+  },
+  endBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderWidth: 1,
-    borderColor: Colors.borderSubtle,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  endBtnText: {
+    color: '#fff',
+    fontSize: 8.5,
+    fontWeight: '800',
+  },
+  sessionInfo: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 6,
   },
   sessionTaskTitle: {
     color: Colors.textPrimary,
-    fontSize: 13,
+    fontSize: 10.5,
     fontWeight: '800',
   },
   sessionStepCount: {
     color: Colors.cyan,
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  feedbackPill: {
-    backgroundColor: 'rgba(0, 240, 255, 0.12)',
+  camToggleBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#0c0e14',
     borderWidth: 1,
-    borderColor: Colors.cyanBorder,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  feedbackPillText: {
-    color: Colors.cyan,
-    fontSize: 8,
-    fontWeight: '800',
+    borderColor: Colors.borderSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   safetyAlertBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: Colors.red,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   safetyAlertText: {
     color: '#fff',
     fontWeight: '900',
-    fontSize: 11,
+    fontSize: 9.5,
     letterSpacing: 0.5,
   },
   cameraBox: {
-    height: 220,
+    height: 140,
     backgroundColor: '#000',
     position: 'relative',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderSubtle,
   },
   camera: {
     flex: 1,
@@ -648,184 +718,189 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
-  cameraReticle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+  squareReticle: {
+    width: 90,
+    height: 90,
+    borderRadius: 10,
     borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: Colors.cyan,
+    borderColor: 'rgba(6, 182, 212, 0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  analyzingBadge: {
+  verifyButton: {
     position: 'absolute',
-    bottom: 12,
+    bottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(6, 10, 18, 0.8)',
+    gap: 4,
+    backgroundColor: Colors.amber,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.cyanBorder,
+    borderRadius: 6,
   },
-  analyzingText: {
-    color: Colors.cyan,
-    fontSize: 8,
-    fontWeight: '800',
+  verifyButtonText: {
+    color: '#000',
+    fontSize: 8.5,
+    fontWeight: '900',
     letterSpacing: 0.5,
   },
   noCameraBox: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
-    gap: 8,
+    gap: 5,
   },
   noCameraText: {
     color: Colors.textMuted,
-    fontSize: 11,
+    fontSize: 9.5,
   },
   grantCameraBtn: {
     backgroundColor: Colors.cyan,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   grantCameraBtnText: {
-    color: '#060a12',
-    fontSize: 10,
+    color: '#000',
+    fontSize: 8.5,
     fontWeight: '800',
   },
   stepDetailsCard: {
     flex: 1,
-    padding: 16,
+    padding: 12,
+  },
+  stepCardContent: {
+    gap: 8,
+    paddingBottom: 20,
   },
   stepTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
+    gap: 8,
   },
   stepNumberBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 22,
+    height: 22,
+    borderRadius: 6,
     backgroundColor: Colors.cyan,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepNumberText: {
-    color: '#060a12',
+    color: '#000',
     fontWeight: '900',
-    fontSize: 12,
+    fontSize: 10,
   },
   stepTitleText: {
     flex: 1,
     color: Colors.textPrimary,
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '800',
   },
   stepDetailInstruction: {
     color: Colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-    marginBottom: 12,
+    fontSize: 10.5,
+    lineHeight: 15,
   },
   itemVerifyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: Colors.surface,
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 16,
+    gap: 6,
+    backgroundColor: '#16181f',
+    padding: 8,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
   },
   itemVerifyLabel: {
     color: Colors.cyan,
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '800',
   },
   itemVerifyValue: {
     color: Colors.textPrimary,
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '700',
     flex: 1,
   },
   verifiedPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 6,
+    gap: 3,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderWidth: 1,
+    borderColor: Colors.emeraldBorder,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
   },
   verifiedPillText: {
     color: Colors.emerald,
-    fontSize: 9,
+    fontSize: 7.5,
     fontWeight: '800',
   },
+  checklistTitle: {
+    color: Colors.textMuted,
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    marginTop: 6,
+  },
   stepsListProgress: {
-    gap: 6,
-    paddingBottom: 20,
+    gap: 5,
   },
   miniStepItem: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#16181f',
+    paddingVertical: 7,
+    paddingHorizontal: 9,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
   },
   miniStepItemActive: {
-    borderColor: Colors.cyan,
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
+    borderColor: Colors.cyanBorder,
+    backgroundColor: 'rgba(6, 182, 212, 0.08)',
   },
   miniStepItemDone: {
-    borderColor: Colors.emeraldBorder,
-    opacity: 0.7,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
   },
   miniStepText: {
     color: Colors.textMuted,
-    fontSize: 11,
+    fontSize: 9,
   },
   stepControlsRow: {
+    height: 48,
     flexDirection: 'row',
-    padding: 14,
-    backgroundColor: Colors.card,
+    gap: 8,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    backgroundColor: '#16181f',
     borderTopWidth: 1,
     borderTopColor: Colors.borderSubtle,
-    gap: 12,
   },
   stepNavBtn: {
     flex: 1,
+    height: 34,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    borderRadius: 12,
-    paddingVertical: 12,
+    gap: 5,
+    borderRadius: 6,
+    backgroundColor: '#262933',
   },
   stepNavBtnText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.5,
   },
   stepNavBtnNext: {
-    backgroundColor: Colors.cyan,
-    borderColor: Colors.cyan,
+    backgroundColor: Colors.amber,
   },
   stepNavBtnNextText: {
-    color: '#060a12',
-    fontSize: 10,
+    color: '#000',
+    fontSize: 9,
     fontWeight: '900',
-    letterSpacing: 0.5,
   },
 });

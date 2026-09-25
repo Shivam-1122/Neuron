@@ -18,14 +18,14 @@ export default function HeaderNav({
       <TouchableOpacity
         style={styles.logoRow}
         activeOpacity={0.8}
-        onPress={() => onNavigate(currentUser ? 'patient' : 'landing')}
+        onPress={() => onNavigate(currentUser ? 'patient' : 'login')}
       >
         <View style={styles.logoIconBox}>
-          <Brain color={Colors.amber} size={18} />
-          <View style={styles.liveBeacon}>
-            <View style={styles.beaconPing} />
-            <View style={styles.beaconCore} />
-          </View>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
         <View>
           <View style={styles.titleRow}>
@@ -34,7 +34,7 @@ export default function HeaderNav({
               <Text style={styles.sanctuaryBadgeText}>SANCTUARY</Text>
             </View>
           </View>
-          <Text style={styles.subtitleText}>Caring Memory Companion</Text>
+          <Text style={styles.subtitleText}>External Neural Cortex</Text>
         </View>
       </TouchableOpacity>
 
@@ -100,96 +100,77 @@ export default function HeaderNav({
 
 const styles = StyleSheet.create({
   headerContainer: {
-    height: 64,
+    height: 48,
     backgroundColor: '#111318f2',
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderSubtle,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     zIndex: 50,
   },
   logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   logoIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: Colors.amberMuted,
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    backgroundColor: '#000000',
     borderWidth: 1,
     borderColor: Colors.amberBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-    ...Shadows.amberGlow,
+    overflow: 'hidden',
   },
-  liveBeacon: {
-    position: 'absolute',
-    top: -3,
-    right: -3,
-    width: 10,
-    height: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  beaconPing: {
-    position: 'absolute',
-    width: 10,
-    height: 10,
+  logoImage: {
+    width: 24,
+    height: 24,
     borderRadius: 5,
-    backgroundColor: Colors.amber,
-    opacity: 0.6,
-  },
-  beaconCore: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.amber,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   logoText: {
     color: '#ffffff',
     fontWeight: '800',
-    fontSize: 16,
-    letterSpacing: 1,
+    fontSize: 13,
+    letterSpacing: 0.8,
   },
   sanctuaryBadge: {
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     paddingVertical: 1,
-    borderRadius: 4,
+    borderRadius: 3,
     borderWidth: 1,
     borderColor: Colors.amberBorder,
   },
   sanctuaryBadgeText: {
     color: Colors.amber,
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: '800',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   subtitleText: {
     color: Colors.textMuted,
-    fontSize: 9,
+    fontSize: 7.5,
     fontWeight: '500',
-    marginTop: 1,
+    marginTop: 0.5,
   },
   rightCluster: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 7,
     backgroundColor: Colors.card,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
@@ -198,32 +179,31 @@ const styles = StyleSheet.create({
   },
   signInButton: {
     backgroundColor: Colors.amber,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    ...Shadows.amberGlow,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 7,
   },
   signInText: {
     color: '#111318',
     fontWeight: '800',
-    fontSize: 11,
-    letterSpacing: 0.8,
+    fontSize: 9.5,
+    letterSpacing: 0.6,
   },
   profilePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    gap: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     backgroundColor: Colors.card,
-    borderRadius: 10,
+    borderRadius: 7,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
   },
   profileAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 5,
     backgroundColor: Colors.amberMuted,
     borderWidth: 1,
     borderColor: Colors.amberBorder,
@@ -233,19 +213,19 @@ const styles = StyleSheet.create({
   profileInitial: {
     color: Colors.amber,
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 9.5,
   },
   profileMeta: {
-    maxWidth: 70,
+    maxWidth: 60,
   },
   profileName: {
     color: Colors.textPrimary,
-    fontSize: 11,
+    fontSize: 9.5,
     fontWeight: '600',
   },
   profileRole: {
     color: Colors.emerald,
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: '700',
   },
 });

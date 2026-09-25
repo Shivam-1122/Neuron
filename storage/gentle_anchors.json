@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "id": "task-d1d14eb3",
+    "user_id": "aacTZiaKvJSWFTpfVfpIF8f9o3w1",
+    "title": "make coffee",
+    "time": "11:00 AM",
+    "notes": "Scheduled for 11:00 AM",
+    "completed": false,
+    "completed_at": null,
+    "created_at": "2026-09-24T12:19:25.321723"
+  }
+]

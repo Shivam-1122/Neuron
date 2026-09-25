@@ -80,11 +80,22 @@ class MemoryService:
         )
         return point_id
 
-    def search_face(self, embedding: list, limit=1):
-        # Search BOTH faces and patients collections for recognition
-        # Merge results manually
-        res1 = self.client.query_points(collection_name="faces", query=embedding, limit=limit).points
-        res2 = self.client.query_points(collection_name="patients", query=embedding, limit=limit).points
+    def search_face(self, embedding: list, limit=1, user_id: Optional[str] = None):
+        # Search BOTH faces and patients collections for recognition, scoped to user_id if provided
+        query_filter = None
+        if user_id:
+            query_filter = Filter(must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))])
+
+        res1 = []
+        res2 = []
+        try:
+            res1 = self.client.query_points(collection_name="faces", query=embedding, query_filter=query_filter, limit=limit).points
+        except Exception as e:
+            print(f"search_face faces error: {e}")
+        try:
+            res2 = self.client.query_points(collection_name="patients", query=embedding, query_filter=query_filter, limit=limit).points
+        except Exception as e:
+            print(f"search_face patients error: {e}")
         
         all_res = res1 + res2
         all_res.sort(key=lambda x: x.score, reverse=True)
@@ -101,23 +112,27 @@ class MemoryService:
         )
         return point_id
 
-    def search_object(self, embedding: list, limit=1):
+    def search_object(self, embedding: list, limit=1, user_id: Optional[str] = None):
+        query_filter = None
+        if user_id:
+            query_filter = Filter(must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))])
         response = self.client.query_points(
             collection_name="objects",
             query=embedding,
+            query_filter=query_filter,
             limit=limit
         )
         return response.points
 
-    def update_or_create_object_location(self, object_name: str, new_location: str, notes: str = None):
+    def update_or_create_object_location(self, object_name: str, new_location: str, notes: str = None, user_id: Optional[str] = None):
         """
         Updates the location and timestamp of an object, or creates a new entry if none exists.
-        Ensures the latest state is stored and retrieved.
+        Ensures the latest state is stored and retrieved, scoped by user_id.
         """
         from datetime import datetime
         now_iso = datetime.now().isoformat()
         
-        # Look for existing object points matching object_name
+        # Look for existing object points matching object_name and user_id
         try:
             res = self.client.scroll(
                 collection_name="objects",
@@ -128,6 +143,7 @@ class MemoryService:
             matching_points = [
                 p for p in res[0]
                 if p.payload and (p.payload.get("name", "").lower() == object_name.lower())
+                and (not user_id or p.payload.get("user_id") in [user_id, None, "default_user"])
             ]
             
             if matching_points:
@@ -136,6 +152,8 @@ class MemoryService:
                     updated_payload = dict(p.payload)
                     updated_payload["location"] = new_location
                     updated_payload["timestamp"] = now_iso
+                    if user_id and not updated_payload.get("user_id"):
+                        updated_payload["user_id"] = user_id
                     if notes:
                         updated_payload["notes"] = notes
                     else:
@@ -161,6 +179,7 @@ class MemoryService:
                         vector=dummy_vec,
                         payload={
                             "object_id": point_id,
+                            "user_id": user_id or "default_user",
                             "name": object_name,
                             "type": "object",
                             "location": new_location,
@@ -226,7 +245,12 @@ class MemoryService:
             is_caregiver_query = any(k in query for k in caregiver_keywords)
 
             # Common role and filler words that shouldn't count as an individual's unique name token
-            role_and_stop_words = set(caregiver_keywords + ["who", "is", "my", "the", "a", "an", "about", "tell", "me", "show", "what", "where", "how", "name", "of"])
+            role_and_stop_words = set(caregiver_keywords + [
+                "who", "is", "my", "the", "a", "an", "about", "tell", "me", "show", "what", "where",
+                "how", "name", "of", "are", "do", "you", "know", "there", "in", "at", "to", "for",
+                "please", "can", "could", "would", "find", "call", "look", "seen", "have", "has",
+                "right", "now", "today", "that", "this", "it", "here", "located", "check", "anyone", "someone"
+            ])
             specific_query_tokens = [w for w in query_tokens if w and w not in role_and_stop_words]
             
             for p in points:
@@ -247,49 +271,53 @@ class MemoryService:
                     if p_type == "caregiver" or "caregiver" in relation or "physician" in relation or "doctor" in relation or "nurse" in relation:
                         score += 8.0
                         if has_image:
-                            score += 6.0
+                            score += 2.0
                         if user_id and p_user == user_id:
-                            score += 5.0
+                            score += 3.0
 
                 # Name matching: check specific query tokens first
                 if name:
                     name_tokens = [re.sub(r'[^\w\s]', '', w) for w in name.split() if w not in role_and_stop_words]
                     if specific_query_tokens and any(nt in specific_query_tokens for nt in name_tokens if nt):
                         score += 8.0
-                    elif not is_caregiver_query:
-                        all_name_tokens = [re.sub(r'[^\w\s]', '', w) for w in name.split()]
-                        if any(nt in query_tokens for nt in all_name_tokens if nt):
-                            score += 3.5
-                        elif name in query:
-                            score += 2.5
+                    elif specific_query_tokens and any(st in name for st in specific_query_tokens):
+                        score += 5.0
+                    elif not is_caregiver_query and name in query:
+                        score += 4.0
                 
                 # Relation match (e.g. "doctor", "physician", "friend")
                 if relation and not is_caregiver_query:
-                    if relation in query or any(rt in query_tokens for rt in relation.split()):
-                        score += 2.0
+                    if relation in query or any(rt in specific_query_tokens for rt in relation.split() if rt not in role_and_stop_words):
+                        score += 4.0
 
-                if notes and query in notes: score += 0.5
-                if location and location in query: score += 1.0
-                if has_image: score += 0.3
+                if location and any(loc_tok in specific_query_tokens for loc_tok in location.split()):
+                    score += 2.0
                 
-                # Fuzzy similarity for words > 2 chars on specific query tokens
-                tokens_for_fuzzy = specific_query_tokens if is_caregiver_query else query_tokens
-                for word in tokens_for_fuzzy:
-                    if len(word) > 2 and name:
-                        matcher = difflib.SequenceMatcher(None, word, name)
-                        if matcher.ratio() > 0.75: score += 1.0
+                # Only check notes if query has specific tokens
+                if notes and specific_query_tokens:
+                    if any(tok in notes for tok in specific_query_tokens if len(tok) > 2):
+                        score += 1.5
+                
+                # Fuzzy similarity ONLY on specific non-filler query tokens
+                if specific_query_tokens and name:
+                    for word in specific_query_tokens:
+                        if len(word) > 2:
+                            matcher = difflib.SequenceMatcher(None, word, name)
+                            if matcher.ratio() > 0.82:
+                                score += 3.0
                             
-                if name and specific_query_tokens:
                     full_sim = difflib.SequenceMatcher(None, " ".join(specific_query_tokens), name).ratio()
-                    if full_sim > 0.6: score += 1.2
+                    if full_sim > 0.7:
+                        score += 2.5
 
                 if score > max_score:
                     max_score = score
                     candidates = [p]
-                elif score == max_score and score > 0.4:
+                elif score == max_score and score >= 1.5:
                     candidates.append(p)
             
-            if max_score > 0.4:
+            # Require at least 1.5 score to qualify as a valid match
+            if max_score >= 1.5:
                 candidates.sort(key=lambda x: (
                     1 if (user_id and x.payload.get("user_id") == user_id) else 0,
                     bool(x.payload.get("image_base64")),

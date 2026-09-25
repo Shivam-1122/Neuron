@@ -211,18 +211,20 @@
     .eq-bar-1 { animation: eqBar1 0.8s infinite ease-in-out; }
     .eq-bar-2 { animation: eqBar2 0.9s infinite ease-in-out 0.15s; }
     .eq-bar-3 { animation: eqBar3 0.75s infinite ease-in-out 0.3s; }
-    /* Hide inner header when embedded in main website to ensure only ONE navbar */
+    /* Hide inner header when embedded in main website/app to ensure only ONE header */
     body.is-embedded header {
       display: none !important;
     }
     body.is-embedded main {
-      padding-top: 1rem !important;
+      padding-top: 0.5rem !important;
+      padding-bottom: 2rem !important;
+      min-height: auto !important;
     }
     .embedded-station-nav {
-      display: none;
+      display: none !important;
     }
     body.is-embedded .embedded-station-nav {
-      display: flex !important;
+      display: none !important;
     }
   </style>
   <script>
@@ -349,85 +351,52 @@
   <!-- ========================================================= -->
   <!-- 3. MAIN GAME CHAMBERS CONTAINER                            -->
   <!-- ========================================================= -->
-  <main class="relative z-10 w-full pt-24 lg:pt-20 pb-16 min-h-screen">
+  <main class="relative z-10 w-full pt-16 lg:pt-14 pb-12 min-h-screen">
 
-    <!-- Embedded In-Gym Station Switcher (Visible only when inside main app, replacing duplicate top header) -->
-    <div class="embedded-station-nav w-full max-w-7xl mx-auto px-4 md:px-gutter mb-5 items-center justify-between gap-3">
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-        <span class="font-serif text-sm font-semibold text-white tracking-wide">Memory Gym Arena</span>
-      </div>
-      <div class="flex items-center gap-1.5 bg-surface-container-low p-1 rounded-DEFAULT border border-white/[0.06] shadow-inner text-xs font-label-md">
-        <button class="embedded-tab px-3 py-1 rounded-DEFAULT bg-primary-container text-on-primary-container font-semibold transition-all cursor-pointer" data-view="hub" onclick="switchView('hub')">
-          Archive Hub
-        </button>
-        <button class="embedded-tab px-3 py-1 rounded-DEFAULT text-on-surface-variant hover:text-white hover:bg-surface-container transition-all cursor-pointer" data-view="cortex" onclick="switchView('cortex')">
-          Card Match
-        </button>
-        <button class="embedded-tab px-3 py-1 rounded-DEFAULT text-on-surface-variant hover:text-white hover:bg-surface-container transition-all cursor-pointer" data-view="sequence" onclick="switchView('sequence')">
-          Neuro Sequence
-        </button>
-        <button class="embedded-tab px-3 py-1 rounded-DEFAULT text-on-surface-variant hover:text-white hover:bg-surface-container transition-all cursor-pointer" data-view="woodpuzzle" onclick="switchView('woodpuzzle')">
-          Wood Puzzle
-        </button>
-        <button class="embedded-tab px-3 py-1 rounded-DEFAULT text-on-surface-variant hover:text-white hover:bg-surface-container transition-all cursor-pointer" data-view="crossrecall" onclick="switchView('crossrecall')">
-          Cross Recall
-        </button>
-      </div>
-    </div>
-    
     <!-- ******************************************************** -->
     <!-- VIEW 1: SANCTUM ARCHIVE HUB (3D PERSPECTIVE STATIONS)     -->
     <!-- ******************************************************** -->
-    <section class="w-full px-4 md:px-gutter max-w-7xl mx-auto flex flex-col gap-space-lg transition-opacity duration-300" id="view-hub">
+    <section class="w-full px-3 md:px-gutter max-w-7xl mx-auto flex flex-col gap-3 transition-opacity duration-300" id="view-hub">
       
-      <!-- Perimeter Atmospheric Telemetry Deck -->
-      <div class="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md bg-surface-container-low/90 backdrop-blur-xl p-space-md rounded-DEFAULT shadow-[0_8px_32px_-4px_rgba(0,0,0,0.7)] border border-white/[0.06]">
-        <div class="flex items-center gap-space-md">
-          <div class="w-12 h-12 rounded-DEFAULT bg-surface-container-high flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] border border-primary/30">
-            <span class="material-symbols-outlined text-primary text-[28px] filled">view_in_ar</span>
+      <!-- Compact Sleek Architectural Telemetry Deck -->
+      <div class="w-full flex items-center justify-between gap-2 bg-surface-container-low/95 backdrop-blur-xl px-3 py-2 rounded-DEFAULT shadow-[0_4px_20px_rgba(0,0,0,0.5)] border border-white/[0.06]">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-8 h-8 rounded-DEFAULT bg-surface-container-high flex items-center justify-center border border-primary/30 flex-shrink-0">
+            <span class="material-symbols-outlined text-primary text-[18px]">view_in_ar</span>
           </div>
-          <div class="flex flex-col">
-            <div class="flex items-center gap-space-xs">
-              <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              <span class="font-label-sm text-label-sm uppercase tracking-widest text-outline">Chamber of Cognition</span>
-              <span class="font-label-sm text-label-sm text-outline-variant">/</span>
-              <span class="font-label-sm text-label-sm text-primary uppercase font-mono">Sanctum Grid 03</span>
+          <div class="flex flex-col min-w-0">
+            <div class="flex items-center gap-1.5 leading-none">
+              <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+              <span class="text-[9px] uppercase tracking-wider text-outline font-mono truncate">Sanctum Grid 03</span>
             </div>
-            <h2 class="font-headline-md text-headline-md text-on-surface tracking-tight text-xl sm:text-2xl font-serif">
-              The Memory Gym — Spatial Training Arena
+            <h2 class="text-on-surface font-serif text-sm font-semibold truncate leading-tight">
+              Memory Gym
             </h2>
           </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-space-sm w-full lg:w-auto justify-between lg:justify-end">
-          <!-- Daily Cognitive Flux Tube -->
-          <div class="flex flex-col gap-1 bg-surface-container-lowest/80 px-space-md py-2 rounded-DEFAULT shadow-[inset_0_2px_6px_rgba(0,0,0,0.6)] min-w-[200px] border border-white/[0.04]">
-            <div class="flex items-center justify-between">
-              <span class="font-label-sm text-[10px] text-outline tracking-wider uppercase">Brain Score</span>
-              <span class="font-label-md text-label-md text-primary font-semibold">840 / 1000 FLX</span>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <!-- Live Real-Time Brain Score -->
+          <div class="flex items-center gap-2 bg-surface-container-lowest/90 px-2.5 py-1 rounded-DEFAULT border border-white/[0.05]">
+            <div class="flex flex-col items-end">
+              <span class="text-[8px] text-outline uppercase font-mono tracking-wider leading-none">Brain Score</span>
+              <span class="live-game-score text-[11px] text-primary font-mono font-bold leading-tight">240 / 1000 FLX</span>
             </div>
-            <div class="w-full h-1.5 bg-surface-variant rounded-full overflow-hidden flex">
-              <div class="h-full bg-gradient-to-r from-primary-container to-primary rounded-full" style="width: 84%"></div>
-            </div>
-          </div>
-
-          <!-- Streak Relic -->
-          <div class="flex items-center gap-space-xs bg-surface-container px-space-md py-2 rounded-DEFAULT shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border border-white/[0.04]">
-            <span class="material-symbols-outlined text-tertiary text-[20px] filled">hourglass_top</span>
-            <div class="flex flex-col">
-              <span class="font-label-sm text-[9px] text-outline uppercase leading-none">Vigil</span>
-              <span class="font-label-md text-label-md text-on-surface font-semibold leading-tight">5 Day Streak</span>
+            <div class="w-10 sm:w-16 h-1.5 bg-surface-variant rounded-full overflow-hidden flex">
+              <div class="live-game-bar h-full bg-gradient-to-r from-primary-container to-primary rounded-full transition-all duration-500" style="width: 24%"></div>
             </div>
           </div>
 
-          <!-- Harmonic Audio Sanctuary Status Badge (Clean non-clickable indicator) -->
-          <div class="flex items-center gap-space-xs bg-surface-container-high px-space-md py-2 rounded-DEFAULT border border-secondary/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <span class="material-symbols-outlined text-secondary text-[20px]">music_note</span>
-            <div class="flex flex-col">
-              <span class="font-label-sm text-[9px] text-secondary uppercase font-semibold leading-none">432 Hz Solfeggio</span>
-              <span class="font-label-sm text-[10px] text-outline leading-tight">Harmonic Flux</span>
-            </div>
+          <!-- Live Real-Time Daily Streak -->
+          <div class="flex items-center gap-1 bg-surface-container px-2 py-1 rounded-DEFAULT border border-white/[0.05]">
+            <span class="material-symbols-outlined text-tertiary text-[14px]">hourglass_top</span>
+            <span class="live-game-streak text-[11px] text-on-surface font-semibold whitespace-nowrap">1 Day Streak</span>
+          </div>
+
+          <!-- Harmonic Solfeggio Audio Pill -->
+          <div class="hidden sm:flex items-center gap-1 bg-surface-container-high px-2 py-1 rounded-DEFAULT border border-secondary/20">
+            <span class="material-symbols-outlined text-secondary text-[14px]">music_note</span>
+            <span class="text-[10px] text-secondary font-mono font-medium">432 Hz</span>
           </div>
         </div>
       </div>
@@ -1534,6 +1503,7 @@
             el.classList.remove('hidden');
             el.style.opacity = '0';
             setTimeout(() => { el.style.opacity = '1'; }, 20);
+            if (typeof updateLiveTelemetryHUD === 'function') updateLiveTelemetryHUD();
           } else {
             el.classList.add('hidden');
           }
@@ -1594,20 +1564,29 @@
           initWoodPuzzle();
         }
       } else if (viewId === 'crossrecall') {
-        // Immediately ensure fallback data is available so questions generate instantly
-        if (crossRecallState.pool.people.length === 0) {
-          crossRecallState.pool.people = sanctuaryGroundingFallbacks.people;
-          crossRecallState.pool.objects = sanctuaryGroundingFallbacks.objects;
-          crossRecallState.pool.anchors = sanctuaryGroundingFallbacks.anchors;
-        }
-        // Generate question immediately with whatever data we have
         crossRecallState.questionNum = 1;
         crossRecallState.score = 0;
         crossRecallState.streak = 0;
         crossRecallState.currentQuestion = null;
-        generateNewCrossQuestion();
-        // Then try to load real data in background for next session
-        loadCrossMemoryPool();
+
+        const qText = document.getElementById('crossQuestionText');
+        if (qText) qText.textContent = "Loading your personal memory archive...";
+        const grid = document.getElementById('crossOptionsGrid');
+        if (grid) {
+          grid.innerHTML = `
+            <div class="col-span-full py-10 flex flex-col items-center justify-center gap-3 text-on-surface-variant">
+              <span class="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></span>
+              <span class="font-label-md text-xs tracking-wider uppercase font-mono text-primary">Synchronizing Personal Memories...</span>
+            </div>
+          `;
+        }
+
+        loadCrossMemoryPool().then(() => {
+          generateNewCrossQuestion();
+        }).catch(err => {
+          console.warn('Error loading memory pool:', err);
+          generateNewCrossQuestion();
+        });
       }
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2178,9 +2157,8 @@
       modal.classList.remove('hidden');
       modal.classList.add('flex');
 
-      // Update global XP counter
-      const currScore = parseInt(document.getElementById('globalScore').textContent.replace(/\D/g, '')) || 2840;
-      document.getElementById('globalScore').innerHTML = `${currScore + score}<span class="text-outline font-normal ml-0.5">XP</span>`;
+      // Update persistent real telemetry (Brain Score, daily streak, progress)
+      recordGameVictory(score || 100);
     }
 
     function closeVictoryModal(continueNext) {
@@ -2217,6 +2195,7 @@
         anchors: []
       },
       loaded: false,
+      hasRealData: false,
       currentQuestion: null,
       questionNum: 1,
       totalQuestions: 10,
@@ -2226,7 +2205,7 @@
       answered: false
     };
 
-    // Grounding fallback data for dementia/Alzheimer's reassurance
+    // Grounding fallback data ONLY used if user has 0 enrolled data anywhere
     const sanctuaryGroundingFallbacks = {
       people: [
         { name: "Family Companion", relation: "Caregiver", notes: "Assists with gentle daily routines and tea", icon: "support_agent" },
@@ -2279,37 +2258,122 @@
       ]
     };
 
-    async function loadCrossMemoryPool() {
-      if (crossRecallState.loaded) return;
+    function getNeuronConfig() {
+      const params = new URLSearchParams(window.location.search);
+      let apiBase = params.get('api_base') || localStorage.getItem('neuron_api_base');
+      let userId = params.get('user_id') || localStorage.getItem('neuron_user_id') || '';
+
+      if (!apiBase) {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          apiBase = 'http://localhost:8000/api/v1';
+        } else {
+          apiBase = window.location.origin.includes('web.app') ? 'http://localhost:8000/api/v1' : '/api/v1';
+        }
+      }
+
+      if (!userId || userId === 'default_user') {
+        const storedUser = localStorage.getItem('neuron_user');
+        if (storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser);
+            if (parsed.uid) userId = parsed.uid;
+          } catch (e) {}
+        }
+      }
+
+      return { apiBase: apiBase.replace(/\/+$/, ''), userId: userId || '' };
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'NEURON_CONFIG') {
+        if (event.data.apiBase) localStorage.setItem('neuron_api_base', event.data.apiBase);
+        if (event.data.userId) localStorage.setItem('neuron_user_id', event.data.userId);
+        loadCrossMemoryPool(true).then(() => {
+          if (currentActiveView === 'crossrecall') {
+            generateNewCrossQuestion();
+          }
+        });
+      }
+    });
+
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'REQUEST_CONFIG' }, '*');
+      }
+    } catch (e) {}
+
+    async function loadCrossMemoryPool(force = false) {
+      if (crossRecallState.loaded && !force) return;
+      const { apiBase, userId } = getNeuronConfig();
+
+      const queryParams = new URLSearchParams();
+      if (userId) queryParams.set('user_id', userId);
+      const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+
       try {
-        const res = await fetch('/api/v1/game/memory-pool');
+        const res = await fetch(`${apiBase}/game/memory-pool${queryString}`);
         if (res.ok) {
           const data = await res.json();
           if (data && data.status === 'success') {
-            crossRecallState.pool.people = (data.people && data.people.length > 0) ? data.people : sanctuaryGroundingFallbacks.people;
-            crossRecallState.pool.objects = (data.objects && data.objects.length > 0) ? data.objects : sanctuaryGroundingFallbacks.objects;
-            crossRecallState.pool.anchors = (data.anchors && data.anchors.length > 0) ? data.anchors : sanctuaryGroundingFallbacks.anchors;
+            const hasReal = Boolean(
+              data.has_real_data ||
+              (data.people && data.people.length > 0) ||
+              (data.objects && data.objects.length > 0) ||
+              (data.anchors && data.anchors.length > 0)
+            );
+
+            if (hasReal) {
+              crossRecallState.pool.people = data.people || [];
+              crossRecallState.pool.objects = data.objects || [];
+              crossRecallState.pool.anchors = data.anchors || [];
+              crossRecallState.hasRealData = true;
+            } else {
+              crossRecallState.pool.people = sanctuaryGroundingFallbacks.people;
+              crossRecallState.pool.objects = sanctuaryGroundingFallbacks.objects;
+              crossRecallState.pool.anchors = sanctuaryGroundingFallbacks.anchors;
+              crossRecallState.hasRealData = false;
+            }
             crossRecallState.loaded = true;
             return;
           }
         }
       } catch (e) {
-        console.warn('Memory pool endpoint warning, loading sanctuary fallbacks:', e);
+        console.warn('Memory pool endpoint error, trying fallback endpoints:', e);
       }
 
       try {
-        const res = await fetch('/api/v1/people');
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.people && data.people.length > 0) {
-            crossRecallState.pool.people = data.people;
+        const [peopleRes, objectsRes] = await Promise.allSettled([
+          fetch(`${apiBase}/people${queryString}`),
+          fetch(`${apiBase}/objects${queryString}`)
+        ]);
+
+        let realFound = false;
+        if (peopleRes.status === 'fulfilled' && peopleRes.value.ok) {
+          const pData = await peopleRes.value.json();
+          if (pData && pData.people && pData.people.length > 0) {
+            crossRecallState.pool.people = pData.people;
+            realFound = true;
           }
+        }
+        if (objectsRes.status === 'fulfilled' && objectsRes.value.ok) {
+          const oData = await objectsRes.value.json();
+          if (oData && oData.objects && oData.objects.length > 0) {
+            crossRecallState.pool.objects = oData.objects;
+            realFound = true;
+          }
+        }
+
+        if (realFound) {
+          crossRecallState.hasRealData = true;
+          crossRecallState.loaded = true;
+          return;
         }
       } catch (e) {}
 
-      if (crossRecallState.pool.people.length === 0) crossRecallState.pool.people = sanctuaryGroundingFallbacks.people;
-      if (crossRecallState.pool.objects.length === 0) crossRecallState.pool.objects = sanctuaryGroundingFallbacks.objects;
-      if (crossRecallState.pool.anchors.length === 0) crossRecallState.pool.anchors = sanctuaryGroundingFallbacks.anchors;
+      crossRecallState.pool.people = sanctuaryGroundingFallbacks.people;
+      crossRecallState.pool.objects = sanctuaryGroundingFallbacks.objects;
+      crossRecallState.pool.anchors = sanctuaryGroundingFallbacks.anchors;
+      crossRecallState.hasRealData = false;
       crossRecallState.loaded = true;
     }
 
@@ -2345,13 +2409,45 @@
       const fb = document.getElementById('crossFeedbackPanel');
       if (fb) fb.classList.add('hidden');
 
-      const people = crossRecallState.pool.people.length > 0 ? crossRecallState.pool.people : sanctuaryGroundingFallbacks.people;
-      const objects = crossRecallState.pool.objects.length > 0 ? crossRecallState.pool.objects : sanctuaryGroundingFallbacks.objects;
-      const anchors = crossRecallState.pool.anchors.length > 0 ? crossRecallState.pool.anchors : sanctuaryGroundingFallbacks.anchors;
+      const people = (crossRecallState.pool.people && crossRecallState.pool.people.length > 0)
+        ? crossRecallState.pool.people
+        : (crossRecallState.hasRealData ? [] : sanctuaryGroundingFallbacks.people);
+      const objects = (crossRecallState.pool.objects && crossRecallState.pool.objects.length > 0)
+        ? crossRecallState.pool.objects
+        : (crossRecallState.hasRealData ? [] : sanctuaryGroundingFallbacks.objects);
+      const anchors = (crossRecallState.pool.anchors && crossRecallState.pool.anchors.length > 0)
+        ? crossRecallState.pool.anchors
+        : (crossRecallState.hasRealData ? [] : sanctuaryGroundingFallbacks.anchors);
 
-      const availableTypes = [0, 1, 2, 3, 4];
-      const hasPhoto = people.some(p => p.image_base64 || p.avatar_url);
-      if (hasPhoto) availableTypes.push(5);
+      const availableTypes = [];
+
+      if (people.length > 0) {
+        availableTypes.push(0); // Relation -> Name
+        availableTypes.push(1); // Name -> Relation
+        if (people.some(p => p.notes && p.notes.trim().length > 3)) {
+          availableTypes.push(2); // Personal memory note
+        }
+        if (people.some(p => p.image_base64 || p.avatar_url)) {
+          availableTypes.push(5); // Photo match
+        }
+      }
+
+      if (objects.length > 0 && objects.some(o => o.location && o.location.trim().length > 0)) {
+        availableTypes.push(3); // Object -> Location
+      }
+
+      if (anchors.length > 0) {
+        // High priority for personalized anchors
+        availableTypes.push(4);
+        availableTypes.push(4);
+      }
+
+      if (availableTypes.length === 0) {
+        people.push(...sanctuaryGroundingFallbacks.people);
+        objects.push(...sanctuaryGroundingFallbacks.objects);
+        anchors.push(...sanctuaryGroundingFallbacks.anchors);
+        availableTypes.push(0, 1, 3, 4);
+      }
 
       const qType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
       let qData = null;
@@ -2365,19 +2461,19 @@
         const distractors = getRandomDistractors(namePool, 3);
 
         qData = {
-          category: "Family & Loved Ones",
+          category: "Care Team & Loved Ones",
           categoryIcon: "family_restroom",
-          question: `Who is your ${target.relation || 'beloved family member'}?`,
+          question: `Who is your registered ${target.relation || 'caregiver / loved one'}?`,
           image: target.image_base64 || target.avatar_url || null,
           correctAnswer,
           distractors,
-          explanation: `${target.name} is your ${target.relation || 'family member'}.${target.notes ? ' ' + target.notes : ''}`
+          explanation: `${target.name} is your ${target.relation || 'caregiver'}.${target.notes ? ' ' + target.notes : ''}`
         };
       } else if (qType === 1) {
         // Name -> Relation
         const target = people[Math.floor(Math.random() * people.length)];
-        const correctAnswer = target.relation || "Loved One";
-        const relationPool = ["Daughter", "Neurology Doctor & Caregiver", "Grandson", "Care Specialist", "Sister", "Physical Therapist", "Neighbor", "Son", "Niece"];
+        const correctAnswer = target.relation || "Caregiver / Loved One";
+        const relationPool = ["Home Nurse", "Family Physician", "Primary Caregiver", "Daughter", "Grandson", "Physical Therapist", "Neighbor", "Son", "Sister"];
         const otherRelations = relationPool.filter(r => r.toLowerCase() !== correctAnswer.toLowerCase());
         const distractors = getRandomDistractors(otherRelations, 3);
 
@@ -2388,27 +2484,26 @@
           image: target.image_base64 || target.avatar_url || null,
           correctAnswer,
           distractors,
-          explanation: `${target.name} is your ${correctAnswer}.${target.notes ? ' (' + target.notes + ')' : ''}`
+          explanation: `${target.name} is your registered ${correctAnswer}.${target.notes ? ' (' + target.notes + ')' : ''}`
         };
       } else if (qType === 2) {
         // Person -> Memory Note
-        const targetsWithNotes = people.filter(p => p.notes && p.notes.length > 5);
+        const targetsWithNotes = people.filter(p => p.notes && p.notes.trim().length > 3);
         const target = targetsWithNotes.length > 0 ? targetsWithNotes[Math.floor(Math.random() * targetsWithNotes.length)] : people[0];
-        const correctAnswer = target.notes || `${target.name} visits and helps you frequently`;
+        const correctAnswer = target.notes || `${target.name} visits and assists with daily care`;
         const noteDistractorsPool = [
+          "Calls every evening to share stories from town",
           "Brings fresh lavender from the garden",
-          "Calls every evening to share daily stories",
-          "Helps water the potted geraniums on the balcony",
-          "Plays classical piano music during visits",
-          "Bakes delicious cinnamon scones on weekends",
-          "Helps arrange the photo albums in the study"
+          "Assists with weekly physical therapy stretches",
+          "Helps arrange the photo albums in the study",
+          "Prepares herbal tea and reminds about medicines"
         ].filter(n => n !== correctAnswer);
         const distractors = getRandomDistractors(noteDistractorsPool, 3);
 
         qData = {
           category: "Personal Memories & Details",
           categoryIcon: "favorite",
-          question: `What lovely memory or detail is connected with ${target.name}?`,
+          question: `What important role or detail is connected with ${target.name}?`,
           image: target.image_base64 || target.avatar_url || null,
           correctAnswer,
           distractors,
@@ -2416,27 +2511,28 @@
         };
       } else if (qType === 3) {
         // Object -> Location
-        const target = objects[Math.floor(Math.random() * objects.length)];
-        const correctAnswer = target.location || "On the wooden bedside nightstand";
+        const validObjects = objects.filter(o => o.location && o.location.trim().length > 0);
+        const target = (validObjects.length > 0) ? validObjects[Math.floor(Math.random() * validObjects.length)] : objects[0];
+        const correctAnswer = target.location || "in the drawer";
         const locationPool = [
-          "On the wooden bedside nightstand",
-          "Hanging on the brass hook by the entryway",
-          "On the breakfast nook dining tray",
-          "Next to the water carafe in the kitchen",
-          "By the front coat closet in the hallway",
-          "Inside the top desk drawer in the library",
-          "On the side table next to your favorite armchair"
+          "on the bedside nightstand",
+          "hanging on the entryway hook",
+          "on the dining table tray",
+          "next to the kitchen sink",
+          "in the living room drawer",
+          "by the front coat closet",
+          "on the reading desk"
         ].filter(l => l.toLowerCase() !== correctAnswer.toLowerCase());
         const distractors = getRandomDistractors(locationPool, 3);
 
         qData = {
           category: "Everyday Essentials",
           categoryIcon: "inventory_2",
-          question: `Where are your ${target.name} typically placed in the home?`,
+          question: `Where is your ${target.name} typically placed in the home?`,
           image: target.image_base64 || null,
           correctAnswer,
           distractors,
-          explanation: `Your ${target.name} are kept ${correctAnswer}.`
+          explanation: `Your ${target.name} is kept ${correctAnswer}.`
         };
       } else if (qType === 4) {
         // Daily Sanctuary Anchor
@@ -2447,26 +2543,30 @@
           question: target.question,
           image: null,
           correctAnswer: target.answer,
-          distractors: getRandomDistractors(target.distractors, 3),
-          explanation: target.answer
+          distractors: getRandomDistractors(target.distractors || [
+            "In the outdoor garden shed",
+            "Behind the basement furnace",
+            "Under the car seat"
+          ], 3),
+          explanation: target.explanation || `${target.question.replace(/\?$/, '')}: ${target.answer}.`
         };
       } else if (qType === 5) {
         // Visual Photo Recognition
         const photoPeople = people.filter(p => p.image_base64 || p.avatar_url);
         const target = photoPeople[Math.floor(Math.random() * photoPeople.length)];
-        const correctAnswer = `${target.name} (${target.relation || 'Loved One'})`;
+        const correctAnswer = `${target.name} (${target.relation || 'Caregiver'})`;
         const otherNames = people.filter(p => p.name !== target.name).map(p => `${p.name} (${p.relation || 'Family'})`);
-        const namePool = [...otherNames, "Family Caregiver", "Dr. Julian (Doctor)", "Marco (Grandson)", "Clara (Sister)"];
+        const namePool = [...otherNames, "Family Physician", "Home Care Nurse", "Physical Therapist", "Arthur (Friend)"];
         const distractors = getRandomDistractors(namePool, 3);
 
         qData = {
           category: "Visual Face Recall",
           categoryIcon: "face",
-          question: `Who is this familiar loved one visiting you in the photo?`,
+          question: `Who is this familiar person visiting you in the photo?`,
           image: target.image_base64 || target.avatar_url,
           correctAnswer,
           distractors,
-          explanation: `That is ${target.name}, your ${target.relation || 'loved one'}.`
+          explanation: `That is ${target.name}, your ${target.relation || 'caregiver'}.`
         };
       }
 
@@ -2569,6 +2669,9 @@
         document.getElementById('crossScore').textContent = crossRecallState.score;
         document.getElementById('crossStreak').textContent = crossRecallState.streak;
 
+        // Record real-time telemetry points
+        recordGameVictory(35);
+
         // Highlight selected as success
         selectedBtn.classList.remove('border-white/[0.08]', 'bg-surface-container-low');
         selectedBtn.classList.add('border-emerald-400', 'bg-emerald-950/40', 'shadow-[0_0_20px_rgba(52,211,153,0.3)]');
@@ -2652,10 +2755,94 @@
     }
 
     // =========================================================
-    // J. INITIAL STARTUP
+    // J. PERSISTENT REAL-TIME GAME TELEMETRY & STREAK SYSTEM
+    // =========================================================
+    const GAME_TELEMETRY_KEY = 'neuron_gym_telemetry_v2';
+
+    function getGameTelemetry() {
+      const today = new Date().toISOString().slice(0, 10);
+      try {
+        const raw = localStorage.getItem(GAME_TELEMETRY_KEY);
+        if (raw) {
+          const data = JSON.parse(raw);
+          return {
+            score: typeof data.score === 'number' ? data.score : 240,
+            streak: typeof data.streak === 'number' ? data.streak : 1,
+            maxScore: data.maxScore || 1000,
+            lastPlayedDate: data.lastPlayedDate || today
+          };
+        }
+      } catch (e) {}
+      return {
+        score: 240,
+        streak: 1,
+        maxScore: 1000,
+        lastPlayedDate: today
+      };
+    }
+
+    function saveGameTelemetry(data) {
+      try {
+        localStorage.setItem(GAME_TELEMETRY_KEY, JSON.stringify(data));
+      } catch (e) {}
+    }
+
+    function recordGameVictory(pointsGained = 100) {
+      const telem = getGameTelemetry();
+      const today = new Date().toISOString().slice(0, 10);
+
+      if (telem.lastPlayedDate !== today) {
+        const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        if (telem.lastPlayedDate === yesterday) {
+          telem.streak += 1;
+        } else {
+          telem.streak = 1;
+        }
+        telem.lastPlayedDate = today;
+      }
+
+      telem.score = Math.min(telem.maxScore, (telem.score || 0) + (pointsGained || 50));
+      saveGameTelemetry(telem);
+      updateLiveTelemetryHUD();
+    }
+
+    function updateLiveTelemetryHUD() {
+      const telem = getGameTelemetry();
+      const scoreEls = document.querySelectorAll('.live-game-score');
+      const streakEls = document.querySelectorAll('.live-game-streak');
+      const barEls = document.querySelectorAll('.live-game-bar');
+
+      const pct = Math.min(100, Math.round((telem.score / telem.maxScore) * 100));
+
+      scoreEls.forEach(el => {
+        el.textContent = `${telem.score} / ${telem.maxScore} FLX`;
+      });
+      streakEls.forEach(el => {
+        el.textContent = `${telem.streak} Day Streak`;
+      });
+      barEls.forEach(el => {
+        el.style.width = `${pct}%`;
+      });
+
+      const globalStreak = document.getElementById('globalStreak');
+      if (globalStreak) {
+        globalStreak.innerHTML = `${telem.streak}<span class="hidden sm:inline text-outline font-normal ml-0.5">D</span>`;
+      }
+      const globalScore = document.getElementById('globalScore');
+      if (globalScore) {
+        globalScore.innerHTML = `${telem.score}<span class="text-outline font-normal ml-0.5">XP</span>`;
+      }
+    }
+
+    // =========================================================
+    // K. INITIAL STARTUP
     // =========================================================
     window.addEventListener('DOMContentLoaded', () => {
       switchView('hub');
+      // Load real-time telemetry from storage
+      updateLiveTelemetryHUD();
+      // Pre-warm personal memory archive in the background
+      loadCrossMemoryPool();
       document.body.addEventListener('click', () => {
         SoundEngine.init();
       }, { once: true });

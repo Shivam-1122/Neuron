@@ -27,11 +27,13 @@ import soundManager from '../utils/soundManager';
 import { useAuth } from '../context/AuthContext';
 import { formatImageSrc } from '../utils/imageUtils';
 
+import { getApiBase } from '../utils/apiConfig';
+
 /*
   Caregiver Dashboard - Warm Cognitive Sanctuary Memory Portal & Caregiver Team Management
 */
 
-const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+const API_BASE = getApiBase();
 
 const CaregiverDashboard = () => {
     const { currentUser } = useAuth();
@@ -293,13 +295,13 @@ const CaregiverDashboard = () => {
     };
 
     return (
-        <div className="w-full flex-1 min-h-0 bg-[#111318] text-[#e2e2e9] flex flex-col items-center justify-start relative p-4 sm:p-8 select-none overflow-y-auto">
+        <div className="w-full flex-1 min-h-0 bg-[#111318] text-[#e2e2e9] flex flex-col items-center justify-start relative p-3 sm:p-6 lg:p-8 select-none overflow-y-auto">
             
             {/* Top Navigation Tabs */}
-            <div className="w-full max-w-4xl flex items-center justify-between gap-4 mb-6">
+            <div className="w-full max-w-4xl flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div>
-                    <h1 className="font-serif font-bold text-2xl sm:text-3xl text-white flex items-center gap-3">
-                        <Users className="text-amber-400" size={26} />
+                    <h1 className="font-serif font-bold text-xl sm:text-2xl md:text-3xl text-white flex items-center gap-2.5 sm:gap-3">
+                        <Users className="text-amber-400" size={24} />
                         <span>Caregiver Control Sanctuary</span>
                     </h1>
                     <p className="font-sans text-xs text-slate-400 mt-1">
@@ -307,21 +309,21 @@ const CaregiverDashboard = () => {
                     </p>
                 </div>
 
-                <div className="flex bg-[#181a20] p-1.5 rounded-2xl border border-white/[0.08] shrink-0">
+                <div className="flex bg-[#181a20] p-1 sm:p-1.5 rounded-2xl border border-white/[0.08] w-full md:w-auto overflow-x-auto shrink-0">
                     <button
                         onClick={() => setActiveTab('caregivers')}
-                        className={`px-4 py-2 rounded-xl text-xs font-sans font-semibold transition-all cursor-pointer flex items-center gap-2 ${
+                        className={`flex-1 md:flex-none justify-center px-3 sm:px-4 py-2 rounded-xl text-xs font-sans font-semibold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
                             activeTab === 'caregivers'
                                 ? 'bg-amber-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
                                 : 'text-slate-400 hover:text-white'
                         }`}
                     >
                         <Shield size={14} />
-                        <span>Caregiver Circle &amp; Alerts</span>
+                        <span>Caregiver Circle</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('memories')}
-                        className={`px-4 py-2 rounded-xl text-xs font-sans font-semibold transition-all cursor-pointer flex items-center gap-2 ${
+                        className={`flex-1 md:flex-none justify-center px-3 sm:px-4 py-2 rounded-xl text-xs font-sans font-semibold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
                             activeTab === 'memories'
                                 ? 'bg-amber-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
                                 : 'text-slate-400 hover:text-white'

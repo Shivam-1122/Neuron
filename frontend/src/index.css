@@ -11,16 +11,111 @@
     --emerald-glow: #00ff9d;
   }
 
+  /* Responsive Dynamic Font Scaling: Automatically decreases font size smoothly as screen width gets smaller */
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    box-sizing: border-box;
+    scroll-behavior: smooth;
+  }
+
+  *, *::before, *::after {
+    box-sizing: inherit;
+  }
+
+  @media (max-width: 1440px) {
+    html {
+      font-size: 15.5px;
+    }
+  }
+
+  @media (max-width: 1280px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    html {
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    html {
+      font-size: 13.5px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    html {
+      font-size: 13px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    html {
+      font-size: 12.5px;
+    }
+  }
+
+  @media (max-width: 380px) {
+    html {
+      font-size: 12px;
+    }
+  }
+
   body {
     margin: 0;
     padding: 0;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
     background-color: #060a12;
     color: #f1f5f9;
     font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
+}
+
+/* Drawer Slide-in & Fade Animations */
+@keyframes drawerSlideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes drawerSlideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+@keyframes drawerFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-drawer-in {
+  animation: drawerSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-drawer-fade {
+  animation: drawerFadeIn 0.22s ease-out forwards;
 }
 
 /* Cyber Matrix Background Grid */

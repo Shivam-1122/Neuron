@@ -36,6 +36,7 @@ import {
   X,
 } from 'lucide-react-native';
 import AudioRecorder from '../components/AudioRecorder';
+import CameraScanner from '../components/CameraScanner';
 import {
   rememberPatientApi,
   getCaregiversApi,
@@ -86,27 +87,41 @@ export default function CaregiverScreen({ onBack, currentUser }) {
     }
   };
 
+  const [showInAppScanner, setShowInAppScanner] = useState(false);
+  const [scannerTarget, setScannerTarget] = useState('wizard');
+
   useEffect(() => {
     fetchCaregivers();
   }, [userId]);
 
+  // Handle in-app camera capture
+  const handleInAppCapture = (uri) => {
+    if (scannerTarget === 'caregiver') {
+      setCgPhotoUri(uri);
+    } else {
+      setImageUri(uri);
+      setWizardError('');
+    }
+    setShowInAppScanner(false);
+  };
+
   // Pick Caregiver Photo
   const pickCgPhoto = async (useCamera = false) => {
     try {
-      let result;
       if (useCamera) {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert('Camera', 'Camera permission needed.');
-          return;
-        }
-        result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
-      } else {
-        result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          quality: 0.7,
-        });
+        setScannerTarget('caregiver');
+        setShowInAppScanner(true);
+        return;
       }
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission', 'Gallery access needed.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+      });
 
       if (!result.canceled && result.assets && result.assets[0]) {
         setCgPhotoUri(result.assets[0].uri);
@@ -220,17 +235,17 @@ export default function CaregiverScreen({ onBack, currentUser }) {
 
   const pickWizardPhoto = async (useCamera = false) => {
     try {
-      let result;
       if (useCamera) {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) return Alert.alert('Camera', 'Permission needed.');
-        result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
-      } else {
-        result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          quality: 0.7,
-        });
+        setScannerTarget('wizard');
+        setShowInAppScanner(true);
+        return;
       }
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) return Alert.alert('Permission', 'Gallery permission needed.');
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+      });
 
       if (!result.canceled && result.assets && result.assets[0]) {
         setImageUri(result.assets[0].uri);
@@ -803,6 +818,15 @@ export default function CaregiverScreen({ onBack, currentUser }) {
           </View>
         </View>
       </Modal>
+
+      {/* In-App Optical Camera Scanner Viewport */}
+      {showInAppScanner && (
+        <CameraScanner
+          mode="person"
+          onCapture={handleInAppCapture}
+          onClose={() => setShowInAppScanner(false)}
+        />
+      )}
     </View>
   );
 }

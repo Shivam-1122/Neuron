@@ -17,8 +17,9 @@ import { MemoryGameHub } from './game';
 import SettingsModal from './components/SettingsModal';
 import soundManager from './utils/soundManager';
 import { useAuth } from './context/AuthContext';
+import { getApiBase } from './utils/apiConfig';
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
+const API_BASE = getApiBase();
 
 function App() {
   const { currentUser } = useAuth();
@@ -495,21 +496,41 @@ function App() {
         }
       } else {
         responseText = data.text || "I don't know who that is.";
+        imageBase64 = null;
       }
 
-      const isMissingData = data.status !== 'found' || 
-        (responseText && (
-          responseText.toLowerCase().includes("don't know") || 
-          responseText.toLowerCase().includes("not sure") ||
-          responseText.toLowerCase().includes("haven't learned") ||
-          responseText.toLowerCase().includes("no record") ||
-          responseText.toLowerCase().includes("not in my memory") ||
-          responseText.toLowerCase().includes("could not find") ||
-          responseText.toLowerCase().includes("couldn't find") ||
-          responseText.toLowerCase().includes("trouble searching")
-        ));
+      const lowerResp = (responseText || "").toLowerCase();
+      const isMissingData = Boolean(
+        data.no_data_found ||
+        data.status === 'not_found' ||
+        data.status === 'unknown' ||
+        data.status !== 'found' ||
+        lowerResp.includes("don't know") || 
+        lowerResp.includes("not sure") ||
+        lowerResp.includes("haven't learned") ||
+        lowerResp.includes("no record") ||
+        lowerResp.includes("not in my memory") ||
+        lowerResp.includes("not in your memory") ||
+        lowerResp.includes("not in your memories") ||
+        lowerResp.includes("could not find") ||
+        lowerResp.includes("couldn't find") ||
+        lowerResp.includes("couldn't locate") ||
+        lowerResp.includes("cannot find") ||
+        lowerResp.includes("can't find") ||
+        lowerResp.includes("trouble searching") ||
+        lowerResp.includes("not registered") ||
+        lowerResp.includes("haven't met") ||
+        lowerResp.includes("don't have any record") ||
+        lowerResp.includes("who that is") ||
+        lowerResp.includes("notify your caregivers")
+      );
 
-      addBotMessage(responseText, audioUrl, imageBase64, data.gallery, responseProvider, isMissingData, text);
+      // If data was not found, guarantee no image is shown!
+      if (isMissingData) {
+        imageBase64 = null;
+      }
+
+      addBotMessage(responseText, audioUrl, imageBase64, isMissingData ? [] : (data.gallery || []), responseProvider, isMissingData, text);
       speakResponse(responseText, () => {
         if (isVoiceQuery && audioUrl) {
           playAudioSample(audioUrl);
@@ -594,6 +615,8 @@ function App() {
   } else if (view === 'game') {
     content = (
       <MemoryGameHub
+        apiBase={API_BASE}
+        userId={effectiveUserId}
         onBackToPatient={() => handleNavigate('patient')}
       />
     );
@@ -609,7 +632,7 @@ function App() {
     content = (
       <div className="w-full h-full flex flex-col overflow-hidden bg-[#111318]">
         {mode === 'enroll_ui' ? (
-          <div className="max-w-2xl mx-auto my-8 p-6 bg-[#181a20] rounded-3xl border border-white/[0.08] shadow-2xl overflow-y-auto">
+          <div className="w-full max-w-2xl mx-auto my-3 sm:my-8 p-3.5 sm:p-6 bg-[#181a20] rounded-2xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-y-auto">
             <EnrollmentForm
               type={enrollType}
               onCancel={() => setMode('person')}
@@ -655,7 +678,7 @@ function App() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#111318', overflow: 'hidden' }}>
+    <div className="flex flex-col h-screen h-[100dvh] w-full bg-[#111318] overflow-hidden select-none">
       <NavBar 
         onViewChange={handleNavigate} 
         currentView={view} 
@@ -667,7 +690,7 @@ function App() {
         onToggleMusic={() => soundManager.toggleMusic()}
         currentUser={currentUser}
       />
-      <main style={{ flex: 1, paddingTop: '68px', height: 'calc(100vh - 68px)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <main className="flex-1 pt-[60px] sm:pt-[68px] h-[calc(100dvh-60px)] sm:h-[calc(100dvh-68px)] overflow-y-auto flex flex-col w-full">
         {content}
       </main>
 

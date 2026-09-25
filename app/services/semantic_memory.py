@@ -140,12 +140,13 @@ class SemanticMemoryService:
             )
             print(f"Learned {len(points)} semantic facts about {name}")
 
-    def search_knowledge(self, query: str, context_name: str = None, limit=5):
+    def search_knowledge(self, query: str, context_name: str = None, limit=5, min_score: float = 0.50):
         """
         Hybrid Search:
         1. Semantic Vector Search
         2. Optional Metadata Filter (if context_name provided)
-        3. Prioritize newest memories when matches exist
+        3. Filter points by minimum cosine similarity score
+        4. Prioritize newest memories when matches exist
         """
         embedding = self.encoder.encode(query).tolist()
         print(f"DEBUG: Executing query_points for '{query}'...")
@@ -166,9 +167,16 @@ class SemanticMemoryService:
             limit=limit
         )
         
-        # Sort results prioritizing the most recent updates
-        matches = [match.payload for match in res.points]
-        matches.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+        # Filter results by relevance score so random points are not returned as matches
+        matches = []
+        for match in res.points:
+            score = getattr(match, "score", 0.0)
+            if score >= min_score and match.payload:
+                p = dict(match.payload)
+                p["_score"] = score
+                matches.append(p)
+                
+        matches.sort(key=lambda x: (x.get("_score", 0.0), x.get("timestamp", "")), reverse=True)
         return matches
 
 # Global Instance

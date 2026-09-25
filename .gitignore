@@ -68,3 +68,9 @@ neuron-mobile/node_modules/
 .firebase/
 frontend/.firebase/
 
+# Binaries, APKs & Scratch
+*.apk
+static/*.apk
+ngrok.exe
+scratch/
+

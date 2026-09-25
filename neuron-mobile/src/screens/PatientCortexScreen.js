@@ -448,24 +448,6 @@ export default function PatientCortexScreen({
         }}
       />
 
-      {/* Suggested Chips Carousel */}
-      <View style={styles.suggestionsStrip}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={suggestions}
-          keyExtractor={(item) => item}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.suggestionChip}
-              onPress={() => handleSuggestionClick(item)}
-            >
-              <Sparkles color={Colors.cyan} size={11} />
-              <Text style={styles.suggestionText}>{item}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
 
       {/* ========================================== */}
       {/* ERGONOMIC QUICK OPTICAL TOOLBAR            */}
@@ -627,12 +609,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chatContent: {
-    padding: 16,
-    paddingBottom: 8,
+    padding: 10,
+    paddingBottom: 6,
   },
   msgWrapper: {
-    marginBottom: 12,
-    maxWidth: '82%',
+    marginBottom: 8,
+    maxWidth: '85%',
   },
   msgWrapperUser: {
     alignSelf: 'flex-end',
@@ -641,9 +623,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   msgBubble: {
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
   },
   msgBubbleUser: {
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
@@ -656,8 +638,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderSubtle,
   },
   msgText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16.5,
   },
   msgTextUser: {
     color: Colors.textPrimary,
@@ -666,84 +648,63 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   msgImage: {
-    width: 180,
-    height: 120,
-    borderRadius: 10,
-    marginTop: 8,
+    width: 140,
+    height: 95,
+    borderRadius: 8,
+    marginTop: 6,
   },
   audioSampleBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    gap: 4,
+    marginTop: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderRadius: 8,
+    borderRadius: 6,
     alignSelf: 'flex-start',
   },
   audioSampleText: {
     color: Colors.amber,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
-  },
-  suggestionsStrip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  suggestionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginRight: 8,
-  },
-  suggestionText: {
-    color: Colors.textPrimary,
-    fontSize: 10.5,
-    fontWeight: '600',
   },
   quickBar: {
     flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingBottom: 6,
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingBottom: 4,
   },
   quickBarBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: Colors.card,
     borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 6,
+    borderRadius: 8,
+    paddingVertical: 5,
   },
   quickBarText: {
-    fontSize: 8.5,
+    fontSize: 8,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     backgroundColor: '#16181f',
     borderTopWidth: 1,
     borderTopColor: Colors.borderSubtle,
   },
   micBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: 'rgba(245, 158, 11, 0.08)',
     borderWidth: 1,
     borderColor: Colors.amberBorder,
@@ -756,19 +717,19 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    height: 40,
+    height: 34,
     backgroundColor: Colors.surface,
-    borderRadius: 20,
-    paddingHorizontal: 14,
+    borderRadius: 17,
+    paddingHorizontal: 12,
     color: Colors.textPrimary,
-    fontSize: 12.5,
+    fontSize: 11.5,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: Colors.amber,
     alignItems: 'center',
     justifyContent: 'center',

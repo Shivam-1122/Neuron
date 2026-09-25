@@ -12,11 +12,7 @@ import {
     Pause,
     RotateCcw, 
     Check, 
-    Sun, 
-    Heart, 
-    Activity, 
     Calendar, 
-    HelpCircle, 
     Clock, 
     X, 
     Radio,
@@ -34,8 +30,9 @@ import {
 import CameraView from './CameraView';
 import soundManager from '../utils/soundManager';
 import { formatImageSrc } from '../utils/imageUtils';
+import { getApiBase } from '../utils/apiConfig';
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
+const API_BASE = getApiBase();
 
 export default function ChatInterface({
     messages = [],
@@ -240,8 +237,7 @@ export default function ChatInterface({
 
     const fetchEnrolledPeople = async () => {
         try {
-            const apiBase = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
-            const res = await axios.get(`${apiBase}/people`, { params: userId ? { user_id: userId } : {} });
+            const res = await axios.get(`${API_BASE}/people`, { params: userId ? { user_id: userId } : {} });
             if (res.data && Array.isArray(res.data.people)) {
                 setEnrolledPeople(res.data.people);
             }
@@ -305,12 +301,10 @@ export default function ChatInterface({
     // READ ALOUD / SPEECH SYNTHESIS STATE
     const [speakingMsgIndex, setSpeakingMsgIndex] = useState(null);
 
-    const apiBase = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
-
     const fetchTasks = async () => {
         try {
             setLoadingTasks(true);
-            const res = await axios.get(`${apiBase}/tasks`, { params: userId ? { user_id: userId } : {} });
+            const res = await axios.get(`${API_BASE}/tasks`, { params: userId ? { user_id: userId } : {} });
             if (res.data && Array.isArray(res.data.tasks)) {
                 setTasks(res.data.tasks);
             }
@@ -544,73 +538,65 @@ export default function ChatInterface({
         }
     };
 
-    // Preset Prompts matching reference design
-    const defaultPrompts = [
-        { label: "Who is visiting today?", icon: User, query: "Who is visiting me today?" },
-        { label: "Where did I leave my reading glasses?", icon: HelpCircle, query: "Where did I leave my reading glasses?" },
-        { label: "What is my plan for this afternoon?", icon: Calendar, query: "What is my schedule or routine for this afternoon?" },
-        { label: "Play memory gym exercise", icon: Sparkles, action: onPlayGame }
-    ];
-
     return (
-        <div className="w-full h-full min-h-[calc(100vh-68px)] bg-[#111318] text-[#e2e2e9] p-4 sm:p-6 lg:p-8 overflow-y-auto select-none">
-            <div className="max-w-7xl mx-auto space-y-6">
+        <div className="w-full h-full min-h-full bg-[#111318] text-[#e2e2e9] p-2.5 sm:p-4 md:p-6 lg:p-8 overflow-y-auto select-none">
+            <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
 
                 {/* ========================================================= */}
                 {/* 1. TOP SANCTUARY GREETING & AMBIENT STATUS                */}
                 {/* ========================================================= */}
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-2">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4 pb-1 sm:pb-2">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                            <span className="font-mono text-[11px] text-amber-300 tracking-widest uppercase">
+                            <span className="font-mono text-[10px] sm:text-[11px] text-amber-300 tracking-widest uppercase">
                                 PARLOR SANCTUARY • 21°C • PEACEFUL ROUTINE
                             </span>
                         </div>
-                        <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
+                        <h1 className="font-serif text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight">
                             {currentPerson?.name && currentPerson.name !== 'general' && currentPerson.name !== 'Memory'
                                 ? `${greetingDetails.greeting}, ${currentPerson.name}`
                                 : greetingDetails.greeting}
                         </h1>
-                        <p className="font-sans text-sm text-slate-400 max-w-2xl leading-relaxed">
+                        <p className="font-sans text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
                             {greetingDetails.subtext}
                         </p>
                     </div>
 
                     {/* Companion State Indicator Pills */}
-                    <div className="flex items-center gap-2 bg-[#181a20] p-1.5 rounded-xl border border-white/[0.06] shadow-sm">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 bg-[#181a20] p-1 sm:p-1.5 rounded-xl border border-white/[0.06] shadow-sm max-w-full">
                         <button 
-                            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-medium transition-all flex items-center gap-1.5 ${
+                            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-sans font-medium transition-all flex items-center gap-1.5 ${
                                 companionState === 'idle'
                                     ? 'bg-amber-500/20 text-amber-200 border border-amber-500/30'
                                     : 'text-slate-400 hover:text-white'
                             }`}
                             onClick={() => setCompanionState('idle')}
                         >
-                            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400"></span>
                             <span>Gentle Resting</span>
                         </button>
 
                         <button 
-                            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-medium transition-all flex items-center gap-1.5 ${
+                            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-sans font-medium transition-all flex items-center gap-1.5 ${
                                 companionState === 'listening'
                                     ? 'bg-amber-500/20 text-amber-200 border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.25)]'
                                     : 'text-slate-400 hover:text-white'
                             }`}
                             onClick={toggleSpeechRecognition}
                         >
-                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400 animate-ping"></span>
                             <span>{isListening ? 'Listening...' : 'Listen'}</span>
                         </button>
 
                         <button 
-                            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-medium transition-all flex items-center gap-1.5 ${
+                            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-sans font-medium transition-all flex items-center gap-1.5 ${
                                 companionState === 'speaking'
                                     ? 'bg-amber-500/20 text-amber-200 border border-amber-500/30'
                                     : 'text-slate-400 hover:text-white'
                             }`}
                         >
-                            <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400"></span>
                             <span>Speaking</span>
                         </button>
                     </div>
@@ -619,76 +605,76 @@ export default function ChatInterface({
                 {/* ========================================================= */}
                 {/* 2. MAIN TWO-COLUMN SANCTUARY ARCHITECTURE                 */}
                 {/* ========================================================= */}
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6 items-start">
                     
                     {/* LEFT COLUMN: COMPANION PRESENCE, INVITATIONS & ANCHORS (7 cols) */}
-                    <div className="xl:col-span-7 space-y-6">
+                    <div className="xl:col-span-7 space-y-4 sm:space-y-6">
 
                         {/* COMPANION AVATAR CARD WITH BREATHING HALO */}
-                        <div className="relative w-full rounded-2xl bg-[#181a20] border border-white/[0.08] p-6 shadow-xl overflow-hidden flex flex-col items-center justify-between min-h-[440px]">
+                        <div className="relative w-full rounded-2xl bg-[#181a20] border border-white/[0.08] p-4 sm:p-6 shadow-xl overflow-hidden flex flex-col items-center justify-between min-h-[320px] sm:min-h-[380px] md:min-h-[440px]">
                             
                             {/* Subtle Ambient Radial Cones */}
-                            <div className="absolute -top-16 -left-16 w-64 h-64 rounded-full bg-amber-500/10 blur-[90px] pointer-events-none" />
-                            <div className="absolute -bottom-16 -right-16 w-64 h-64 rounded-full bg-blue-500/10 blur-[90px] pointer-events-none" />
+                            <div className="absolute -top-16 -left-16 w-48 sm:w-64 h-48 sm:h-64 rounded-full bg-amber-500/10 blur-[90px] pointer-events-none" />
+                            <div className="absolute -bottom-16 -right-16 w-48 sm:w-64 h-48 sm:h-64 rounded-full bg-blue-500/10 blur-[90px] pointer-events-none" />
 
                             {/* Card Top Telemetry */}
-                            <div className="w-full flex items-center justify-between z-10 font-mono text-xs">
-                                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#111318]/80 border border-amber-500/30 text-amber-300">
-                                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                            <div className="w-full flex items-center justify-between z-10 font-mono text-[10px] sm:text-xs">
+                                <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-[#111318]/80 border border-amber-500/30 text-amber-300">
+                                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400 animate-pulse"></span>
                                     <span>
                                         {companionState === 'listening' ? 'Aura: Attentive Presence' : companionState === 'speaking' ? 'Aura: Speaking Calmly' : 'Aura: Resting Harmony'}
                                     </span>
                                 </div>
-                                <span className="text-slate-500 text-[11px]">
+                                <span className="text-slate-500 text-[10px] sm:text-[11px]">
                                     // DEPTH 98.4% • SERENE
                                 </span>
                             </div>
 
                             {/* Center Avatar Presence with Halo Rings */}
-                            <div className="relative z-10 flex flex-col items-center justify-center my-6">
-                                <div className="relative w-56 h-56 flex items-center justify-center">
+                            <div className="relative z-10 flex flex-col items-center justify-center my-3 sm:my-6">
+                                <div className="relative w-40 h-40 sm:w-48 sm:h-48 md:w-56 md:h-56 flex items-center justify-center">
                                     {/* Breathing Glow Outer Rings */}
                                     <div className={`absolute inset-0 rounded-full bg-amber-500/15 filter blur-2xl transition-all duration-1000 ${companionState !== 'idle' ? 'scale-110 bg-amber-500/25' : 'scale-95'}`} />
-                                    <div className="absolute -inset-4 rounded-full border border-amber-500/20 border-dashed animate-[spin_40s_linear_infinite] pointer-events-none" />
+                                    <div className="absolute -inset-2 sm:-inset-4 rounded-full border border-amber-500/20 border-dashed animate-[spin_40s_linear_infinite] pointer-events-none" />
                                     
                                     {/* Avatar Circle Container */}
-                                    <div className="relative w-44 h-44 rounded-full bg-[#111318] border-2 border-amber-500/40 shadow-2xl flex items-center justify-center overflow-hidden">
+                                    <div className="relative w-32 h-32 sm:w-40 sm:h-40 md:w-44 md:h-44 rounded-full bg-[#111318] border-2 border-amber-500/40 shadow-2xl flex items-center justify-center overflow-hidden">
                                         <img 
                                             src={companionState === 'speaking' ? "/assets/speaking.gif" : "/assets/idle.gif"} 
                                             alt="Companion Avatar"
-                                            className="w-36 h-36 object-contain filter drop-shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-transform duration-500 hover:scale-105"
+                                            className="w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 object-contain filter drop-shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-transform duration-500 hover:scale-105"
                                         />
                                     </div>
 
                                     {/* Large Tactile Microphone Button Floating on Bottom */}
                                     <button 
                                         onClick={toggleSpeechRecognition}
-                                        className={`absolute -bottom-2 w-13 h-13 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 active:scale-95 cursor-pointer z-20 ${
+                                        className={`absolute -bottom-2 w-10 h-10 sm:w-12 sm:h-12 md:w-13 md:h-13 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 active:scale-95 cursor-pointer z-20 ${
                                             isListening
                                                 ? 'bg-amber-400 text-slate-950 ring-4 ring-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.6)] animate-pulse'
                                                 : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 hover:scale-105'
                                         }`}
                                         title={isListening ? "Listening... Tap to stop" : "Tap microphone to speak"}
                                     >
-                                        {isListening ? <Mic size={22} className="animate-bounce" /> : <Mic size={22} />}
+                                        {isListening ? <Mic size={20} className="animate-bounce" /> : <Mic size={20} />}
                                     </button>
                                 </div>
 
-                                <div className="mt-5 text-center space-y-1">
-                                    <h3 className="font-serif text-lg font-semibold text-white">
+                                <div className="mt-3 sm:mt-5 text-center space-y-1">
+                                    <h3 className="font-serif text-base sm:text-lg font-semibold text-white">
                                         {companionState === 'listening' ? 'Neuron is gently listening...' : companionState === 'speaking' ? 'Neuron is responding...' : 'Neuron is breathing with you'}
                                     </h3>
-                                    <p className="font-sans text-xs text-slate-400">
-                                        Tap microphone to speak or choose a question below
+                                    <p className="font-sans text-[11px] sm:text-xs text-slate-400">
+                                        Tap microphone to speak or use the chat below
                                     </p>
                                 </div>
                             </div>
 
                             {/* Bottom Acoustic Stream Bar */}
-                            <div className="w-full flex items-center justify-between px-4 py-2 rounded-xl bg-[#111318]/70 border border-white/[0.05] z-10 text-xs font-mono">
-                                <div className="flex items-center gap-2 text-slate-400">
-                                    <Radio size={16} className="text-amber-400 animate-pulse" />
-                                    <span>ACOUSTIC STREAM: 432Hz HARMONIC</span>
+                            <div className="w-full flex flex-wrap items-center justify-between gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#111318]/70 border border-white/[0.05] z-10 text-[10px] sm:text-xs font-mono">
+                                <div className="flex items-center gap-1.5 sm:gap-2 text-slate-400">
+                                    <Radio size={14} className="text-amber-400 animate-pulse shrink-0" />
+                                    <span className="truncate">ACOUSTIC STREAM: 432Hz HARMONIC</span>
                                 </div>
                                 <div className="flex items-center gap-1 h-3.5">
                                     <span className="w-1 bg-amber-400/60 rounded-full h-2 animate-[pulse_1s_infinite]"></span>
@@ -696,107 +682,13 @@ export default function ChatInterface({
                                     <span className="w-1 bg-amber-400 rounded-full h-2 animate-[pulse_0.9s_infinite_0.2s]"></span>
                                     <span className="w-1 bg-amber-400/60 rounded-full h-3 animate-[pulse_1.1s_infinite_0.3s]"></span>
                                 </div>
-                                <span className="text-amber-300/90">CALM INDEX: 96 / 100</span>
-                            </div>
-                        </div>
-
-                        {/* GENTLE VOCAL INVITATIONS (TOUCH TO ASK) */}
-                        <div className="bg-[#181a20] p-5 rounded-2xl border border-white/[0.06] shadow-md space-y-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Sparkles size={16} className="text-amber-400" />
-                                    <span className="font-sans text-xs font-semibold text-white uppercase tracking-wider">
-                                        Gentle Questions &amp; Memory Prompts
-                                    </span>
-                                </div>
-                                <span className="font-mono text-[10px] text-slate-500 uppercase">TOUCH TO ASK</span>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2.5">
-                                {defaultPrompts.map((item, idx) => {
-                                    const IconComp = item.icon;
-                                    return (
-                                        <button
-                                            key={idx}
-                                            onClick={() => {
-                                                if (item.action) item.action();
-                                                else handleSend(item.query);
-                                            }}
-                                            className="px-3.5 py-2 rounded-xl bg-[#1f222a] hover:bg-[#282c36] text-slate-200 hover:text-white border border-white/[0.06] hover:border-amber-400/40 text-xs font-sans transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-sm group"
-                                        >
-                                            <IconComp size={14} className="text-amber-400 group-hover:scale-110 transition-transform" />
-                                            <span>"{item.label}"</span>
-                                        </button>
-                                    );
-                                })}
-
-                                {suggestions && suggestions.map((s, i) => (
-                                    <button
-                                        key={`s-${i}`}
-                                        onClick={() => handleSend(s)}
-                                        className="px-3.5 py-2 rounded-xl bg-[#1f222a] hover:bg-[#282c36] text-amber-200/90 hover:text-white border border-amber-500/20 hover:border-amber-400/40 text-xs font-sans transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-sm"
-                                    >
-                                        <Sparkles size={12} className="text-amber-400" />
-                                        <span>"{s}"</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* DAILY STATUS STRIP (3 DYNAMIC STATUS CARDS) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                            <div className="bg-[#181a20] p-4 rounded-xl border border-white/[0.06] shadow-sm space-y-2">
-                                <div className="flex items-center justify-between text-slate-400 text-xs">
-                                    <span className="font-mono text-[10px] uppercase">Natural Light</span>
-                                    <Sun size={15} className="text-amber-400" />
-                                </div>
-                                <div>
-                                    <h4 className="font-serif font-semibold text-white text-sm">Afternoon Warmth</h4>
-                                    <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
-                                        Soft natural daylight for calm, restorative relaxation.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="bg-[#181a20] p-4 rounded-xl border border-white/[0.06] shadow-sm space-y-2">
-                                <div className="flex items-center justify-between text-slate-400 text-xs">
-                                    <span className="font-mono text-[10px] uppercase">Pace of Day</span>
-                                    <Activity size={15} className="text-emerald-400" />
-                                </div>
-                                <div>
-                                    <h4 className="font-serif font-semibold text-white text-sm">Quiet &amp; Serene</h4>
-                                    <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
-                                        Calm sanctuary environment with gentle pacing and no rush.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div 
-                                onClick={enrolledPeople.length === 0 ? onEnroll : undefined}
-                                className={`bg-[#181a20] p-4 rounded-xl border border-white/[0.06] shadow-sm space-y-2 ${enrolledPeople.length === 0 ? 'cursor-pointer hover:border-amber-400/40 transition-all' : ''}`}
-                            >
-                                <div className="flex items-center justify-between text-slate-400 text-xs">
-                                    <span className="font-mono text-[10px] uppercase">Family Circle</span>
-                                    <Heart size={15} className="text-rose-400" />
-                                </div>
-                                <div>
-                                    <h4 className="font-serif font-semibold text-white text-sm">
-                                        {enrolledPeople.length > 0 
-                                            ? `${enrolledPeople[0].name} Connected`
-                                            : "No Loved Ones Added"}
-                                    </h4>
-                                    <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
-                                        {enrolledPeople.length > 0 
-                                            ? `${enrolledPeople[0].relation || "Loved One"} is safely remembered in your memory bank.`
-                                            : "Tap here to save your family members or caregivers."}
-                                    </p>
-                                </div>
+                                <span className="text-amber-300/90 shrink-0">CALM: 96/100</span>
                             </div>
                         </div>
 
                         {/* FAMILIAR FACES & MEMORY ANCHORS (MAX 2 FACES + CORNERED ADD ANOTHER + MANAGE) */}
-                        <div className="bg-[#181a20] p-5 rounded-2xl border border-white/[0.06] shadow-md space-y-3">
-                            <div className="flex items-center justify-between">
+                        <div className="bg-[#181a20] p-3.5 sm:p-5 rounded-2xl border border-white/[0.06] shadow-md space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
                                     <User size={16} className="text-amber-400" />
                                     <span className="font-sans text-xs font-semibold text-white uppercase tracking-wider">
@@ -813,7 +705,7 @@ export default function ChatInterface({
                                                 setTempSelectedFaces(displayedPeople.map(p => p.name));
                                                 setShowFaceManager(true);
                                             }}
-                                            className="px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] text-slate-300 hover:text-white text-xs font-sans flex items-center gap-1.5 transition-all cursor-pointer"
+                                            className="px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] text-slate-300 hover:text-white text-[11px] sm:text-xs font-sans flex items-center gap-1.5 transition-all cursor-pointer"
                                             title="Manage which 2 faces appear here"
                                         >
                                             <SlidersHorizontal size={12} className="text-amber-400" />
@@ -826,7 +718,7 @@ export default function ChatInterface({
                                         <button
                                             type="button"
                                             onClick={onEnroll}
-                                            className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
+                                            className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-300 text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
                                             title="Add another loved one or caregiver"
                                         >
                                             <Plus size={13} />
@@ -835,7 +727,7 @@ export default function ChatInterface({
                                     )}
 
                                     {displayedPeople.length < 2 && enrolledPeople.length > 0 && (
-                                        <span className="font-mono text-[10px] text-slate-500 uppercase">
+                                        <span className="font-mono text-[9px] sm:text-[10px] text-slate-500 uppercase">
                                             TOUCH TO RECALL
                                         </span>
                                     )}
@@ -932,23 +824,23 @@ export default function ChatInterface({
                     </div>
 
                     {/* RIGHT COLUMN: TODAY'S GENTLE ANCHORS & COMPANION CHAT STREAM (5 cols) */}
-                    <div className="xl:col-span-5 space-y-6">
+                    <div className="xl:col-span-5 space-y-4 sm:space-y-6">
 
                         {/* TODAY'S GENTLE ANCHORS (DAILY ROUTINE CHECKLIST) */}
-                        <div className="bg-[#181a20] p-5 rounded-2xl border border-white/[0.06] shadow-md space-y-3">
-                            <div className="flex items-center justify-between">
+                        <div className="bg-[#181a20] p-3.5 sm:p-5 rounded-2xl border border-white/[0.06] shadow-md space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
                                     <Calendar size={16} className="text-amber-400" />
                                     <h3 className="font-serif text-sm font-semibold text-white">Today's Gentle Anchors</h3>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-mono text-[10px] text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                                    <span className="font-mono text-[9px] sm:text-[10px] text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                                         {tasks.filter(t => t.completed).length} OF {tasks.length} COMPLETE
                                     </span>
                                     <button
                                         type="button"
                                         onClick={() => setIsAddingTask(!isAddingTask)}
-                                        className="text-[11px] font-mono flex items-center gap-1 text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30 transition-all cursor-pointer"
+                                        className="text-[10px] sm:text-[11px] font-mono flex items-center gap-1 text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30 transition-all cursor-pointer"
                                         title="Add a gentle scheduled anchor"
                                     >
                                         <Plus size={12} />
@@ -1019,13 +911,13 @@ export default function ChatInterface({
                                         return (
                                             <div 
                                                 key={task.id}
-                                                className={`group flex items-center justify-between p-3 rounded-xl border transition-all ${
+                                                className={`group flex items-center justify-between p-2.5 sm:p-3 rounded-xl border transition-all ${
                                                     isDone 
                                                         ? 'bg-[#1b1d24]/70 border-white/[0.03]' 
                                                         : 'bg-[#1f222a] border-l-4 border-amber-400 border-y border-r border-white/[0.06] shadow-sm'
                                                 }`}
                                             >
-                                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleToggleTask(task.id)}
@@ -1056,8 +948,8 @@ export default function ChatInterface({
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-2 shrink-0 ml-2">
-                                                    <span className={`text-xs font-mono ${isDone ? 'text-slate-500' : 'font-semibold text-amber-400'}`}>
+                                                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-2">
+                                                    <span className={`text-[11px] sm:text-xs font-mono ${isDone ? 'text-slate-500' : 'font-semibold text-amber-400'}`}>
                                                         {task.time || "Today"}
                                                     </span>
                                                     <button
@@ -1080,15 +972,15 @@ export default function ChatInterface({
                         </div>
 
                         {/* COMPANION STREAM (THE SERENE CHAT WINDOW) */}
-                        <div className="bg-[#181a20] rounded-2xl border border-white/[0.08] shadow-xl flex flex-col h-[580px] overflow-hidden">
+                        <div className="bg-[#181a20] rounded-2xl border border-white/[0.08] shadow-xl flex flex-col h-[460px] sm:h-[520px] md:h-[580px] overflow-hidden">
                             
                             {/* Stream Header */}
-                            <div className="p-4 bg-[#14161b] border-b border-white/[0.06] flex items-center justify-between">
-                                <div className="flex items-center gap-2.5">
+                            <div className="p-3 sm:p-4 bg-[#14161b] border-b border-white/[0.06] flex items-center justify-between">
+                                <div className="flex items-center gap-2 sm:gap-2.5">
                                     <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
                                     <div>
-                                        <h4 className="font-serif font-semibold text-white text-sm">Companion Stream</h4>
-                                        <span className="font-mono text-[10px] text-slate-400">WARM DIALOGUE • NO RUSH</span>
+                                        <h4 className="font-serif font-semibold text-white text-xs sm:text-sm">Companion Stream</h4>
+                                        <span className="font-mono text-[9px] sm:text-[10px] text-slate-400">WARM DIALOGUE • NO RUSH</span>
                                     </div>
                                 </div>
 
@@ -1102,18 +994,18 @@ export default function ChatInterface({
                             </div>
 
                             {/* Dialogue Messages Scroll Area */}
-                            <div className="flex-1 p-4 overflow-y-auto space-y-4">
+                            <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 sm:space-y-4">
                                 <div className="flex justify-center my-1">
-                                    <span className="font-mono text-[10px] text-slate-500 bg-[#111318] px-3 py-1 rounded-full border border-white/[0.04]">
+                                    <span className="font-mono text-[9px] sm:text-[10px] text-slate-500 bg-[#111318] px-3 py-1 rounded-full border border-white/[0.04]">
                                         TODAY • PEACEFUL CONVERSATION
                                     </span>
                                 </div>
 
                                 {messages.length === 0 && (
                                     <div className="space-y-3">
-                                        <div className="flex flex-col items-start max-w-[90%] space-y-1">
+                                        <div className="flex flex-col items-start max-w-[95%] sm:max-w-[90%] space-y-1">
                                             <span className="font-sans text-[11px] text-amber-400/90 font-medium px-1">Neuron</span>
-                                            <div className="bg-[#1f222a] border border-white/[0.06] text-slate-100 p-4 rounded-2xl rounded-tl-sm text-sm leading-relaxed shadow-sm">
+                                            <div className="bg-[#1f222a] border border-white/[0.06] text-slate-100 p-3 sm:p-4 rounded-2xl rounded-tl-sm text-xs sm:text-sm leading-relaxed shadow-sm">
                                                 Welcome to your cognitive sanctuary. I am Neuron, your memory and routine companion. How can I assist you {greetingDetails.timeLabel}?
                                             </div>
                                         </div>
@@ -1125,12 +1017,12 @@ export default function ChatInterface({
                                     return (
                                         <div 
                                             key={index}
-                                            className={`flex flex-col space-y-1 ${isUser ? 'items-end self-end max-w-[85%]' : 'items-start max-w-[90%]'}`}
+                                            className={`flex flex-col space-y-1 ${isUser ? 'items-end self-end max-w-[90%] sm:max-w-[85%]' : 'items-start max-w-[95%] sm:max-w-[90%]'}`}
                                         >
-                                            <span className={`font-sans text-[11px] px-1 font-medium ${isUser ? 'text-amber-400 text-right' : 'text-slate-400'}`}>
+                                            <span className={`font-sans text-[10px] sm:text-[11px] px-1 font-medium ${isUser ? 'text-amber-400 text-right' : 'text-slate-400'}`}>
                                                 {isUser ? 'You' : 'Neuron'}
                                             </span>
-                                            <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm relative group ${
+                                            <div className={`p-3 sm:p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-sm relative group ${
                                                 isUser
                                                     ? 'bg-amber-500/20 text-amber-100 border border-amber-500/40 rounded-tr-sm shadow-[0_2px_12px_rgba(245,158,11,0.15)]'
                                                     : 'bg-[#1f222a] text-slate-100 border border-white/[0.06] rounded-tl-sm'
@@ -1139,11 +1031,11 @@ export default function ChatInterface({
 
                                                 {/* LOVED ONE / CAREGIVER VOICE RECORDING PLAYER */}
                                                 {!isUser && msg.audioUrl && (
-                                                    <div className="mt-3 p-3 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent border border-amber-500/35 rounded-2xl flex items-center gap-3 text-left">
+                                                    <div className="mt-3 p-2.5 sm:p-3 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent border border-amber-500/35 rounded-2xl flex items-center gap-2.5 sm:gap-3 text-left">
                                                         <button
                                                             type="button"
                                                             onClick={() => handlePlayVoiceSample(msg.audioUrl, index)}
-                                                            className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-lg transition-all cursor-pointer ${
+                                                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 shadow-lg transition-all cursor-pointer ${
                                                                 playingMsgIndex === index
                                                                     ? 'bg-amber-400 text-slate-950 scale-105 shadow-[0_0_15px_rgba(245,158,11,0.5)]'
                                                                     : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 hover:scale-105'
@@ -1151,28 +1043,28 @@ export default function ChatInterface({
                                                             title={playingMsgIndex === index ? "Pause voice sample" : "Listen to how they sound"}
                                                         >
                                                             {playingMsgIndex === index ? (
-                                                                <Pause size={16} className="fill-slate-950 text-slate-950" />
+                                                                <Pause size={15} className="fill-slate-950 text-slate-950" />
                                                             ) : (
-                                                                <Play size={16} className="ml-0.5 fill-slate-950 text-slate-950" />
+                                                                <Play size={15} className="ml-0.5 fill-slate-950 text-slate-950" />
                                                             )}
                                                         </button>
                                                         <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-1.5 text-amber-300 font-mono text-[11px] font-semibold">
+                                                            <div className="flex items-center gap-1.5 text-amber-300 font-mono text-[10px] sm:text-[11px] font-semibold">
                                                                 <Volume2 size={13} className="text-amber-400" />
-                                                                <span>{playingMsgIndex === index ? "PLAYING VOICE SAMPLE..." : "VOICE SAMPLE • HEAR HOW THEY SOUND"}</span>
+                                                                <span className="truncate">{playingMsgIndex === index ? "PLAYING..." : "HEAR VOICE SAMPLE"}</span>
                                                             </div>
                                                             {playingMsgIndex === index ? (
-                                                                <div className="flex items-center gap-1 mt-1.5">
+                                                                <div className="flex items-center gap-1 mt-1">
                                                                     <span className="w-1 h-3 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                                                                     <span className="w-1 h-4 bg-amber-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                                                                     <span className="w-1 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                                                                     <span className="w-1 h-5 bg-amber-300 rounded-full animate-bounce" style={{ animationDelay: '100ms' }} />
                                                                     <span className="w-1 h-3 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '250ms' }} />
-                                                                    <span className="text-[10px] text-amber-200/80 font-mono ml-2">Audio active</span>
+                                                                    <span className="text-[10px] text-amber-200/80 font-mono ml-2">Active</span>
                                                                 </div>
                                                             ) : (
-                                                                <p className="text-[10px] text-slate-400 mt-0.5">
-                                                                    Tap play to hear their voice recording
+                                                                <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                                                                    Tap to hear voice recording
                                                                 </p>
                                                             )}
                                                         </div>
@@ -1180,8 +1072,8 @@ export default function ChatInterface({
                                                 )}
 
                                                 {/* PERSON OR OBJECT PHOTO (PROTECTED AGAINST BROKEN IMAGES) */}
-                                                {!isUser && msg.image && (
-                                                    <div className="mt-3 overflow-hidden rounded-xl border border-amber-500/30 max-w-[220px] shadow-md bg-black/40">
+                                                {!isUser && msg.image && !msg.noDataFound && (
+                                                    <div className="mt-3 overflow-hidden rounded-xl border border-amber-500/30 max-w-[200px] sm:max-w-[220px] shadow-md bg-black/40">
                                                         <img 
                                                             src={formatImageSrc(msg.image)} 
                                                             alt="Memory" 
@@ -1195,10 +1087,10 @@ export default function ChatInterface({
 
                                                 {/* CAREGIVER NOTIFICATION OPTION WHEN NO DATA FOUND */}
                                                 {!isUser && msg.noDataFound && (
-                                                    <div className="mt-3 p-3.5 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent border border-amber-500/35 rounded-2xl space-y-2 text-left">
-                                                        <div className="flex items-center gap-2 text-amber-300 font-mono text-[11px] font-semibold">
+                                                    <div className="mt-3 p-3 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent border border-amber-500/35 rounded-2xl space-y-2 text-left">
+                                                        <div className="flex items-center gap-2 text-amber-300 font-mono text-[10px] sm:text-[11px] font-semibold">
                                                             <Mail size={13} className="text-amber-400" />
-                                                            <span>CAREGIVER EMAIL NOTIFICATION</span>
+                                                            <span>CAREGIVER EMAIL ALERT</span>
                                                         </div>
                                                         <p className="text-xs text-slate-300 leading-relaxed font-sans">
                                                             Neuron does not have recorded memories for this yet. Would you like to notify your caregivers via email so they can assist you?
@@ -1246,7 +1138,7 @@ export default function ChatInterface({
                                                         title={speakingMsgIndex === index ? "Click to stop speaking" : "Listen aloud"}
                                                     >
                                                         <Volume2 size={13} className={speakingMsgIndex === index ? 'animate-pulse text-amber-300' : ''} />
-                                                        <span className="text-[11px] font-medium">
+                                                        <span className="text-[10px] sm:text-[11px] font-medium">
                                                             {speakingMsgIndex === index ? 'Speaking...' : 'Read Aloud'}
                                                         </span>
                                                     </button>
@@ -1259,7 +1151,7 @@ export default function ChatInterface({
                                 {isTyping && (
                                     <div className="flex flex-col items-start max-w-[85%] space-y-1">
                                         <span className="font-sans text-[11px] text-amber-400 px-1 font-medium">Neuron</span>
-                                        <div className="bg-[#1f222a] border border-white/[0.06] text-slate-300 p-3 rounded-2xl rounded-tl-sm text-xs flex items-center gap-2">
+                                        <div className="bg-[#1f222a] border border-white/[0.06] text-slate-300 p-2.5 sm:p-3 rounded-2xl rounded-tl-sm text-xs flex items-center gap-2">
                                             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                                             <span>{typingStatus || "Thinking gently..."}</span>
                                         </div>
@@ -1270,10 +1162,10 @@ export default function ChatInterface({
                             </div>
 
                             {/* Clean Bottom Input Container */}
-                            <div className="p-3.5 bg-[#14161b] border-t border-white/[0.06] space-y-2">
+                            <div className="p-2 sm:p-3.5 bg-[#14161b] border-t border-white/[0.06] space-y-2">
                                 <form 
                                     onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                                    className="flex items-center gap-2 relative"
+                                    className="flex items-center gap-1.5 sm:gap-2 relative"
                                 >
                                     {/* Action Launcher Button with Hover & Click Popover (4 options: add/scan object or face) */}
                                     <div 
@@ -1290,7 +1182,7 @@ export default function ChatInterface({
                                                 }
                                                 setActionMenuOpen(prev => !prev);
                                             }}
-                                            className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
+                                            className={`w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
                                                 actionMenuOpen
                                                     ? 'bg-amber-500/20 text-amber-300 border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.35)]'
                                                     : 'bg-[#1c1f26] hover:bg-[#252932] text-slate-300 hover:text-amber-300 border-white/[0.08]'
@@ -1298,7 +1190,7 @@ export default function ChatInterface({
                                             title="Quick Actions (Add or Scan Face & Object)"
                                             aria-label="Add or Scan Face or Object"
                                         >
-                                            <Plus size={20} className={`transition-transform duration-200 ${actionMenuOpen ? 'rotate-45 text-amber-400' : ''}`} />
+                                            <Plus size={18} className={`transition-transform duration-200 ${actionMenuOpen ? 'rotate-45 text-amber-400' : ''}`} />
                                         </button>
 
                                         {/* Popover wrapper touching the button directly with bottom-full and pb-2.5 so mouse never leaves container */}
@@ -1309,9 +1201,9 @@ export default function ChatInterface({
                                                     : 'opacity-0 scale-95 pointer-events-none translate-y-2'
                                             }`}
                                         >
-                                            <div className="w-72 p-2.5 bg-[#181a20]/98 backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_20px_rgba(245,158,11,0.15)]">
-                                                <div className="px-2.5 py-1.5 border-b border-white/[0.06] mb-1.5 flex items-center justify-between">
-                                                    <span className="font-mono text-[10px] tracking-wider text-amber-400 font-semibold uppercase">Memory &amp; Vision</span>
+                                            <div className="w-[calc(100vw-36px)] max-w-[280px] sm:max-w-xs sm:w-72 p-2 sm:p-2.5 bg-[#181a20]/98 backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_20px_rgba(245,158,11,0.15)]">
+                                                <div className="px-2 py-1 border-b border-white/[0.06] mb-1.5 flex items-center justify-between">
+                                                    <span className="font-mono text-[9px] sm:text-[10px] tracking-wider text-amber-400 font-semibold uppercase">Memory &amp; Vision</span>
                                                     <span className="text-[9px] font-mono text-slate-400 bg-white/[0.05] px-1.5 py-0.5 rounded">4 Options</span>
                                                 </div>
 
@@ -1325,10 +1217,10 @@ export default function ChatInterface({
                                                             setShowCamera(true);
                                                             if (onScanFace) onScanFace();
                                                         }}
-                                                        className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.06] text-left transition-all group/item cursor-pointer"
+                                                        className="w-full flex items-center gap-2.5 sm:gap-3 p-1.5 sm:p-2 rounded-xl hover:bg-white/[0.06] text-left transition-all group/item cursor-pointer"
                                                     >
-                                                        <div className="w-8 h-8 rounded-lg bg-amber-400/15 border border-amber-400/30 text-amber-400 flex items-center justify-center shrink-0 group-hover/item:scale-105 group-hover/item:bg-amber-400/25 transition-all">
-                                                            <ScanFace size={16} />
+                                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-400/15 border border-amber-400/30 text-amber-400 flex items-center justify-center shrink-0 group-hover/item:scale-105 group-hover/item:bg-amber-400/25 transition-all">
+                                                            <ScanFace size={15} />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="text-xs font-semibold text-slate-200 group-hover/item:text-amber-300 transition-colors">Scan Face</div>
@@ -1345,10 +1237,10 @@ export default function ChatInterface({
                                                             setShowCamera(true);
                                                             if (onScanObject) onScanObject();
                                                         }}
-                                                        className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.06] text-left transition-all group/item cursor-pointer"
+                                                        className="w-full flex items-center gap-2.5 sm:gap-3 p-1.5 sm:p-2 rounded-xl hover:bg-white/[0.06] text-left transition-all group/item cursor-pointer"
                                                     >
-                                                        <div className="w-8 h-8 rounded-lg bg-cyan-400/15 border border-cyan-400/30 text-cyan-400 flex items-center justify-center shrink-0 group-hover/item:scale-105 group-hover/item:bg-cyan-400/25 transition-all">
-                                                            <Scan size={16} />
+                                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-cyan-400/15 border border-cyan-400/30 text-cyan-400 flex items-center justify-center shrink-0 group-hover/item:scale-105 group-hover/item:bg-cyan-400/25 transition-all">
+                                                            <Scan size={15} />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="text-xs font-semibold text-slate-200 group-hover/item:text-cyan-300 transition-colors">Scan Object</div>
@@ -1363,14 +1255,14 @@ export default function ChatInterface({
                                                             setActionMenuOpen(false);
                                                             if (onEnroll) onEnroll();
                                                         }}
-                                                        className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.06] text-left transition-all group/item cursor-pointer"
+                                                        className="w-full flex items-center gap-2.5 sm:gap-3 p-1.5 sm:p-2 rounded-xl hover:bg-white/[0.06] text-left transition-all group/item cursor-pointer"
                                                     >
-                                                        <div className="w-8 h-8 rounded-lg bg-emerald-400/15 border border-emerald-400/30 text-emerald-400 flex items-center justify-center shrink-0 group-hover/item:scale-105 group-hover/item:bg-emerald-400/25 transition-all">
-                                                            <UserPlus size={16} />
+                                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-400/15 border border-emerald-400/30 text-emerald-400 flex items-center justify-center shrink-0 group-hover/item:scale-105 group-hover/item:bg-emerald-400/25 transition-all">
+                                                            <UserPlus size={15} />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="text-xs font-semibold text-slate-200 group-hover/item:text-emerald-300 transition-colors">Add Face / Person</div>
-                                                            <div className="text-[10px] text-slate-400 truncate">Enroll loved one or caregiver with photo</div>
+                                                            <div className="text-[10px] text-slate-400 truncate">Enroll loved one with photo</div>
                                                         </div>
                                                     </button>
 
@@ -1381,10 +1273,10 @@ export default function ChatInterface({
                                                             setActionMenuOpen(false);
                                                             if (onEnrollObject) onEnrollObject();
                                                         }}
-                                                        className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.06] text-left transition-all group/item cursor-pointer"
+                                                        className="w-full flex items-center gap-2.5 sm:gap-3 p-1.5 sm:p-2 rounded-xl hover:bg-white/[0.06] text-left transition-all group/item cursor-pointer"
                                                     >
-                                                        <div className="w-8 h-8 rounded-lg bg-purple-400/15 border border-purple-400/30 text-purple-400 flex items-center justify-center shrink-0 group-hover/item:scale-105 group-hover/item:bg-purple-400/25 transition-all">
-                                                            <PackagePlus size={16} />
+                                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-400/15 border border-purple-400/30 text-purple-400 flex items-center justify-center shrink-0 group-hover/item:scale-105 group-hover/item:bg-purple-400/25 transition-all">
+                                                            <PackagePlus size={15} />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="text-xs font-semibold text-slate-200 group-hover/item:text-purple-300 transition-colors">Add Object</div>
@@ -1401,37 +1293,37 @@ export default function ChatInterface({
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         placeholder="Type or speak a gentle thought..."
-                                        className="flex-1 bg-[#1c1f26] border border-white/[0.08] focus:border-amber-400/50 px-4 py-3 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none transition-all font-sans"
+                                        className="flex-1 min-w-0 bg-[#1c1f26] border border-white/[0.08] focus:border-amber-400/50 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none transition-all font-sans"
                                     />
 
                                     {/* Mic Trigger */}
                                     <button
                                         type="button"
                                         onClick={toggleSpeechRecognition}
-                                        className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                                        className={`w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                                             isListening
                                                 ? 'bg-amber-400 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse'
                                                 : 'bg-[#1c1f26] hover:bg-[#252932] text-slate-300 hover:text-amber-300 border border-white/[0.08]'
                                         }`}
                                         title="Speak voice message"
                                     >
-                                        <Mic size={18} />
+                                        <Mic size={17} />
                                     </button>
 
                                     {/* Send Arrow Button */}
                                     <button
                                         type="submit"
                                         disabled={!input.trim()}
-                                        className="w-11 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:hover:bg-amber-500 text-slate-950 flex items-center justify-center transition-all cursor-pointer shadow-md"
+                                        className="w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:hover:bg-amber-500 text-slate-950 flex items-center justify-center transition-all cursor-pointer shadow-md shrink-0"
                                         title="Send message"
                                     >
-                                        <Send size={16} />
+                                        <Send size={15} />
                                     </button>
                                 </form>
 
-                                <div className="flex items-center justify-between px-1 text-[11px] text-slate-500 font-sans">
-                                    <span>Voice clarity active • Gentle no-rush pacing</span>
-                                    <span>Ready</span>
+                                <div className="flex items-center justify-between px-1 text-[10px] sm:text-[11px] text-slate-500 font-sans">
+                                    <span className="truncate">Voice clarity active • Gentle no-rush pacing</span>
+                                    <span className="shrink-0">Ready</span>
                                 </div>
                             </div>
 

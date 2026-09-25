@@ -5,34 +5,42 @@ import numpy as np
 try:
     import torch
     import torchvision.transforms as transforms
-    from torchvision.models import resnet18, ResNet18_Weights
-    from ultralytics import YOLO
+    from facenet_pytorch import MTCNN, InceptionResnetV1
     _CV_AVAILABLE = True
 except (ImportError, OSError, Exception) as e:
     _CV_AVAILABLE = False
-    print(f"[WARNING] PyTorch/Ultralytics not available ({e}). Running FaceService in fallback mode.", flush=True)
+    print(f"[WARNING] PyTorch/FaceNet not available ({e}). Running FaceService in fallback mode.", flush=True)
 
 class FaceService:
     def __init__(self, model_path="yolov8n.pt"):
-        self.detector = None
+        self.mtcnn = None
         self.model = None
         self.transform = None
         if _CV_AVAILABLE:
             try:
-                print("DEBUG: Loading Face Detector (YOLO) and PyTorch Model...", flush=True)
-                self.detector = YOLO(model_path)
-                self.model = resnet18(weights=ResNet18_Weights.DEFAULT)
-                self.model.fc = torch.nn.Identity()
-                self.model.eval()
+                print("DEBUG: Loading MTCNN Face Detector & InceptionResnetV1 (FaceNet)...", flush=True)
+                self.mtcnn = MTCNN(image_size=160, margin=20, keep_all=False, post_process=True)
+                self.model = InceptionResnetV1(pretrained='vggface2').eval()
                 self.transform = transforms.Compose([
                     transforms.Resize((160, 160)),
                     transforms.ToTensor(),
-                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
                 ])
-                print("DEBUG: Face Models Loaded.", flush=True)
+                print("DEBUG: Face Recognition Models Loaded Successfully (MTCNN + VGGFace2).", flush=True)
             except Exception as e:
-                print(f"[WARNING] Face model load error: {e}", flush=True)
-
+                print(f"[WARNING] FaceNet load error ({e}). Attempting fallback...", flush=True)
+                try:
+                    from torchvision.models import resnet18, ResNet18_Weights
+                    self.model = resnet18(weights=ResNet18_Weights.DEFAULT)
+                    self.model.fc = torch.nn.Identity()
+                    self.model.eval()
+                    self.transform = transforms.Compose([
+                        transforms.Resize((160, 160)),
+                        transforms.ToTensor(),
+                        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                    ])
+                except Exception as fb_e:
+                    print(f"[WARNING] ResNet18 fallback failed: {fb_e}", flush=True)
 
     def get_embedding(self, img_input) -> list:
         try:
@@ -46,10 +54,8 @@ class FaceService:
             else:
                 return []
 
-            if not _CV_AVAILABLE or self.model is None or self.transform is None:
-                # Deterministic fallback
+            if not _CV_AVAILABLE or self.model is None:
                 import hashlib
-                buf = io.BytesIO() if 'io' in globals() else None
                 import io
                 buf = io.BytesIO()
                 pil_img.save(buf, format='JPEG')
@@ -60,32 +66,26 @@ class FaceService:
                 norm = np.linalg.norm(vec)
                 return (vec / norm if norm > 0 else vec).tolist()
 
-            img_w, img_h = pil_img.size
-            person_crop = None
-            if self.detector:
-                results = self.detector(pil_img, verbose=False)
-                for r in results:
-                    for box in r.boxes:
-                        cls_name = self.detector.names[int(box.cls[0])]
-                        if cls_name == "person":
-                            x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].tolist()]
-                            bw = x2 - x1
-                            bh = y2 - y1
-                            ratio = bh / max(img_h, 1)
-                            face_y2 = y1 + int(bh * 0.75) if ratio > 0.6 else y1 + int(bh * 0.5)
-                            x1 = max(0, x1 - int(bw * 0.05))
-                            x2 = min(img_w, x2 + int(bw * 0.05))
-                            y1 = max(0, y1)
-                            face_y2 = min(img_h, face_y2)
-                            person_crop = pil_img.crop((x1, y1, x2, face_y2))
-                            break
-                    if person_crop:
-                        break
+            # 1. Use MTCNN for high-precision face localization and alignment
+            face_tensor = None
+            if self.mtcnn is not None:
+                try:
+                    face_tensor = self.mtcnn(pil_img)
+                except Exception as mt_err:
+                    print(f"MTCNN crop error: {mt_err}")
 
-            target_img = person_crop if person_crop else pil_img
-            tensor = self.transform(target_img).unsqueeze(0)
-            with torch.no_grad():
-                embedding = self.model(tensor).squeeze(0).cpu().numpy()
+            if face_tensor is not None:
+                with torch.no_grad():
+                    embedding = self.model(face_tensor.unsqueeze(0)).squeeze(0).cpu().numpy()
+            else:
+                # If MTCNN didn't detect face directly, resize image to 160x160 as fallback
+                if self.transform is None:
+                    return []
+                tensor = self.transform(pil_img).unsqueeze(0)
+                with torch.no_grad():
+                    embedding = self.model(tensor).squeeze(0).cpu().numpy()
+            
+            # L2 Normalization for accurate Cosine metric space
             norm = np.linalg.norm(embedding)
             if norm > 0:
                 embedding = embedding / norm
@@ -100,56 +100,8 @@ class FaceService:
                 print(f"Image not found: {image_path}")
                 return []
 
-            if not _CV_AVAILABLE or self.model is None or self.transform is None:
-                # Deterministic 512-d hash embedding fallback
-                import hashlib
-                with open(image_path, "rb") as f:
-                    digest = hashlib.sha256(f.read()).hexdigest()
-                vec = np.zeros(512, dtype=np.float32)
-                for i, c in enumerate(digest):
-                    vec[i % 512] += ord(c)
-                norm = np.linalg.norm(vec)
-                return (vec / norm if norm > 0 else vec).tolist()
-
             pil_img = Image.open(image_path).convert("RGB")
-            img_w, img_h = pil_img.size
-            
-            # Detect persons using YOLO
-            person_crop = None
-            if self.detector:
-                results = self.detector(image_path, verbose=False)
-                for r in results:
-                    for box in r.boxes:
-                        cls_name = self.detector.names[int(box.cls[0])]
-                        if cls_name == "person":
-                            x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].tolist()]
-                            bw = x2 - x1
-                            bh = y2 - y1
-                            ratio = bh / max(img_h, 1)
-                            face_y2 = y1 + int(bh * 0.75) if ratio > 0.6 else y1 + int(bh * 0.5)
-                            x1 = max(0, x1 - int(bw * 0.05))
-                            x2 = min(img_w, x2 + int(bw * 0.05))
-                            y1 = max(0, y1)
-                            face_y2 = min(img_h, face_y2)
-                            person_crop = pil_img.crop((x1, y1, x2, face_y2))
-                            break
-                    if person_crop:
-                        break
-            
-            target_img = person_crop if person_crop else pil_img
-            
-            # Transform and embed with standard ResNet18
-            tensor = self.transform(target_img).unsqueeze(0)
-            
-            with torch.no_grad():
-                embedding = self.model(tensor).squeeze(0).cpu().numpy()
-            
-            # L2 Normalization for Cosine distance
-            norm = np.linalg.norm(embedding)
-            if norm > 0:
-                embedding = embedding / norm
-            return embedding.tolist()
-            
+            return self.get_embedding(pil_img)
         except Exception as e:
             print(f"Error generating face embedding: {e}")
             return []
@@ -164,8 +116,7 @@ class FaceService:
         if denom == 0:
             return False
         cosine_sim = np.dot(v1, v2) / denom
-        return cosine_sim > 0.6
-
+        return cosine_sim > 0.55
 
     def analyze(self, img_path):
         return [{

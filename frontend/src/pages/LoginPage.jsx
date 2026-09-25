@@ -413,35 +413,35 @@ const LoginPage = ({ onSelectRole, onLoginSuccess }) => {
     };
 
     return (
-        <div className="w-full flex-1 min-h-0 bg-[#060a12] text-slate-100 flex flex-col items-center justify-start relative overflow-y-auto cyber-grid-bg px-4 py-5 sm:py-7 select-none">
+        <div className="w-full flex-1 min-h-0 bg-[#060a12] text-slate-100 flex flex-col items-center justify-start relative overflow-y-auto cyber-grid-bg px-3 sm:px-4 py-3 sm:py-6 select-none">
             {/* Ambient Background Glows */}
-            <div className="absolute w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
-            <div className="absolute w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[140px] pointer-events-none" />
+            <div className="absolute w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
+            <div className="absolute w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] bg-amber-500/10 rounded-full blur-[140px] pointer-events-none" />
 
             {/* Logo Brand Mark */}
             <div className="relative z-10 flex flex-col items-center justify-center mb-2 select-none group">
-                <div className="relative p-2 rounded-2xl bg-amber-500/10 border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.25)] backdrop-blur-md">
+                <div className="relative p-1.5 sm:p-2 rounded-2xl bg-amber-500/10 border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.25)] backdrop-blur-md">
                     <img 
                         src={neuronLogoIcon} 
                         alt="Neuron Sanctuary Logo" 
-                        className="w-14 h-14 object-contain drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] group-hover:scale-105 transition-transform duration-300"
+                        className="w-11 h-11 sm:w-14 sm:h-14 object-contain drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] group-hover:scale-105 transition-transform duration-300" 
                     />
                 </div>
             </div>
 
             {/* Header Telemetry */}
-            <div className="relative z-10 text-center mb-4 space-y-1.5 max-w-lg shrink-0">
-                <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 font-mono text-[11px] shadow-[0_0_15px_rgba(0,240,255,0.2)]">
+            <div className="relative z-10 text-center mb-3 sm:mb-4 space-y-1 sm:space-y-1.5 max-w-lg shrink-0 px-2">
+                <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 font-mono text-[10px] sm:text-[11px] shadow-[0_0_15px_rgba(0,240,255,0.2)]">
                     <Terminal size={12} />
                     <span>AUTHENTICATION GATEWAY // SECURE ACCESS</span>
                 </div>
-                <h1 className="font-display font-extrabold text-2xl sm:text-3xl text-white tracking-tight">
+                <h1 className="font-display font-extrabold text-xl sm:text-2xl md:text-3xl text-white tracking-tight">
                     {mode === 'signup' && "Create Patient Sanctuary Profile"}
                     {mode === 'signin' && (selectedRole === 'caregiver' ? "Caregiver Access Portal" : "Access Neural Protocol")}
                     {mode === 'face_scan' && "Biometric Neural Face Login"}
                     {mode === 'forgot_password' && "Recover Sanctuary Access"}
                 </h1>
-                <p className="font-mono text-[11px] text-slate-400">
+                <p className="font-mono text-[10px] sm:text-[11px] text-slate-400 max-w-md mx-auto">
                     {mode === 'signup' && "Sign up via Email or Phone, take a live photo for face biometrics, and initialize your memory cortex."}
                     {mode === 'signin' && (selectedRole === 'caregiver' ? "Sign in via Email or Phone Number and Password to access companion care." : "Sign in with Email or Phone Number & Password, or 1-click Biometric Face Scan.")}
                     {mode === 'face_scan' && "Look straight into the camera to authenticate via 512-dim facial vectors."}
@@ -450,7 +450,7 @@ const LoginPage = ({ onSelectRole, onLoginSuccess }) => {
             </div>
 
             {/* Main Auth Container Card */}
-            <div className="relative z-10 w-full max-w-md bg-[#0c1322]/95 border border-cyan-500/30 rounded-3xl p-5 sm:p-6 shadow-[0_0_40px_rgba(0,0,0,0.8)] backdrop-blur-xl mb-8">
+            <div className="relative z-10 w-full max-w-md bg-[#0c1322]/95 border border-cyan-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-[0_0_40px_rgba(0,0,0,0.8)] backdrop-blur-xl mb-6 sm:mb-8">
                 
                 {/* Navigation Mode Pill Tabs (Sign In vs Sign Up) */}
                 {mode !== 'forgot_password' && (

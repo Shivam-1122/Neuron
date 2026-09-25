@@ -2,7 +2,7 @@
   "expo": {
     "name": "Neuron",
     "slug": "neuron",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -22,6 +22,7 @@
     },
     "android": {
       "package": "com.neuron.assistant",
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#060a12"
@@ -41,6 +42,13 @@
         "expo-camera",
         {
           "cameraPermission": "Allow Neuron to access your camera to scan faces and items."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Neuron to select photos to enroll loved ones.",
+          "cameraPermission": "Allow Neuron to take photos to enroll faces and objects."
         }
       ],
       "expo-asset",

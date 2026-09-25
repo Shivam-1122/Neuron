@@ -9,15 +9,31 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
-  Alert
+  Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '../theme/colors';
-import { UserPlus, PackagePlus, X, Camera, Image as ImageIcon, CheckCircle2, AlertTriangle } from 'lucide-react-native';
+import {
+  UserPlus,
+  PackagePlus,
+  X,
+  Camera,
+  Image as ImageIcon,
+  CheckCircle2,
+  AlertTriangle,
+  RotateCcw,
+} from 'lucide-react-native';
 import AudioRecorder from './AudioRecorder';
+import CameraScanner from './CameraScanner';
 import { rememberPersonApi, rememberObjectApi } from '../api/client';
+import sound from '../utils/soundEngine';
 
-export default function EnrollmentModal({ visible, onClose, initialType = 'person', onEnrollSuccess }) {
+export default function EnrollmentModal({
+  visible,
+  onClose,
+  initialType = 'person',
+  onEnrollSuccess,
+}) {
   const [enrollType, setEnrollType] = useState(initialType);
   const [name, setName] = useState('');
   const [relation, setRelation] = useState('Family');
@@ -28,24 +44,23 @@ export default function EnrollmentModal({ visible, onClose, initialType = 'perso
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [showInAppCamera, setShowInAppCamera] = useState(false);
 
   const isPerson = enrollType === 'person';
 
-  // Photo from camera or gallery
+  // Pick photo from gallery or launch system camera
   const pickImage = async (useCamera = false) => {
     try {
       let result;
       if (useCamera) {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        setShowInAppCamera(true);
+        return;
+      } else {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) {
-          Alert.alert('Permission Denied', 'Camera access needed.');
+          Alert.alert('Permission Denied', 'Gallery access is needed to select photos.');
           return;
         }
-        result = await ImagePicker.launchCameraAsync({
-          quality: 0.7,
-          base64: true,
-        });
-      } else {
         result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           quality: 0.7,
@@ -62,6 +77,12 @@ export default function EnrollmentModal({ visible, onClose, initialType = 'perso
     }
   };
 
+  const handleInAppCapture = (uri) => {
+    setImageUri(uri);
+    setShowInAppCamera(false);
+    setErrorMessage(null);
+  };
+
   const handleEnroll = async () => {
     if (!name.trim()) {
       setErrorMessage('Please specify an identifier name.');
@@ -74,6 +95,7 @@ export default function EnrollmentModal({ visible, onClose, initialType = 'perso
 
     setIsSubmitting(true);
     setErrorMessage(null);
+    sound.playCardFlip();
 
     try {
       if (isPerson) {
@@ -85,6 +107,7 @@ export default function EnrollmentModal({ visible, onClose, initialType = 'perso
           imageUri,
           audioUri,
         });
+        sound.playMatchSuccess();
         setStatusMessage(`Successfully encoded 512-D vectors for ${name}.`);
         if (onEnrollSuccess) onEnrollSuccess(res);
       } else {
@@ -93,6 +116,7 @@ export default function EnrollmentModal({ visible, onClose, initialType = 'perso
           notes: notes.trim(),
           imageUri,
         });
+        sound.playMatchSuccess();
         setStatusMessage(`Successfully registered ${name} in spatial memory.`);
         if (onEnrollSuccess) onEnrollSuccess(res);
       }
@@ -100,178 +124,228 @@ export default function EnrollmentModal({ visible, onClose, initialType = 'perso
       setTimeout(() => {
         setIsSubmitting(false);
         setStatusMessage(null);
-        resetForm();
+        setName('');
+        setNotes('');
+        setAge('');
+        setImageUri(null);
+        setAudioUri(null);
         onClose();
-      }, 1800);
+      }, 1400);
     } catch (err) {
       setIsSubmitting(false);
-      const detail = err.response?.data?.detail || err.message || 'Enrollment failed. Ensure face is clearly visible.';
+      sound.playTryAgain();
+      const detail = err.response?.data?.detail || err.message || 'Connection to memory core failed.';
       setErrorMessage(detail);
     }
-  };
-
-  const resetForm = () => {
-    setName('');
-    setRelation('Family');
-    setAge('');
-    setNotes('');
-    setImageUri(null);
-    setAudioUri(null);
-    setErrorMessage(null);
   };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.modalCard}>
+        <View style={styles.card}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              {isPerson ? <UserPlus color={Colors.cyan} size={20} /> : <PackagePlus color={Colors.amber} size={20} />}
-              <Text style={[styles.title, { color: isPerson ? Colors.cyan : Colors.amber }]}>
-                {isPerson ? 'BIOMETRIC IDENTITY ENROLLMENT' : 'OBJECT TELEMETRY ENROLLMENT'}
+              {isPerson ? (
+                <UserPlus color={Colors.cyan} size={15} />
+              ) : (
+                <PackagePlus color={Colors.amber} size={15} />
+              )}
+              <Text style={styles.title}>
+                {isPerson ? 'ENROLL NEW LOVED ONE' : 'REGISTER ITEM MEMORY'}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X color={Colors.textMuted} size={20} />
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
+              <X color={Colors.textMuted} size={15} />
             </TouchableOpacity>
           </View>
 
-          {/* Type Selector Tabs */}
-          <View style={styles.typeTabsRow}>
+          {/* Type Toggle Tabs */}
+          <View style={styles.tabContainer}>
             <TouchableOpacity
-              style={[styles.typeTab, isPerson && styles.typeTabActivePerson]}
-              onPress={() => setEnrollType('person')}
+              style={[styles.tab, isPerson && styles.tabActive]}
+              onPress={() => {
+                setEnrollType('person');
+                setErrorMessage(null);
+              }}
             >
-              <Text style={[styles.typeTabText, isPerson && { color: Colors.cyan }]}>PERSON / CONTACT</Text>
+              <Text style={[styles.tabText, isPerson && { color: Colors.cyan, fontWeight: '800' }]}>
+                Loved One / Caregiver
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.typeTab, !isPerson && styles.typeTabActiveObject]}
-              onPress={() => setEnrollType('object')}
+              style={[styles.tab, !isPerson && styles.tabActive]}
+              onPress={() => {
+                setEnrollType('object');
+                setErrorMessage(null);
+              }}
             >
-              <Text style={[styles.typeTabText, !isPerson && { color: Colors.amber }]}>OBJECT / MEDICINE</Text>
+              <Text style={[styles.tabText, !isPerson && { color: Colors.amber, fontWeight: '800' }]}>
+                Everyday Item (Keys/Wallet)
+              </Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {/* Error / Status banners */}
-            {errorMessage && (
-              <View style={styles.errorBanner}>
-                <AlertTriangle color={Colors.red} size={16} />
-                <Text style={styles.errorText}>{errorMessage}</Text>
+          <ScrollView style={styles.scrollBody} contentContainerStyle={styles.scrollContent}>
+            {/* Feedback Banners */}
+            {errorMessage ? (
+              <View style={styles.bannerError}>
+                <AlertTriangle color={Colors.red} size={12} />
+                <Text style={styles.bannerErrorText}>{errorMessage}</Text>
               </View>
-            )}
+            ) : null}
 
-            {statusMessage && (
-              <View style={styles.successBanner}>
-                <CheckCircle2 color={Colors.emerald} size={16} />
-                <Text style={styles.successText}>{statusMessage}</Text>
+            {statusMessage ? (
+              <View style={styles.bannerSuccess}>
+                <CheckCircle2 color={Colors.emerald} size={12} />
+                <Text style={styles.bannerSuccessText}>{statusMessage}</Text>
               </View>
-            )}
+            ) : null}
 
-            {/* Name Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{isPerson ? 'FULL NAME / IDENTITY' : 'OBJECT NAME'}</Text>
+            {/* Input Fields */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>
+                {isPerson ? 'FULL NAME / IDENTITY' : 'ITEM NAME'}
+              </Text>
               <TextInput
                 style={styles.input}
                 value={name}
                 onChangeText={setName}
-                placeholder={isPerson ? 'e.g. Dr. Sarah Miller, Sister Emily' : 'e.g. Heart Pill Bottle, House Keys'}
+                placeholder={isPerson ? 'e.g. Sarah Vance' : 'e.g. Leather Wallet'}
                 placeholderTextColor={Colors.textDark}
               />
             </View>
 
-            {/* Relation / Category (if Person) */}
-            {isPerson && (
-              <View style={styles.rowTwoCols}>
-                <View style={[styles.inputGroup, { flex: 2 }]}>
-                  <Text style={styles.inputLabel}>RELATIONSHIP</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={relation}
-                    onChangeText={setRelation}
-                    placeholder="e.g. Daughter, Doctor, Caregiver"
-                    placeholderTextColor={Colors.textDark}
-                  />
+            {isPerson ? (
+              <>
+                <View style={styles.rowFields}>
+                  <View style={[styles.fieldGroup, { flex: 1 }]}>
+                    <Text style={styles.fieldLabel}>RELATIONSHIP</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={relation}
+                      onChangeText={setRelation}
+                      placeholder="e.g. Daughter"
+                      placeholderTextColor={Colors.textDark}
+                    />
+                  </View>
+                  <View style={[styles.fieldGroup, { width: 70 }]}>
+                    <Text style={styles.fieldLabel}>AGE</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={age}
+                      onChangeText={setAge}
+                      placeholder="42"
+                      placeholderTextColor={Colors.textDark}
+                      keyboardType="numeric"
+                    />
+                  </View>
                 </View>
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>AGE (OPT)</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={age}
-                    onChangeText={setAge}
-                    keyboardType="numeric"
-                    placeholder="e.g. 42"
-                    placeholderTextColor={Colors.textDark}
-                  />
-                </View>
-              </View>
-            )}
+              </>
+            ) : null}
 
-            {/* Notes / Context */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>MEMORY CONTEXT & NOTES</Text>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>
+                {isPerson ? 'NOTES (VOICE NARRATION)' : 'USUAL LOCATION & NOTES'}
+              </Text>
               <TextInput
                 style={[styles.input, styles.multilineInput]}
                 value={notes}
                 onChangeText={setNotes}
-                multiline
-                numberOfLines={3}
-                placeholder={isPerson ? 'e.g. Visits on Tuesdays, brings fresh flowers, likes jazz' : 'e.g. Usually kept in nightstand drawer'}
+                placeholder={
+                  isPerson
+                    ? 'e.g. Lives in Seattle, visits every Sunday at 2 PM.'
+                    : 'e.g. Kept on the wooden hallway credenza by the front door.'
+                }
                 placeholderTextColor={Colors.textDark}
+                multiline
+                numberOfLines={2}
               />
             </View>
 
-            {/* Photo Acquisition */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>OPTICAL PORTRAIT</Text>
+            {/* Photo Attachment */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>OPTICAL PORTRAIT / ITEM PHOTO</Text>
               {imageUri ? (
-                <View style={styles.previewContainer}>
-                  <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
-                  <View style={styles.previewButtonsRow}>
-                    <TouchableOpacity style={styles.retakeBtn} onPress={() => pickImage(true)}>
-                      <Text style={styles.retakeBtnText}>RETAKE CAMERA</Text>
+                <View style={styles.imagePreviewRow}>
+                  <Image source={{ uri: imageUri }} style={styles.previewImage} />
+                  <View style={styles.imageActions}>
+                    <TouchableOpacity
+                      style={styles.photoActionBtn}
+                      onPress={() => pickImage(true)}
+                    >
+                      <Camera size={11} color={Colors.cyan} />
+                      <Text style={styles.photoActionBtnText}>RETAKE CAMERA</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.retakeBtn} onPress={() => pickImage(false)}>
-                      <Text style={styles.retakeBtnText}>REPLACE FILE</Text>
+                    <TouchableOpacity
+                      style={styles.photoActionBtn}
+                      onPress={() => pickImage(false)}
+                    >
+                      <ImageIcon size={11} color={Colors.cyan} />
+                      <Text style={styles.photoActionBtnText}>FROM GALLERY</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               ) : (
-                <View style={styles.photoActionRow}>
-                  <TouchableOpacity style={styles.photoChoiceBtn} onPress={() => pickImage(true)}>
-                    <Camera color={Colors.cyan} size={22} />
-                    <Text style={styles.photoChoiceText}>LIVE SNAP</Text>
+                <View style={styles.photoBtnGrid}>
+                  <TouchableOpacity
+                    style={[styles.photoCard, { borderColor: Colors.cyanBorder }]}
+                    onPress={() => pickImage(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Camera size={20} color={Colors.cyan} />
+                    <Text style={[styles.photoCardTitle, { color: Colors.cyan }]}>
+                      LIVE CAMERA
+                    </Text>
+                    <Text style={styles.photoCardSub}>Take snapshot now</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.photoChoiceBtn} onPress={() => pickImage(false)}>
-                    <ImageIcon color={Colors.cyan} size={22} />
-                    <Text style={styles.photoChoiceText}>GALLERY</Text>
+
+                  <TouchableOpacity
+                    style={[styles.photoCard, { borderColor: Colors.borderSubtle }]}
+                    onPress={() => pickImage(false)}
+                    activeOpacity={0.8}
+                  >
+                    <ImageIcon size={20} color={Colors.textMuted} />
+                    <Text style={styles.photoCardTitle}>DEVICE GALLERY</Text>
+                    <Text style={styles.photoCardSub}>Choose existing</Text>
                   </TouchableOpacity>
                 </View>
               )}
             </View>
 
-            {/* Audio Voice Sample (Person only) */}
+            {/* Audio Voice Signature (For Persons) */}
             {isPerson && (
-              <AudioRecorder
-                label="AUDIO SIGNATURE (OPTIONAL VOICE SAMPLE)"
-                onRecordingComplete={setAudioUri}
-              />
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>VOICE SIGNATURE (OPTIONAL)</Text>
+                <AudioRecorder onRecordingComplete={(uri) => setAudioUri(uri)} />
+              </View>
             )}
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={[styles.submitBtn, isSubmitting && { opacity: 0.6 }]}
+              onPress={handleEnroll}
+              disabled={isSubmitting}
+              activeOpacity={0.8}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#000" size="small" />
+              ) : (
+                <Text style={styles.submitBtnText}>
+                  {isPerson ? 'INDEX TO NEURAL MEMORY' : 'REGISTER ITEM TO MEMORY'}
+                </Text>
+              )}
+            </TouchableOpacity>
           </ScrollView>
 
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={[styles.submitBtn, isSubmitting && { opacity: 0.6 }]}
-            onPress={handleEnroll}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#060a12" size="small" />
-            ) : (
-              <Text style={styles.submitBtnText}>COMMIT TO VECTOR MEMORY</Text>
-            )}
-          </TouchableOpacity>
+          {/* In-App Camera Scanner Viewport */}
+          {showInAppCamera && (
+            <CameraScanner
+              mode={isPerson ? 'person' : 'object'}
+              onCapture={handleInAppCapture}
+              onClose={() => setShowInAppCamera(false)}
+            />
+          )}
         </View>
       </View>
     </Modal>
@@ -281,196 +355,207 @@ export default function EnrollmentModal({ visible, onClose, initialType = 'perso
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: Colors.modalOverlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'flex-end',
   },
-  modalCard: {
-    width: '100%',
+  card: {
+    backgroundColor: '#111318',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderSubtle,
     maxHeight: '90%',
-    backgroundColor: Colors.card,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: Colors.cyanBorder,
-    padding: 20,
-    display: 'flex',
+    overflow: 'hidden',
   },
   header: {
+    height: 44,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderSubtle,
+    backgroundColor: '#16181f',
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
   },
   title: {
-    fontWeight: '900',
-    fontSize: 11,
-    letterSpacing: 1,
+    color: Colors.textPrimary,
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
   closeBtn: {
-    padding: 4,
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  typeTabsRow: {
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#0c0e14',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderSubtle,
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: Colors.cyan,
+    backgroundColor: 'rgba(6, 182, 212, 0.05)',
+  },
+  tabText: {
+    color: Colors.textMuted,
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  scrollBody: {
+    flexGrow: 0,
+  },
+  scrollContent: {
+    padding: 14,
+    gap: 10,
+    paddingBottom: 28,
+  },
+  bannerError: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 6,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  bannerErrorText: {
+    color: Colors.red,
+    fontSize: 9,
+    fontWeight: '700',
+    flex: 1,
+  },
+  bannerSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderRadius: 6,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  bannerSuccessText: {
+    color: Colors.emerald,
+    fontSize: 9,
+    fontWeight: '700',
+    flex: 1,
+  },
+  fieldGroup: {
+    gap: 4,
+  },
+  rowFields: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 14,
   },
-  typeTab: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-  },
-  typeTabActivePerson: {
-    borderColor: Colors.cyan,
-    backgroundColor: 'rgba(0, 240, 255, 0.1)',
-  },
-  typeTabActiveObject: {
-    borderColor: Colors.amber,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-  },
-  typeTabText: {
+  fieldLabel: {
     color: Colors.textMuted,
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  scrollContent: {
-    maxHeight: 420,
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderWidth: 1,
-    borderColor: Colors.red,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 12,
-  },
-  errorText: {
-    color: Colors.red,
-    fontSize: 11,
-    fontWeight: '700',
-    flex: 1,
-  },
-  successBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderWidth: 1,
-    borderColor: Colors.emeraldBorder,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 12,
-  },
-  successText: {
-    color: Colors.emerald,
-    fontSize: 11,
-    fontWeight: '700',
-    flex: 1,
-  },
-  inputGroup: {
-    marginBottom: 12,
-  },
-  rowTwoCols: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  inputLabel: {
-    color: Colors.cyan,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
   input: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
+    height: 36,
+    backgroundColor: '#16181f',
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
     color: Colors.textPrimary,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
+    fontSize: 10.5,
+    paddingHorizontal: 10,
   },
   multilineInput: {
-    minHeight: 60,
+    height: 52,
     textAlignVertical: 'top',
+    paddingVertical: 7,
   },
-  photoActionRow: {
+  imagePreviewRow: {
     flexDirection: 'row',
-    gap: 10,
-  },
-  photoChoiceBtn: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: Colors.cyanBorder,
-    gap: 6,
-  },
-  photoChoiceText: {
-    color: Colors.cyan,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  previewContainer: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  previewImage: {
-    width: '100%',
-    height: 140,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.cyan,
-  },
-  previewButtonsRow: {
-    flexDirection: 'row',
     gap: 10,
-    width: '100%',
-  },
-  retakeBtn: {
-    flex: 1,
-    paddingVertical: 8,
+    backgroundColor: '#16181f',
+    padding: 8,
     borderRadius: 8,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
   },
-  retakeBtnText: {
-    color: Colors.textSecondary,
-    fontSize: 10,
-    fontWeight: '700',
+  previewImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+  },
+  imageActions: {
+    flex: 1,
+    gap: 4,
+  },
+  photoActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(6, 182, 212, 0.08)',
+    borderWidth: 1,
+    borderColor: Colors.cyanBorder,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 5,
+  },
+  photoActionBtnText: {
+    color: Colors.cyan,
+    fontSize: 8,
+    fontWeight: '800',
+  },
+  photoBtnGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  photoCard: {
+    flex: 1,
+    backgroundColor: '#16181f',
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 10,
+    alignItems: 'center',
+    gap: 3,
+  },
+  photoCardTitle: {
+    color: Colors.textPrimary,
+    fontSize: 9,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  photoCardSub: {
+    color: Colors.textMuted,
+    fontSize: 7.5,
   },
   submitBtn: {
-    backgroundColor: Colors.cyan,
-    borderRadius: 12,
-    paddingVertical: 14,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: Colors.amber,
     alignItems: 'center',
-    marginTop: 14,
+    justifyContent: 'center',
+    marginTop: 6,
   },
   submitBtnText: {
-    color: '#060a12',
-    fontSize: 12,
+    color: '#000',
+    fontSize: 10,
     fontWeight: '900',
-    letterSpacing: 1,
+    letterSpacing: 0.6,
   },
 });
